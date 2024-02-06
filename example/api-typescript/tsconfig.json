@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@api/*": ["./src/*"]
+    },
+    "noEmit": true,
+    "strict": true,
+    "allowJs": true,
+    "target": "esnext",
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+  },
+  "include": ["src"],
+  "exclude": [
+    "node_modules",
+  ]
+}

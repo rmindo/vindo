@@ -1,0 +1,34 @@
+{
+  "name": "@vindo/core",
+  "version": "0.0.1",
+  "description": "Core service for managing routes and middleware.",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "jest --testPathPattern=./tests --watchAll"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/core#readme",
+  "keywords": [
+    "api",
+    "node",
+    "web",
+    "route",
+    "injection",
+    "middleware",
+    "dependencies"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {
+    "@vindo/exception": "file:../exception",
+    "@vindo/utility": "file:../utility"
+  }
+}

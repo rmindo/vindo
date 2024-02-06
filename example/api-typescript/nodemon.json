@@ -1,0 +1,9 @@
+{
+  "ext": "ts,js",
+  "exec": "yarn dev",
+  "watch": [
+    "src",
+    "node_modules"
+  ],
+  "ignoreRoot": [".git"]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@vindo/body",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/body"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/body#readme",
+  "keywords": [
+    "body",
+    "file",
+    "files",
+    "parser",
+    "upload"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {}
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@vindo/exception",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/exception"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/exception",
+  
+  "keywords": [
+    "error",
+    "exception"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {}
+}

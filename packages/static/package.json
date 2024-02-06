@@ -1,0 +1,26 @@
+{
+  "name": "@canine/static",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/canine.git",
+    "directory": "packages/static"
+  },
+  "homepage": "https://github.com/rmindo/canine/tree/main/packages/static#readme",
+  "keywords": [
+    "file",
+    "static"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {
+    "mime-types": "^2.1.35"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "api-typescript",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./src/server.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node ./src/server.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vindo/body": "file:../../packages/body",
+    "@vindo/core": "file:../../packages/core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.9.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "port": "3000",
+  "env": {
+    "ENV_PATH": {
+      "dev": ".env/dev",
+      "prod": ".env/prod"
+    }
+  },
+  "include": {
+    "auth": "lib/auth"
+  }
+}

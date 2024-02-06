@@ -1,12 +1,12 @@
-## Exception Handler
-An error exception handler
+## Common Utilities
+Common utilities such as object, string, events, url and file.
 
 
 ## Installation
 ```
-npm install @vindo/exception
+npm install @vindo/utility
 ```
 Or
 ```
-yarn add @vindo/exception
+yarn add @vindo/utility
 ```

@@ -14,6 +14,7 @@ const string = require('./string')
 
 module.exports = exports = {path}
 
+
 /**
  * Reuse path
  * @param {string} name
@@ -27,6 +28,7 @@ exports.ext = function ext(name) {
   }
 }
 
+
 /**
  * Get file
  * @param {string | string[]} args
@@ -34,6 +36,7 @@ exports.ext = function ext(name) {
 exports.get = function get(...args) {
   return require(exports.join(...args))
 }
+
 
 /**
  * Join path
@@ -50,6 +53,7 @@ exports.join = function join(...args) {
   }
   return path.join(process.cwd(), ...args.filter(v => v))
 }
+
 
 /**
  * Check if exists
@@ -92,6 +96,7 @@ exports.exists = function exists(...args) {
   return false
 }
 
+
 /**
  * Read directory
  * @param {string | string[]} args
@@ -112,6 +117,7 @@ exports.readdir = function readdir(...args) {
   }
   catch(e) {}
 }
+
 
 /**
  * Get the HTML content
@@ -172,6 +178,7 @@ exports.stats = function stats(...args) {
   catch(e) {}
 }
 
+
 /**
  * Check if directory
  * @param  {string | string[]} args
@@ -182,6 +189,7 @@ exports.isDir = function isDir(...args) {
     return stats.isDirectory()
   }
 }
+
 
 /**
  * Read file synchronously
@@ -200,6 +208,7 @@ exports.read = function read(...args) {
   }
 }
 
+
 /**
  * Read file with promises (asynchronous)
  * 
@@ -212,6 +221,7 @@ exports.readAsync = async function readAsync(...args) {
     return await fs.promises.readFile(file, {encoding: 'utf8'})
   }
 }
+
 
 /**
  * Parse the string from a file containing key/value

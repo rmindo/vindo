@@ -1,5 +1,5 @@
 {
-  "name": "@canine/static",
+  "name": "@vindo/static",
   "version": "0.0.1",
   "description": "",
   "main": "./index.js",
@@ -10,10 +10,10 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rmindo/canine.git",
+    "url": "git+https://github.com/rmindo/vindo.git",
     "directory": "packages/static"
   },
-  "homepage": "https://github.com/rmindo/canine/tree/main/packages/static#readme",
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/static#readme",
   "keywords": [
     "file",
     "static"

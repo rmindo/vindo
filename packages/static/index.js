@@ -13,7 +13,7 @@ const mime = require('mime-types')
 
 
 
-module.exports = function(option = {}) {
+exports.static = function static(option = {}) {
   var root = process.cwd()
 
   var serve = option.serve || null

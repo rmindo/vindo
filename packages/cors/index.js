@@ -35,9 +35,9 @@ function allowOrigin(headers, origin) {
 /**
  * Response headers
  */
-module.exports = function(opt = {}) {
+exports.cors = function cors(opt = {}) {
 
-  return function cors(req, res, next) {
+  return function(req, res, next) {
     opt = Object.assign(opt, req.cors)
 
     /**

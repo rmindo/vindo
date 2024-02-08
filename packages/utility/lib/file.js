@@ -31,7 +31,8 @@ exports.ext = function ext(name) {
 
 /**
  * Get file
- * @param {string | string[]} args
+ * 
+ * @param {string | string[]} args The path of the file
  */
 exports.get = function get(...args) {
   return require(exports.join(...args))
@@ -40,7 +41,8 @@ exports.get = function get(...args) {
 
 /**
  * Join path
- * @param {string | string[]} args
+ * 
+ * @param {string | string[]} args The path of the file
  */
 exports.join = function join(...args) {
   if(Array.isArray(args[0])) {
@@ -57,7 +59,8 @@ exports.join = function join(...args) {
 
 /**
  * Check if exists
- * @param {string | string[]} args
+ * 
+ * @param {string | string[]} args The path of the file
  */
 exports.exists = function exists(...args) {
   if(Array.isArray(args[0])) {
@@ -99,7 +102,8 @@ exports.exists = function exists(...args) {
 
 /**
  * Read directory
- * @param {string | string[]} args
+ * 
+ * @param {string | string[]} args The path of the file
  */
 exports.readdir = function readdir(...args) {
   var opts = {withFileTypes: true}
@@ -122,7 +126,7 @@ exports.readdir = function readdir(...args) {
 /**
  * Get the HTML content
  * 
- * @param {string | string[]} args
+ * @param {string | string[]} args The path of the file
  */
 exports.html = function html(...args) {
   var src = 'src'
@@ -169,7 +173,8 @@ exports.html = function html(...args) {
 
 /**
  * Get file stats
- * @param  {string | string[]} args
+ * 
+ * @param  {string | string[]} args The path of the file
  */
 exports.stats = function stats(...args) {
   try {
@@ -181,7 +186,8 @@ exports.stats = function stats(...args) {
 
 /**
  * Check if directory
- * @param  {string | string[]} args
+ * 
+ * @param  {string | string[]} args The path of the file
  */
 exports.isDir = function isDir(...args) {
   const stats = exports.stats(...args)
@@ -194,7 +200,7 @@ exports.isDir = function isDir(...args) {
 /**
  * Read file synchronously
  * 
- * @param {string | string[]} args
+ * @param {string | string[]} args The path of the file
  */
 exports.read = function read(...args) {
   const file = exports.join(...args)
@@ -212,7 +218,7 @@ exports.read = function read(...args) {
 /**
  * Read file with promises (asynchronous)
  * 
- * @param {string | string[]} args
+ * @param {string | string[]} args The path of the file
  */
 exports.readAsync = async function readAsync(...args) {
   const file = exports.join(...args)
@@ -227,13 +233,11 @@ exports.readAsync = async function readAsync(...args) {
  * Parse the string from a file containing key/value
  * 
  * @exmaple
- * e.g. Joining path together to read
- * file.parse('view', 'index.html')
- * that contains key/value. API_KEY=zUpiKsaP2EyeP2KMg7GxWs==
+ * File contains key/value.
+ *    API_KEY=zUpiKsaP2EyeP2KMg7GxWs==
+ *    API_ENDPOINT=http://example.com/api/v1
  * 
- * @args The path of the file containing key and value format.
- * 
- * @param {string | string[]} args
+ * @param {string | string[]} args The path of the file containing key and value format.
  */
 exports.parse = function parse(...args) {
   const content = exports.read(...args)

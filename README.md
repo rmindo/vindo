@@ -162,7 +162,7 @@ The context will be imported once called.
  * File: ./src/http/subscribers.js
  * Path: http://example.com/subscribers
  */
-export async function post(req, res, ctx) {
+export async function POST(req, res, ctx) {
   const db = ctx.db // Injected dependency
   const auth = ctx.auth // Local library included in the vindo.json configutation
 

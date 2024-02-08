@@ -1,3 +1,3 @@
-declare module '@canine/static' {
-  export default function(option: object): Function;
+declare module '@vindo/static' {
+  export function static(option?: object): Function;
 }

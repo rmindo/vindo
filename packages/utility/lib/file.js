@@ -51,7 +51,7 @@ exports.join = function join(...args) {
   if(path.isAbsolute(abs)) {
     return abs
   }
-  return path.join(process.cwd(), ...args.filter(v => v))
+  return path.join(path.dirname(require.main.path), ...args.filter(v => v))
 }
 
 

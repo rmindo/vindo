@@ -10,8 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@vindo/body": "file:../../packages/body",
-    "@vindo/core": "file:../../packages/core"
+    "@vindo/body": "^0.0.1",
+    "@vindo/core": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.9.0"

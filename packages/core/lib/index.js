@@ -38,27 +38,28 @@ function init(config) {
  * @param {object} config
  */
 function env(config) {
-  const env = config.env
+  const file = utility.file
+  const object = utility.object
 
-  if(!env.ENV_PATH) {
-    return
-  }
-
-  env.PORT = config.port
+  
   process.env.PORT = config.port
   /**
    * This allow to switch environment into production and vice versa
    * using the NODE_ENV from process.env
    */
-  const envFile = utility.file.parse(
-    utility.object.get(env.ENV_PATH, process.env.NODE_ENV)
+  const envFile = file.parse(
+    object.get(config.env.ENV_PATH, process.env.NODE_ENV)
   )
 
-  for(var i in envFile) {
-    env[i] = envFile[i]
-    process.env[i] = envFile[i]
+  if(envFile) {
+    for(var i in envFile) {
+      process.env[i] = envFile[i]
+    }
   }
+
+  object.merge(config.env, process.env)
 }
+
 
 /**
  * Server

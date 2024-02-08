@@ -1,5 +1,5 @@
-## Common Utilities
-Common utilities such as object, string, events, url and file.
+## Utility
+Common utilities and helpers such as object, string, events, url and file.
 
 
 ## Installation

@@ -14,7 +14,9 @@ const util = require('@vindo/utility')
  */
 var defaultConfig = {
   port: 9000,
-  env: {},
+  env: {
+    ENV_PATH: {}
+  },
   cors: {},
   exert: {},
   include: {

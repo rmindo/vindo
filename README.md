@@ -91,10 +91,10 @@ Methods can be exported directly or define it inside a function.
 ```js
 // File: ./src/http/index.js
 // Path: http://example.com/
-export function get(req, res, ctx) {
+export function GET(req, res, ctx) {
   res.html('<h1>Home</h1>')
 }
-export function post(req, res, ctx) {
+export function POST(req, res, ctx) {
   res.json({greetings: 'Hello'})
 }
 ```
@@ -103,10 +103,10 @@ export function post(req, res, ctx) {
 // Path: http://example.com/contact
 export function contact(req, res) {
   return {
-    get(ctx) {
+    GET(ctx) {
       res.html('<h1>Contact</h1>')
     },
-    post(ctx) {
+    POST(ctx) {
       res.html('<h1>Contact</h1>')
     }
   }
@@ -185,7 +185,7 @@ export default function(ctx) {
   const auth = ctx.auth // Local library included in the vindo.json configutation
 
   return {
-    async post(req, res) {
+    async POST(req, res) {
       ...
     },
   }

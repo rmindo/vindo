@@ -55,14 +55,14 @@ function getLib(...path) {
 
 
 /**
- * Set proxy and hide object
+ * Getter with empty proxy to hide object
  * @param path
  * @param ctx
  */
-function setProxy(path, ctx) {
+function getter(path, ctx) {
   return new Proxy({}, {
     get(t, name) {
-      return exports.useLib(['src', ...path.split('/')], name, ctx)
+      return exports.useLib(path, name, ctx)
     }
   })
 }
@@ -122,19 +122,19 @@ exports.useLib = function useLib(path, sub, ctx) {
  * @param config
  * @param deps
  */
-exports.context = function context({env, exert, include}, deps) {
+exports.context = function context(conf, deps) {
   const ctx = {
-    env,
-    exert,
+    env: conf.env,
+    exert: conf.exert,
     ...util
   }
 
   if(deps) {
     merge(ctx, deps(ctx))
   }
-  for(var key in include) {
+  for(var key in conf.include) {
     define(ctx, key, {
-      value: setProxy(include[key], ctx)
+      value: getter([conf.sourceDirectory].concat(conf.include[key]), ctx)
     })
   }
   return ctx

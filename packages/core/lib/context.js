@@ -81,17 +81,24 @@ exports.useLib = function useLib(path, sub, ctx) {
    */
   if(!deps[main]) {
     var lib = getLib(...path)
-    if(lib) {
-      deps[main] = invoke(lib, ctx)
+    if(!lib) {
+      lib = getLib(...path, sub)
     }
+    deps[main] = invoke(lib, ctx)
   }
   /**
    * Accessing files and sub directories
    */
   if(!deps[sub]) {
-    var lib = getLib(...path, sub)
-    if(lib) {
-      deps[sub] = invoke(lib, ctx)
+    const funcs = deps[main]
+    if(funcs[sub]) {
+      deps[sub] = funcs
+    }
+    else {
+      var lib = getLib(...path, sub)
+      if(lib) {
+        deps[sub] = invoke(lib, ctx)
+      }
     }
   }
   /**

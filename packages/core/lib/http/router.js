@@ -173,11 +173,15 @@ function getRoutes(path) {
 function getParam(path, base) {
   const data = {}
   const files = readdir(...path)
-  const pattern = getIdPattern(base)
 
-  if(!files) {
+  /**
+   * Allow only specific characters
+   */
+  if(!files || !base.match(/^([a-z0-9-_.@]+)$/)) {
     return data
   }
+
+  const pattern = getIdPattern(base)
 
   for(var {name} of files) {
     var match = name.match(pattern)

@@ -32,13 +32,15 @@ exports.parse = function parse(url) {
     for(let item of data) {
       var [key, value] = item.split('=')
 
+      var key = decodeURIComponent(key)
+      var value = decodeURIComponent(value)
+
       const arr = key.match(/(\w+)\[\]$/)
       const obj = key.match(/(\w+)\[(\w+)\]$/)
 
       /**
        * Handle the object key/value in the query
        */
-      var value = decodeURIComponent(value)
       if(obj) {
         const key = obj[2]
         const name = obj[1]

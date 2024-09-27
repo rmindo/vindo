@@ -1,6 +1,6 @@
 {
   "name": "@vindo/core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Core service for managing routes and middleware.",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -29,6 +29,6 @@
   "license": "MIT",
   "dependencies": {
     "@vindo/exception": "^1.0.0-beta",
-    "@vindo/utility": "^0.0.3"
+    "@vindo/utility": "^0.0.4"
   }
 }

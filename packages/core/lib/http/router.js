@@ -476,7 +476,7 @@ exports.map = function map({url, root, method}) {
     /**
      * Match the defined route inside the file.
      */
-    if(exists(path) && base.match(/^([a-z-]+)$/)) {
+    if(exists(path) && base && base.match(/^([a-z-]+)$/)) {
       data.path = path
       data.isRerouted = true
     }

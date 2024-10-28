@@ -99,17 +99,11 @@ exports.start = function start(port, ctx = {}) {
 function handler(req, res) {
   var i = 0
   var done = false
-  var stack = exports.stack
-  var context = exports.context
 
-  function next(pass = null) {
-    if(pass) {
-      if(typeof pass == 'function') {
-        pass = pass()
-      }
-      merge(context, pass)
-    }
+  const stack = exports.stack
+  const context = exports.context
 
+  function next() {
     while(i < stack.length) {
       var func = stack[i++]
 

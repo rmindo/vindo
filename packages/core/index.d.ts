@@ -68,6 +68,7 @@ export interface HttpRequest extends Http.IncomingMessage {
   basename: string;
   pathname: string;
   extension: string | undefined;
+  is(basename:string): boolean;
 }
 
 /**

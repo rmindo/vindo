@@ -1,6 +1,6 @@
 {
   "name": "@vindo/exception",
-  "version": "1.0.0-beta",
+  "version": "1.0.0",
   "description": "",
   "main": "./index.js",
   "types": "./index.d.ts",

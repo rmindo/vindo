@@ -19,6 +19,19 @@ exports.split = function split(url) {
 
 
 /**
+ * Set query
+ * @param data 
+ */
+exports.setQuery = function setQuery(data) {
+  let p = []
+  for(let i in data) {
+    p.push(encodeURIComponent(i) + '=' + encodeURIComponent(data[i]))
+  }
+  return p.join('&')
+}
+
+
+/**
  * URL Parser
  * @param url
  */

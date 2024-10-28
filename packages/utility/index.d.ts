@@ -14,6 +14,7 @@ export namespace Utility {
   export interface URLInterface {
     split(url: string): string[];
     parse(url: string): ParsedURL;
+    setQuery(data: object): string;
   }
 
   /**

@@ -1,6 +1,6 @@
 {
   "name": "@vindo/exception",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -16,7 +16,6 @@
     "directory": "packages/exception"
   },
   "homepage": "https://github.com/rmindo/vindo/tree/main/packages/exception",
-  
   "keywords": [
     "error",
     "exception"

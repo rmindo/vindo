@@ -1,13 +1,15 @@
 {
   "name": "@vindo/exception",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "./index.js",
   "types": "./index.d.ts",
   "publishConfig": {
     "access": "public"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\""
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rmindo/vindo.git",

@@ -222,6 +222,7 @@ function mapParams(shreds) {
    */
   var path = shreds.slice(0, 2)
   var params = {}
+  var routedNum = 0
   var isRerouted = false
 
   while(i <= shreds.length) {
@@ -252,12 +253,18 @@ function mapParams(shreds) {
       else {
         /**
          * Push if the file exists in the sub directory
-         * else set `isRerouted` to true to find it in the previous resource file.
          */
         if(exists(path.concat(name))) {
           path.push(name)
         }
         else {
+          /**
+           * Count how many non-existing basename passed after the resource path
+           */
+          routedNum += 1
+          /**
+           * Set `isRerouted` to true to find it inside a file.
+           */
           isRerouted = true
         }
       }
@@ -265,6 +272,13 @@ function mapParams(shreds) {
     i++
   }
 
+  /**
+   * Allow only one basename from a rerouted path
+   */
+  if(routedNum > 1) {
+    path = shreds
+  }
+  
   return {path, params, isRerouted}
 }
 
@@ -384,17 +398,17 @@ async function defaultExport(route, funcs, [svr, req, res, ctx]) {
   }
   
   /**
-   * Use external UI renderer
+   * Use external template engine
    */
   if(isFunc(def)) {
     if(!has('x-render')) {
-      throw new Error('No UI renderer found.')
+      throw new Error('No template engine found.')
     }
     return emit('x-render', def)
   }
 
   /**
-   * Try to check again if the route is in the default export.
+   * Check again if the route is in the default export.
    */
   return await exports.call(route, def, arguments[2])
 }
@@ -484,7 +498,7 @@ exports.map = function map({url, root, method}) {
       /**
        * Get parameter from directory.
        */
-      merge(data, mapParams(root.concat(shreds)))
+      merge(data, mapParams(data.path))
     }
   }
 

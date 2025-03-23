@@ -1,3 +1,8 @@
 declare module '@vindo/static' {
-  export function static(option?: object): Function;
+
+  export const fs: any
+  export const path: any
+  export const mime: any
+
+  export function serve(option: object): Function;
 }

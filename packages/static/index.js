@@ -12,11 +12,14 @@ const path = require('path')
 const mime = require('mime-types')
 
 
+exports.fs = fs
+exports.path = path
+exports.mime = mime
 
-exports.static = function static(option = {}) {
+exports.serve = function serve(option = {}) {
   var root = process.cwd()
 
-  var serve = option.serve || null
+  var serve = option.path || null
   if(serve) {
     root = path.join(root, serve)
   }
@@ -33,7 +36,7 @@ exports.static = function static(option = {}) {
     /**
      * 
      */
-    const file = path.join(root, ...req.route.segments)
+    const file = path.join(root, req.route.pathname)
     if(!fs.existsSync(file)) {
       return next()
     }

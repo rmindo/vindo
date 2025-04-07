@@ -15,16 +15,16 @@ exports.statuses = {}
 
 /**
  * Create an error class
- * @param {number} code 
+ * @param {number} status 
  * @param {string} name
  * @param {string | null} message
  */
-const create = exports.createErrorSubClass = function createErrorSubClass(code, name, message = null) {
-  exports.statuses[code] = {
+const create = exports.createErrorSubClass = function createErrorSubClass(status, name, message = null) {
+  exports.statuses[status] = {
     log: true,
     data: null,
-    code,
     name,
+    status,
     message
   }
 
@@ -36,7 +36,7 @@ const create = exports.createErrorSubClass = function createErrorSubClass(code, 
         }
       }
       const opt = {
-        ...exports.statuses[code],
+        ...exports.statuses[status],
         log,
         ...args
       }
@@ -52,14 +52,14 @@ const create = exports.createErrorSubClass = function createErrorSubClass(code, 
       /**
        * Essential details
        */
-      this.code = opt.code
       this.name = opt.name
       this.data = opt.data
+      this.status = opt.status
 
       /**
        * Server error should be logged regardless of the value log option.
        */
-      this.log = opt.code == 500 ? true : opt.log
+      this.log = opt.status == 500 ? true : opt.log
     }
   }
 }
@@ -69,17 +69,17 @@ const create = exports.createErrorSubClass = function createErrorSubClass(code, 
  * Set error code and log option.
  * 
  * @param {object} e
- * @param {number} code 
+ * @param {number} status 
  */
-exports.error = function error(e, code = 500) {
+exports.error = function error(e, status = 500) {
   /**
    * All thrown errors will be treated as internal server errors by default.
    */
   if(exports.isErrorClass(e)) {
-    const status = exports.statuses[code]
+    const err = exports.statuses[status]
 
-    if(status) {
-      Object.assign(e, {code, log: status.log})
+    if(err) {
+      Object.assign(e, {status, log: err.log})
     }
   }
   return e

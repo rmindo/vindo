@@ -6,6 +6,9 @@
 
 'use strict'
 
+
+const {string} = require('@vindo/utility')
+
 /**
  * Default exports
  */
@@ -25,8 +28,8 @@ exports.status = function status(code) {
  * @param headers
  */
 exports.headers = function headers(headers) {
-  for(var name in headers) {
-    this.setHeader(name, headers[name])
+  for(var key in headers) {
+    this.setHeader(string.toKebabCase(key), headers[key])
   }
 }
 
@@ -90,4 +93,24 @@ exports.print = function print(body = null, code = 200, headers = {}) {
   }
   this.writeHead(code, headers)
   this.end(body)
+}
+
+/**
+ * Use stream event
+ */
+exports.eventStream = function(headers = {}) {
+  const res = this
+
+  res.headers({
+    connection: 'keep-alive',
+    cacheControl: 'no-cache',
+    contentType: 'text/event-stream',
+    ...headers
+  })
+
+  return {
+    write(data) {
+      res.write(`data: ${JSON.stringify(data)}\n\n`)
+    }
+  }
 }

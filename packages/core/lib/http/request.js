@@ -6,12 +6,23 @@
 
 'use strict'
 
+
 /**
  * Default exports
  */
 module.exports = exports = {}
 
 
-exports.is = function is(basename) {
-  return this.basename == basename
+/**
+ * Check endpoint
+ */
+exports.is = function is(name) {
+  return this.route.name == name || this.route.basename == name
+}
+
+/**
+ * Check root path e.g. /
+ */
+exports.root = function root() {
+  return this.is(undefined)
 }

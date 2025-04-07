@@ -68,7 +68,8 @@ export interface HttpRequest extends Http.IncomingMessage {
   basename: string;
   pathname: string;
   extension: string | undefined;
-  is(basename:string): boolean;
+  is(basename:string | undefined): boolean;
+  root(): boolean;
 }
 
 /**
@@ -81,6 +82,9 @@ export interface HttpResponse extends Http.ServerResponse {
   json(body: object, code?: number, headers?: object): void;
   html(body: string | null, code?: number, headers?: object): void;
   print(body: string | null, code?: number, headers?: object): void;
+  eventStream(headers?: object): {
+    write(data: object | string): void
+  }
 }
 
 /**

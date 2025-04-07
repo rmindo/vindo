@@ -19,6 +19,7 @@ module.exports = exports = {}
 /**
  * Shorthand
  */
+const file = util.file
 const ext = util.file.ext
 const get = util.file.get
 const has = util.events.has
@@ -45,11 +46,21 @@ function isFunc(fn) {
  * Invoke the function
  * 
  * @param {function} func - A function of the route
- * @param {array} args - Http request, respnse and context
+ * @param {array} args - Server, Http request, respnse and context
  */
 async function invoke(func, args) {
   if(isFunc(func)) {
-    return await func.call(...args)
+    const data = await func.call(...args)
+
+    if(has('render')) {
+      const html = emit('render', {data, route: args[1].route})
+
+      if(html) {
+        return args[0].response.html(html)
+      }
+    }
+
+    return data
   }
 }
 
@@ -123,29 +134,6 @@ function getErrorHandler(route, code) {
 
 
 /**
- * Validate ID pattern either a number or hex
- * 
- * @param {string} id - Parameter from url
- * 
- */
-function getIdPattern(id) {
-  var pat = /^\[([a-z]+)\]$/
-
-  var num = id.match(/^(\d+)$/)
-  var hex = id.match(/^[0-9a-f]+$/)
-
-  if(num) {
-    pat = /^\[([a-z]+):num\]$/
-  }
-  if(!num && hex) {
-    pat = /^\[([a-z]+):hex\]$/
-  }
-
-  return pat
-}
-
-
-/**
  * Get all methods in a file
  *
  * @param {array} path - Relative file path or path segments
@@ -159,127 +147,6 @@ function getRoutes(path) {
       throw e
     }
   }
-}
-
-
-/**
- * Get parameter from directory 
- * 
- * @param {array} path - Relative file path or path segments
- * @param {string} base - Path basename
- * 
- * @returns {object} Key and value of parameter
- */
-function getParam(path, base) {
-  const data = {}
-  const files = readdir(...path)
-
-  /**
-   * Allow only specific characters
-   */
-  if(!files || !base.match(/^([a-z0-9-_.@]+)$/)) {
-    return data
-  }
-
-  const pattern = getIdPattern(base)
-
-  for(var {name} of files) {
-    var match = name.match(pattern)
-
-    if(match) {
-      data.key = match[1]
-      data.name = name
-      data.value = base
-    }
-    if(name == base) data.name = name
-  }
-
-  return data
-}
-
-
-/**
- * Map URL with parameters and get the file path.
- * 
- * @example
- *    From:
- *      /api/v1/users/696a2e70a312e081
- *    To:
- *      /api/v1/users/[uid:hex]
- * 
- * @param {array} shreds - Shredded url with concatenated with root path
- * 
- * @returns {object} Returns path, parameters and rerouted (boolean)
- * 
- */
-function mapParams(shreds) {
-  /**
-   * Start at 3 index to exclude the root directory
-   */
-  var i = 3
-  /**
-   * Root directory as initial path
-   */
-  var path = shreds.slice(0, 2)
-  var params = {}
-  var routedNum = 0
-  var isRerouted = false
-
-  while(i <= shreds.length) {
-    var segs = shreds.slice(0, i)
-
-    /**
-     * If exists, update the path
-     * else find the name in the directory.
-     */
-    if(exists(segs)) {
-      path = segs
-    }
-    else {
-      var name = shreds[i-1]
-      var param = getParam(path, name)
-
-      if(param.key) {
-        params[param.key] = param.value
-      }
-
-      /**
-       * If it has a name (it means a parameter or
-       * basename matches the directory) then add it to the path.
-       */
-      if(param.name) {
-        path.push(param.name)
-      }
-      else {
-        /**
-         * Push if the file exists in the sub directory
-         */
-        if(exists(path.concat(name))) {
-          path.push(name)
-        }
-        else {
-          /**
-           * Count how many non-existing basename passed after the resource path
-           */
-          routedNum += 1
-          /**
-           * Set `isRerouted` to true to find it inside a file.
-           */
-          isRerouted = true
-        }
-      }
-    }
-    i++
-  }
-
-  /**
-   * Allow only one basename from a rerouted path
-   */
-  if(routedNum > 1) {
-    path = shreds
-  }
-  
-  return {path, params, isRerouted}
 }
 
 
@@ -361,6 +228,48 @@ async function isFuncName(route, funcs, args) {
 
 
 /**
+ * 
+ * Route using function name or HTTP verb
+ * 
+ * @param {object} route - Route details
+ * @param {object} funcs - List of functions from exported routes
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ * 
+ */
+exports.handle = async function handle(route, funcs, args) {
+  var exist = false
+  /**
+   * Set default for commonJS module exports
+   * @example
+   *    module.exports = function() {}
+   */
+  if(isFunc(funcs)) {
+    funcs = {default: funcs}
+  }
+
+  /**
+   * First attemp finding the route using the single export of a function.
+   */
+  if(route.exported) {
+    exist = await isFuncName(route, funcs, args)
+  }
+  else {
+    exist = await isHttpVerb(route, funcs, args)
+  }
+
+  /**
+   * Execute only if the first attempt fails.
+   */
+  if(!exist) {
+    exist = await defaultExport(route, funcs, args)
+  }
+  return exist
+}
+
+
+/**
  * Use default export as the last routing attempt
  * 
  * @example
@@ -392,68 +301,160 @@ async function defaultExport(route, funcs, [svr, req, res, ctx]) {
    * @example
    *    export default function(ctx) {}
    */
-  const def = await funcs.default.call(svr, ctx)
+  const def = await invoke(funcs.default, [svr, ctx])
   if(!def) {
     return false
   }
-  
-  /**
-   * Use external template engine
-   */
-  if(isFunc(def)) {
-    if(!has('x-render')) {
-      throw new Error('No template engine found.')
-    }
-    return emit('x-render', def)
-  }
 
   /**
-   * Check again if the route is in the default export.
+   * Try to check again if the route is in the default export.
    */
-  return await exports.call(route, def, arguments[2])
+  return await exports.handle(route, def, arguments[2])
 }
 
 
 /**
+ * Validate ID pattern either a number or hex
  * 
- * Route using function name or HTTP verb
- * 
- * @param {object} route - Route details
- * @param {object} funcs - List of functions from exported routes
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
+ * @param {string} id - Parameter from url
  * 
  */
-exports.call = async function call(route, funcs, args) {
-  var exist = false
-  /**
-   * Set default for commonJS module exports
-   * @example
-   *    module.exports = function() {}
-   */
-  if(isFunc(funcs)) {
-    funcs = {default: funcs}
+function getIdPattern(id) {
+  var pat = /^\[([a-z]+)\]$/
+
+  var num = id.match(/^(\d+)$/)
+  var hex = id.match(/^[0-9a-f]+$/)
+
+  if(num) {
+    pat = /^\[([a-z]+):num\]$/
+  }
+  if(!num && hex) {
+    pat = /^\[([a-z]+):hex\]$/
   }
 
-  /**
-   * First attemp finding the route using the single export of a function.
-   */
-  if(route.isRerouted) {
-    exist = await isFuncName(route, funcs, args)
-  }
-  else {
-    exist = await isHttpVerb(route, funcs, args)
-  }
+  return pat
+}
+
+
+/**
+ * Get parameter from directory 
+ * 
+ * @param {array} path - Relative file path or path segments
+ * @param {string} base - Path basename
+ * 
+ * @returns {object} Key and value of parameter
+ */
+function getParam(path, base) {
+  const data = {}
+  const files = readdir(...path)
 
   /**
-   * Execute only if the first attempt fails.
+   * Allow only specific characters
    */
-  if(!exist) {
-    exist = await defaultExport(route, funcs, args)
+  if(!files || !base.match(/^([a-z0-9-_.@]+)$/)) {
+    return data
   }
 
-  return exist
+  for(var {name} of files) {
+    var match = name.match(getIdPattern(base))
+
+    if(match) {
+      data.key = match[1]
+      data.name = name
+      data.value = base
+    }
+    if(name == base) data.name = name
+  }
+
+  return data
+}
+
+
+/**
+ * Map URL with parameters and get the file path.
+ * 
+ * @example
+ *    From:
+ *      /api/v1/users/696a2e70a312e081
+ *    To:
+ *      /api/v1/users/[uid:hex]
+ * 
+ * @param {array} root - Root directory including the source dir
+ * @param {array} shreds - Shredded url with concatenated with root path
+ * 
+ * @returns {object} Returns path, parameters and rerouted (boolean)
+ * 
+ */
+function mapParams(shreds) {
+  /**
+   * Start at 3 index to exclude the root directory
+   */
+  var i = 3
+  /**
+   * Root directory as initial path
+   */
+  var path = shreds.slice(0, 2)
+  
+  var params = {}
+  var exported = false
+  var notExistNum = 0
+
+  while(i <= shreds.length) {
+    var segs = shreds.slice(0, i)
+
+    /**
+     * Check the parent path directory if exists
+     * else find the name in the current directory or inside the file.
+     */
+    if(exists(segs)) {
+      path = segs
+    }
+    else {
+      var name = shreds[i-1]
+      var param = getParam(path, name)
+
+      // Set parameter if has one
+      if(param.key) {
+        params[param.key] = param.value
+      }
+
+      /**
+       * If it has a name (it means a parameter or
+       * basename matches the directory) then add it to the path.
+       */
+      if(param.name) {
+        path.push(param.name)
+      }
+      else {
+        // Add to path if the name exists as file in the sub directory
+        if(exists(path.concat(name))) {
+          path.push(name)
+        }
+        else {
+          /**
+           * Count how many non-existing name passed after the resource path.
+           * e.g
+           *    /resource/not-exist-1/collection/not-exist-2
+           */
+          notExistNum += 1
+          /**
+           * Set to true, so the router can find the exported function in a file.
+           * e.g
+           *    /index.js file exported the about page
+           *    export function about() {}
+           */
+          exported = true
+        }
+      }
+    }
+    i++
+  }
+
+  if(notExistNum > 1) {
+    path = shreds
+  }
+  
+  return {path, params, exported}
 }
 
 
@@ -473,8 +474,11 @@ exports.map = function map({url, root, method}) {
    * Route
    */
   const base = shreds.at(-1)
+  const name = base && file.path.parse(base).name
   const data = {
+    name,
     path: root.concat(shreds),
+    method,
     params: {},
     basename: base,
     pathname: parsed.url,
@@ -492,17 +496,16 @@ exports.map = function map({url, root, method}) {
      */
     if(exists(path) && base && base.match(/^([a-z-]+)$/)) {
       data.path = path
-      data.isRerouted = true
+      data.exported = true
     }
     else {
       /**
-       * Get parameter from directory.
+       * Map parameters from directory.
        */
-      merge(data, mapParams(data.path))
+      merge(data, mapParams(root.concat(shreds)))
     }
   }
 
-  data.method = method
   data.segs = data.path
   data.path = data.path.join('/')
 
@@ -513,7 +516,7 @@ exports.map = function map({url, root, method}) {
 /**
  * End of the request
  * 
- * @param {array} args - Http request, response and context
+ * @param {array} args - Server, request, response and context
  * 
  */
 exports.end = async function end(args) {
@@ -526,16 +529,15 @@ exports.end = async function end(args) {
     var funcs = getRoutes(route.path)
 
     if(funcs) {
-      exist = await exports.call(route, funcs, args)
+      exist = await exports.handle(route, funcs, args)
     }
 
     /**
      * If no response is being called then exit with 404.
      */
-    if(!res.writableEnded) {
+    if(!res.writableEnded || !res.writableFinished) {
       /**
-       * If the route exists
-       * and still no response then let it freeze.
+       * If the route exists and still no response then let it freeze.
        */
       if(exist) {
         return

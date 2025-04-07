@@ -63,6 +63,23 @@ exports.toUCFirst = function toUCFirst(string) {
 
 
 /**
+ * Convert camel case to kebab
+ * @param {string} string 
+ */
+exports.toKebabCase = function toKebabCase(string) {
+  const pat = /[A-Z]/g
+
+  if(string.match(/-/)) {
+    return string
+  }
+
+  return exports.toUCFirst(string.replace(pat, function(char) {
+    return `-${char.toUpperCase()}`
+  }))
+}
+
+
+/**
  * Convert text to camel case
  * @param {string} string 
  * @param {string} separator 

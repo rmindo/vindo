@@ -81,6 +81,8 @@ exports.exists = function exists(...args) {
       base,
       base.concat('.js'),
       base.concat('.ts'),
+      base.concat('.tsx'),
+      base.concat('.jsx'),
     ]
     const index = args.indexOf(base)
   

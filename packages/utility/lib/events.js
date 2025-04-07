@@ -37,8 +37,7 @@ exports.has = function has(name) {
  */
 exports.emit = function emit(name, ...args) {
   if(events[name]) {
-    events[name].event(...args)
-    return true
+    return events[name].event(...args)
   }
 }
 

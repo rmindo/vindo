@@ -54,8 +54,11 @@ export namespace Utility {
    * @public
    */
   export interface StringInterface {
+    padEnd(str, pad): string;
+    padStart(str, pad): string;    
     replace(string: string, data: object): string;
     toUCFirst(string: string): string;
+    toKebabCase(string: string): string;
     toCamelCase(string: string, separator: string): string;
   }
 

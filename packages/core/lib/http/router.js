@@ -53,8 +53,19 @@ async function invoke(func, args) {
     const data = await func.call(...args)
 
     if(has('render')) {
-      const html = emit('render', {data, route: args[1].route})
+      var route = args[1].route
+      /**
+       * Export default only have one argument,
+       * So you can only get the request and response from server argument which is args[0].
+       */
+      if(!route) {
+        route = args[0].request.route
+      }
+      const html = emit('render', {data, route})
 
+      /**
+       * The listener must return an html string to end the request.
+       */
       if(html) {
         return args[0].response.html(html)
       }
@@ -117,8 +128,8 @@ function error(req, res, ctx) {
  * 
  */
 function getErrorHandler(route, code) {
-  var path = route.segs
-  var root = route.segs.slice(0, 1)
+  var path = route.segments
+  var root = route.segments.slice(0, 1)
   /**
    * Iterate and check which file is available.
    */
@@ -250,7 +261,7 @@ exports.handle = async function handle(route, funcs, args) {
   }
 
   /**
-   * First attemp finding the route using the single export of a function.
+   * First attempt finding the route using the single export of a function.
    */
   if(route.exported) {
     exist = await isFuncName(route, funcs, args)
@@ -301,6 +312,9 @@ async function defaultExport(route, funcs, [svr, req, res, ctx]) {
    * @example
    *    export default function(ctx) {}
    */
+  ctx.request = req
+  ctx.response = res
+  
   const def = await invoke(funcs.default, [svr, ctx])
   if(!def) {
     return false
@@ -400,14 +414,14 @@ function mapParams(shreds) {
   var notExistNum = 0
 
   while(i <= shreds.length) {
-    var segs = shreds.slice(0, i)
+    var segments = shreds.slice(0, i)
 
     /**
      * Check the parent path directory if exists
      * else find the name in the current directory or inside the file.
      */
-    if(exists(segs)) {
-      path = segs
+    if(exists(segments)) {
+      path = segments
     }
     else {
       var name = shreds[i-1]
@@ -432,15 +446,15 @@ function mapParams(shreds) {
         }
         else {
           /**
-           * Count how many non-existing name passed after the resource path.
+           * Count the number of non-existing names passed after the resource path.
            * e.g
            *    /resource/not-exist-1/collection/not-exist-2
            */
           notExistNum += 1
           /**
-           * Set to true, so the router can find the exported function in a file.
+           * Set to true so the router can find the exported function in a file.
            * e.g
-           *    /index.js file exported the about page
+           *    /index.js exported the about page
            *    export function about() {}
            */
           exported = true
@@ -506,7 +520,7 @@ exports.map = function map({url, root, method}) {
     }
   }
 
-  data.segs = data.path
+  data.segments = data.path
   data.path = data.path.join('/')
 
   return data

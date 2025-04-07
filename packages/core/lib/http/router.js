@@ -77,7 +77,7 @@ function error(req, res, ctx) {
 
   return {
     exit: (e) => {
-      var code = e.code.toString()
+      var code = e.status.toString()
 
       if(e.log) {
         console.error(e)

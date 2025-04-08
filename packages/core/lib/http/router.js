@@ -53,19 +53,10 @@ async function invoke(func, args) {
     const data = await func.call(...args)
 
     if(has('render')) {
-      var route = args[1].route
-      /**
-       * Export default only have one argument,
-       * So you can only get the request and response from server argument which is args[0].
-       */
-      if(!route) {
-        route = args[0].request.route
-      }
-      const html = emit('render', {data, route})
-
       /**
        * The listener must return an html string to end the request.
        */
+      const html = emit('render', {data})
       if(html) {
         return args[0].response.html(html)
       }
@@ -314,7 +305,7 @@ async function defaultExport(route, funcs, [svr, req, res, ctx]) {
    */
   ctx.request = req
   ctx.response = res
-  
+
   const def = await invoke(funcs.default, [svr, ctx])
   if(!def) {
     return false

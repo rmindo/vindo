@@ -7,14 +7,73 @@
 'use strict'
 
 
+const {parse:get, extname:ext} = require('node:path')
+
+
 /**
  * Split url
  * @param url
  */
-exports.split = function split(url) {
+function split(url) {
   if(url) {
     return url.split('/').filter(v => v)
   }
+}
+
+
+
+function parseQuery(string) {
+  const query = {}
+
+  if(!string) {
+    return query
+  }
+  const data = string.split('&')
+
+  for(let item of data) {
+    var [key, value] = item.split('=')
+
+    var key = decodeURIComponent(key)
+    var value = decodeURIComponent(value)
+
+    const arr = key.match(/(\w+)\[\]$/)
+    const obj = key.match(/(\w+)\[(\w+)\]$/)
+
+    /**
+     * Handle the object key/value in the query
+     */
+    if(obj) {
+      const key = obj[2]
+      const name = obj[1]
+
+      if(!key && !name) {
+        continue
+      }
+      if(!query[name]) {
+        query[name] = {}
+      }
+      if(typeof query[name] == 'object') {
+        query[name][key] = value
+      }
+    }
+    /**
+     * Handle the array in the query
+     */
+    else if(arr) {
+      const name = arr[1]
+      if(!query[name]) {
+        query[name] = []
+      }
+      if(Array.isArray(query[name])) {
+        query[name].push(value)
+      }
+    }
+    else {
+      query[key] = value
+    }
+  }
+
+  return query
 }
 
 
@@ -36,54 +95,36 @@ exports.setQuery = function setQuery(data) {
  * @param url
  */
 exports.parse = function parse(url) {
-  var url = url.split('?')
+  var [path, query] = url.split('?')
   
-  var query = {}
-  if(url[1]) {
-    const data = url[1].split('&')
+  var query = parseQuery(query)
+  var segments = split(path)
+  var data = {
+    path,
+    query,
+    args: {},
+    segments,
+    pathname: path,
+    basename: segments.at(-1),
+    extension: undefined,
+  }
 
-    for(let item of data) {
-      var [key, value] = item.split('=')
+  if(data.basename) {
+    data.name = get(data.basename).name
+    data.extension = ext(data.basename)
+  }
 
-      var key = decodeURIComponent(key)
-      var value = decodeURIComponent(value)
-
-      const arr = key.match(/(\w+)\[\]$/)
-      const obj = key.match(/(\w+)\[(\w+)\]$/)
-
-      /**
-       * Handle the object key/value in the query
-       */
-      if(obj) {
-        const key = obj[2]
-        const name = obj[1]
-
-        if(!key && !name) {
-          continue
-        }
-        if(!query[name]) {
-          query[name] = {}
-        }
-        if(typeof query[name] == 'object') {
-          query[name][key] = value
-        }
-      }
-      /**
-       * Handle the array in the query
-       */
-      else if(arr) {
-        const name = arr[1]
-        if(!query[name]) {
-          query[name] = []
-        }
-        if(Array.isArray(query[name])) {
-          query[name].push(value)
-        }
-      }
-      else {
-        query[key] = value
-      }
+  for(var val of segments) {
+    if(val.match(/^([\d]+)$/)) {
+      data.args.num = parseInt(val)
+    }
+    if(val.match(/^([0-9a-f]{16,})$/)) {
+      data.args.hex = val
+    }
+    if(val.match(/^([^-]*-){2,}([^-]+)$/)) {
+      data.args.slug = val
     }
   }
-  return {url: url[0], query}
+
+  return data
 }

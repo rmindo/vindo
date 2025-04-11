@@ -1,10 +1,7 @@
 import Http from 'http'
 
-export {Utility} from '@vindo/utility'
-export {Exception} from '@vindo/exception'
-
-import type {Utility as UtilityNamespace} from '@vindo/utility'
-import type {Exception, Exception as ExceptionNamespace} from '@vindo/exception'
+import type {Utility as UtilityNS} from '@vindo/utility'
+import type {Exception as ExceptionNS} from '@vindo/exception'
 
 
 /**
@@ -17,8 +14,8 @@ type DynamicStringType = {
   [key: string]: string;
 }
 
-type UtilityType = typeof UtilityNamespace;
-type ExceptionType = typeof ExceptionNamespace;
+type UtilityType = typeof UtilityNS;
+type ExceptionType = typeof ExceptionNS;
 
 /**
  * Configuration
@@ -26,17 +23,6 @@ type ExceptionType = typeof ExceptionNamespace;
 export interface Configuration {
   port?: number;
 }
-
-/**
- * Context
- */
-export interface Context extends UtilityType {
-  lib: DynamicAnyType;
-  env: DynamicStringType;
-  exert: DynamicStringType;
-}
-export const utility: UtilityType;
-export const exception: ExceptionType;
 
 
 /**
@@ -57,9 +43,12 @@ export interface HttpRequest extends Http.IncomingMessage {
   query: DynamicAnyType;
   params: DynamicStringType;
   route: {
+    name: string;
     path: string;
+    method: string;
     query: DynamicAnyType;
-    rerouted: boolean;
+    params: DynamicAnyType;
+    exported: boolean;
     segments: string[];
     pathname: string;
     basename: string;
@@ -88,11 +77,28 @@ export interface HttpResponse extends Http.ServerResponse {
 }
 
 /**
+ * Context
+ */
+export interface Context extends UtilityType {
+  lib: DynamicAnyType;
+  env: DynamicStringType;
+  exert: DynamicStringType;
+  request: HttpRequest;
+  response: HttpResponse;
+}
+
+/**
  * Http Server
  */
 export interface HttpServer extends Http.Server {
   context: Context;
   request: HttpRequest;
   response: HttpResponse;
-  exception: Exception.OptionArgs,
+  exception: ExceptionNS.OptionArgs,
 }
+
+export const utility: UtilityType;
+export const exception: ExceptionType;
+
+export type Utility = UtilityNS;
+export type Exception = ExceptionNS;

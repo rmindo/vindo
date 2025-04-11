@@ -19,13 +19,10 @@ module.exports = exports = {}
 /**
  * Shorthand
  */
-const file = util.file
-const ext = util.file.ext
 const get = util.file.get
 const has = util.events.has
 const emit = util.events.emit
 const parse = util.url.parse
-const split = util.url.split
 const merge = util.object.merge
 const define = util.object.define
 const exists = util.file.exists
@@ -56,7 +53,7 @@ async function invoke(func, args) {
       /**
        * The listener must return an html string to end the request.
        */
-      const html = emit('render', {data})
+      const html = emit('render', data)
       if(html) {
         return args[0].response.html(html)
       }
@@ -101,7 +98,18 @@ function error(req, res, ctx) {
         if(fn.default) {
           fn = fn.default
         }
-        fn.call(self, ctx)
+
+        const data = fn.call(self, ctx)
+        if(!data) {
+          return
+        }
+
+        if(has('render')) {
+          const html = emit('render', data)
+          if(html) {
+            self.response.html(html)
+          }
+        }
       }
       else {
         res.print(exce.statuses[code].message, code)
@@ -119,8 +127,8 @@ function error(req, res, ctx) {
  * 
  */
 function getErrorHandler(route, code) {
-  var path = route.segments
-  var root = route.segments.slice(0, 1)
+  var path = route.path
+  var root = route.path.slice(0, 1)
   /**
    * Iterate and check which file is available.
    */
@@ -140,181 +148,17 @@ function getErrorHandler(route, code) {
  *
  * @param {array} path - Relative file path or path segments
  */
-function getRoutes(path) {
+function getMethods(path) {
   try {
-    return get(path)
+    if(exists(path)) {
+      return get(path)
+    }
   }
   catch(e) {
     if(exce.isErrorClass(e)) {
       throw e
     }
   }
-}
-
-
-/**
- * Invoke route using http verb name from exported routes
- * 
- * @example
- *    export function GET(req, res) {}
- * 
- *    Or
- * 
- *    export default function(ctx) {
- *      returns {
- *        GET(req, res) {}
- *      }
- *    }
- * 
- * @param {object} funcs - List of functions from exported routes
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- */
-async function isHttpVerb(route, funcs, args) {
-  if(!funcs) {
-    return false
-  }
-
-  var fn = funcs[route.method]
-  if(!fn) {
-    return false
-  }
-  await invoke(fn, args)
-
-  return true
-}
-
-
-/**
- * Invoke route using basename as function name from exported routes
- * 
- * @example
- *    export function about(req, res) {}
- * 
- *    Or
- * 
- *    export default function(ctx) {
- *      returns {
- *        about(req, res) {}
- *      }
- *    }
- * 
- * @param {object} route - Route details
- * @param {object} funcs - List of functions from exported routes
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- */
-async function isFuncName(route, funcs, args) {
-  if(!funcs) {
-    return false
-  }
-
-  var fn = funcs[toCamelCase(route.basename)]
-  if(!fn) {
-    return false
-  }
-  /**
-   * If the basename exists and invoked but returns nothing.
-   */
-  var verbs = await invoke(fn, args)
-  if(!verbs) {
-    return true
-  }
-  /**
-   * If it returns an object then try to execute using the request method.
-   */
-  return await isHttpVerb(route, verbs, args)
-}
-
-
-/**
- * 
- * Route using function name or HTTP verb
- * 
- * @param {object} route - Route details
- * @param {object} funcs - List of functions from exported routes
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- * 
- */
-exports.handle = async function handle(route, funcs, args) {
-  var exist = false
-  /**
-   * Set default for commonJS module exports
-   * @example
-   *    module.exports = function() {}
-   */
-  if(isFunc(funcs)) {
-    funcs = {default: funcs}
-  }
-
-  /**
-   * First attempt finding the route using the single export of a function.
-   */
-  if(route.exported) {
-    exist = await isFuncName(route, funcs, args)
-  }
-  else {
-    exist = await isHttpVerb(route, funcs, args)
-  }
-
-  /**
-   * Execute only if the first attempt fails.
-   */
-  if(!exist) {
-    exist = await defaultExport(route, funcs, args)
-  }
-  return exist
-}
-
-
-/**
- * Use default export as the last routing attempt
- * 
- * @example
- *    export default function(ctx) {
- *      return {
- *        GET(req, res) {},
- *        about(req, res) {}
- *        ....
- *      }
- *    }
- * 
- * @param {object} route - Route details
- * @param {object} funcs - List of functions from exported routes
- * @param {array} args - Http request, response and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- * 
- */
-async function defaultExport(route, funcs, [svr, req, res, ctx]) {
-  /**
-   * Prevent sending new headers, No default found and no functions.
-   */
-  if(!funcs || !isFunc(funcs.default) || res && res.writableEnded) {
-    return false
-  }
-
-  /**
-   * Default export
-   * @example
-   *    export default function(ctx) {}
-   */
-  ctx.request = req
-  ctx.response = res
-
-  const def = await invoke(funcs.default, [svr, ctx])
-  if(!def) {
-    return false
-  }
-
-  /**
-   * Try to check again if the route is in the default export.
-   */
-  return await exports.handle(route, def, arguments[2])
 }
 
 
@@ -328,7 +172,7 @@ function getIdPattern(id) {
   var pat = /^\[([a-z]+)\]$/
 
   var num = id.match(/^(\d+)$/)
-  var hex = id.match(/^[0-9a-f]+$/)
+  var hex = id.match(/^([0-9a-f]{16,})$/)
 
   if(num) {
     pat = /^\[([a-z]+):num\]$/
@@ -344,14 +188,13 @@ function getIdPattern(id) {
 /**
  * Get parameter from directory 
  * 
- * @param {array} path - Relative file path or path segments
  * @param {string} base - Path basename
+ * @param {array} path - Relative file path or path segments
  * 
  * @returns {object} Key and value of parameter
  */
-function getParam(path, base) {
-  const data = {}
-  const files = readdir(...path)
+function params(base, data) {
+  const files = readdir(...data.path)
 
   /**
    * Allow only specific characters
@@ -360,18 +203,39 @@ function getParam(path, base) {
     return data
   }
 
+  const params = {}
   for(var {name} of files) {
     var match = name.match(getIdPattern(base))
 
     if(match) {
-      data.key = match[1]
-      data.name = name
-      data.value = base
+      params.key = match[1]
+      params.name = name
+      params.value = base
     }
-    if(name == base) data.name = name
+    if(name == base) params.name = name
+  }
+
+  if(params.name) {
+    data.path.push(params.name)
+  }
+  if(params.key) {
+    data.params[params.key] = params.value
   }
 
   return data
+}
+
+/**
+ * 
+ */
+function isExpo(name, path) {
+  const methods = getMethods(path)
+  if(!methods) {
+    return
+  }
+  if(methods[name]) {
+    return {path, methods, exported: true}
+  }
 }
 
 
@@ -390,76 +254,50 @@ function getParam(path, base) {
  * @returns {object} Returns path, parameters and rerouted (boolean)
  * 
  */
-function mapParams(shreds) {
-  /**
-   * Start at 3 index to exclude the root directory
-   */
-  var i = 3
-  /**
-   * Root directory as initial path
-   */
-  var path = shreds.slice(0, 2)
-  
-  var params = {}
-  var exported = false
-  var notExistNum = 0
+function map(root, data) {
+  var i = 2
+  var segs = root.concat(data.segments)
 
-  while(i <= shreds.length) {
-    var segments = shreds.slice(0, i)
 
+  data.params = {}
+  data.exported = false
+
+  if(data.segments.length == 1 && !data.args.slug) {
+    return data
+  }
+
+  while(i <= segs.length) {
+    var path = segs.slice(0, i)
     /**
      * Check the parent path directory if exists
      * else find the name in the current directory or inside the file.
      */
-    if(exists(segments)) {
-      path = segments
+    if(exists(path)) {
+      data.path = path
     }
     else {
-      var name = shreds[i-1]
-      var param = getParam(path, name)
+      var name = segs[i-1]
 
-      // Set parameter if has one
-      if(param.key) {
-        params[param.key] = param.value
-      }
-
+      merge(data, params(name, data))
+      merge(data, isExpo(name, data.path))
       /**
-       * If it has a name (it means a parameter or
-       * basename matches the directory) then add it to the path.
+       * Add to the path if the name exists in the sub-directory
        */
-      if(param.name) {
-        path.push(param.name)
-      }
-      else {
-        // Add to path if the name exists as file in the sub directory
-        if(exists(path.concat(name))) {
-          path.push(name)
-        }
-        else {
-          /**
-           * Count the number of non-existing names passed after the resource path.
-           * e.g
-           *    /resource/not-exist-1/collection/not-exist-2
-           */
-          notExistNum += 1
-          /**
-           * Set to true so the router can find the exported function in a file.
-           * e.g
-           *    /index.js exported the about page
-           *    export function about() {}
-           */
-          exported = true
-        }
+      if(exists(data.path.concat(name))) {
+        data.path.push(name)
       }
     }
     i++
   }
 
-  if(notExistNum > 1) {
-    path = shreds
+  /**
+   * Point to error file if not equal
+   */
+  if(data.path.length !== segs.length) {
+    data.path = root.slice(0, 1)
   }
-  
-  return {path, params, exported}
+
+  return data
 }
 
 
@@ -471,51 +309,25 @@ function mapParams(shreds) {
  * @returns {object} - Current route details
  * 
  */
-exports.map = function map({url, root, method}) {
-  const parsed = parse(url)
-  const shreds = split(parsed.url)
+exports.route = function route({url, root}) {
+  const data = parse(url)
 
+  data.path = root.concat(data.segments)
   /**
-   * Route
-   */
-  const base = shreds.at(-1)
-  const name = base && file.path.parse(base).name
-  const data = {
-    name,
-    path: root.concat(shreds),
-    method,
-    params: {},
-    basename: base,
-    pathname: parsed.url,
-    query: parsed.query,
-    extension: ext(base)
-  }
-
-  /**
-   * Reroute the non file or directory route.
+   * Start digging if not exist
    */
   if(!exists(data.path)) {
-    const path = data.path.slice(0, -1)
-    /**
-     * Match the defined route inside the file.
-     */
-    if(exists(path) && base && base.match(/^([a-z-]+)$/)) {
-      data.path = path
-      data.exported = true
-    }
-    else {
-      /**
-       * Map parameters from directory.
-       */
-      merge(data, mapParams(root.concat(shreds)))
-    }
+    merge(data, map(root, data))
+    merge(data, isExpo(data.name, data.path.slice(0, -1)))
   }
 
-  data.segments = data.path
-  data.path = data.path.join('/')
+  if(!data.methods) {
+    data.methods = getMethods(data.path)
+  }
 
   return data
 }
+
 
 
 /**
@@ -531,10 +343,10 @@ exports.end = async function end(args) {
   try {
     var exist
     var route = req.route
-    var funcs = getRoutes(route.path)
-
-    if(funcs) {
-      exist = await exports.handle(route, funcs, args)
+    var methods = route.methods
+    
+    if(methods) {
+      exist = await exports.handle(route, methods, args)
     }
 
     /**
@@ -564,9 +376,11 @@ exports.end = async function end(args) {
  * 
  */
 exports.start = function start(req) {
-  const route = exports.map(req)
+  const route = exports.route(req)
+
+  route.method = req.method
   /**
-   * Define route properties to request
+   * Add route properties to request
    */
   for(var name in route) {
     define(req, name, {
@@ -574,4 +388,169 @@ exports.start = function start(req) {
     })
   }
   define(req, 'route', {value: route})
+}
+
+
+/**
+ * 
+ * Route using function name or HTTP verb
+ * 
+ * @param {object} route - Route details
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ * 
+ */
+exports.handle = async function handle(route, methods, args) {
+  var exist = false
+  /**
+   * Set default for commonJS module exports
+   * @example
+   *    module.exports = function() {}
+   */
+  if(isFunc(methods)) {
+    methods = {default: methods}
+  }
+
+  /**
+   * First attempt finding the route using the single export of a function.
+   */
+  if(route.exported) {
+    exist = await isFuncName(route, methods, args)
+  }
+  else {
+    exist = await isHttpVerb(route, methods, args)
+  }
+
+  /**
+   * Execute only if the first attempt fails.
+   */
+  if(!exist) {
+    exist = await defaultExport(route, methods, args)
+  }
+  return exist
+}
+
+
+/**
+ * Invoke route using http verb name from exported routes
+ * 
+ * @example
+ *    export function GET(req, res) {}
+ * 
+ *    Or
+ * 
+ *    export default function(ctx) {
+ *      returns {
+ *        GET(req, res) {}
+ *      }
+ *    }
+ * 
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ */
+async function isHttpVerb(route, methods, args) {
+  if(!methods) {
+    return false
+  }
+
+  var fn = methods[route.method]
+  if(!fn) {
+    return false
+  }
+  await invoke(fn, args)
+
+  return true
+}
+
+
+/**
+ * Invoke route using basename as function name from exported routes
+ * 
+ * @example
+ *    export function about(req, res) {}
+ * 
+ *    Or
+ * 
+ *    export default function(ctx) {
+ *      returns {
+ *        about(req, res) {}
+ *      }
+ *    }
+ * 
+ * @param {object} route - Route details
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ */
+async function isFuncName(route, methods, args) {
+  if(!methods) {
+    return false
+  }
+
+  var fn = methods[toCamelCase(route.basename)]
+  if(!fn) {
+    return false
+  }
+  /**
+   * If the basename exists and invoked but returns nothing.
+   */
+  var methods = await invoke(fn, args)
+  if(!methods) {
+    return true
+  }
+  /**
+   * If it returns an object then try to execute using the request method.
+   */
+  return await isHttpVerb(route, methods, args)
+}
+
+
+/**
+ * Use default export as the last routing attempt
+ * 
+ * @example
+ *    export default function(ctx) {
+ *      return {
+ *        GET(req, res) {},
+ *        about(req, res) {}
+ *        ....
+ *      }
+ *    }
+ * 
+ * @param {object} route - Route details
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, response and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ * 
+ */
+async function defaultExport(route, methods, [svr, req, res, ctx]) {
+  /**
+   * Prevent sending new headers, No default found and no functions.
+   */
+  if(!methods || !isFunc(methods.default) || res && res.writableEnded) {
+    return false
+  }
+
+  /**
+   * Default export
+   * @example
+   *    export default function(ctx) {}
+   */
+  ctx.request = req
+  ctx.response = res
+  const def = await invoke(methods.default, [svr, ctx])
+  if(!def) {
+    return false
+  }
+
+  /**
+   * Try to check again if the route is in the default export.
+   */
+  return await exports.handle(route, def, arguments[2])
 }

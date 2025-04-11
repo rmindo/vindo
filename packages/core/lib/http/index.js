@@ -82,10 +82,9 @@ exports.start = function start(port, ctx = {}) {
    * The last middleware to execute
    */
   exports.stack.push((req, res) => {
-    server.context = ctx
     server.request = req
     server.response = res
-
+    
     router.end([server, req, res, ctx])
   })
   exports.on('request', exports.listener).listen(port)

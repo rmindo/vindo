@@ -258,13 +258,8 @@ function map(root, data) {
   var i = 2
   var segs = root.concat(data.segments)
 
-
   data.params = {}
   data.exported = false
-
-  if(data.segments.length == 1 && !data.args.slug) {
-    return data
-  }
 
   while(i <= segs.length) {
     var path = segs.slice(0, i)

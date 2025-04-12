@@ -19,24 +19,23 @@ exports.statuses = {}
  * @param {string} name
  * @param {string | null} message
  */
-const create = exports.createErrorSubClass = function createErrorSubClass(status, name, message = null) {
-  exports.statuses[status] = {
+const create = exports.createErrorSubClass = function createErrorSubClass(code, name, status = null) {
+  exports.statuses[code] = {
     log: true,
-    data: null,
     name,
     status,
-    message
+    statusCode: code
   }
 
   return class extends Error {
     constructor(args = {}, log = true) {
       if(typeof args == 'string') {
         args = {
-          message: args
+          data: args
         }
       }
       const opt = {
-        ...exports.statuses[status],
+        ...exports.statuses[code],
         log,
         ...args
       }
@@ -48,38 +47,42 @@ const create = exports.createErrorSubClass = function createErrorSubClass(status
         opt.message = opt.name
       }
       super(opt.message)
-
       /**
        * Essential details
        */
       this.name = opt.name
       this.data = opt.data
       this.status = opt.status
+      this.statusCode = opt.statusCode
 
       /**
-       * Server error should be logged regardless of the value log option.
+       * Server error should be logged regardless of the value of the log option.
        */
-      this.log = opt.status == 500 ? true : opt.log
+      this.log = opt.statusCode == 500 ? true : opt.log
     }
   }
 }
 
 
 /**
- * Set error code and log option.
+ * Add properties to exception.
  * 
  * @param {object} e
- * @param {number} status 
+ * @param {number} code 
  */
-exports.error = function error(e, status = 500) {
+exports.error = function error(e, code = 500) {
   /**
    * All thrown errors will be treated as internal server errors by default.
    */
   if(exports.isErrorClass(e)) {
-    const err = exports.statuses[status]
+    const err = exports.statuses[code]
 
     if(err) {
-      Object.assign(e, {status, log: err.log})
+      Object.assign(e, {
+        log: err.log,
+        status: err.status,
+        statusCode: err.statusCode,
+      })
     }
   }
   return e

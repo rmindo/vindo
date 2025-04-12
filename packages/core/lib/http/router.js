@@ -49,10 +49,11 @@ async function invoke(func, args) {
   if(isFunc(func)) {
     const data = await func.call(...args)
 
+    /**
+     * Handle template render
+     */
     if(has('render')) {
-      /**
-       * The listener must return an html string to end the request.
-       */
+      // The listener must return an html string to end the request.
       const html = emit('render', data)
       if(html) {
         return args[0].response.html(html)
@@ -76,12 +77,11 @@ function error(req, res, ctx) {
 
   return {
     exit: (e) => {
-      var code = e.statusCode.toString()
+      var code = e.statusCode
 
-      if(e.log) {
-        console.error(e)
+      if(typeof code === 'number') {
+        code = code.toString()
       }
-
       /**
        * Add message coming from error class or subclass.
        */
@@ -90,20 +90,35 @@ function error(req, res, ctx) {
           message: e.message
         }
       }
-
-      var fn = getErrorHandler(req.route, code)
+      /**
+       * If status code is not set, the set internal error message and status
+       */
+      if(!code) {
+        const msg = e.message.split(/\n/)
+        if(msg) {
+          merge(e, {...exce.statuses['500'], data: {message: msg[0]}, log: true})
+        }
+      }
+      /**
+       * Get handler from current directory or root
+       */
+      var fn = getErrorHandler(req.path, code)
       if(fn) {
-        merge(self, {exception: e})
-
+        if(e.log) {
+          console.error(e)
+        }
         if(fn.default) {
           fn = fn.default
         }
+        merge(self, {exception: e})
 
         const data = fn.call(self, ctx)
         if(!data) {
           return
         }
-
+        /**
+         * Handle template render
+         */
         if(has('render')) {
           const html = emit('render', data)
           if(html) {
@@ -122,15 +137,14 @@ function error(req, res, ctx) {
 /**
  * Get the handler function
  * 
- * @param {object} route - Route details.
+ * @param {array} path - Path segments
  * @param {string} code - Status code
  * 
  */
-function getErrorHandler(route, code) {
-  var path = route.path
-  var root = route.path.slice(0, 1)
+function getErrorHandler(path, code) {
+  var root = path.slice(0, 1)
   /**
-   * Iterate and check which file is available.
+   * Check which file is available.
    */
   const paths = [
     path.concat(code),

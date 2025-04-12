@@ -21,22 +21,22 @@ export namespace Exception {
    * Exception classes
    */
   export class NotFoundException extends Error {
-    constructor(option?: OptionArgs | string, log?: boolean);
+    constructor(option?: OptionArgs | string | null, log?: boolean);
   }
   export class BadRequestException extends Error {
-    constructor(option?: OptionArgs | string, log?: boolean);
+    constructor(option?: OptionArgs | string | null, log?: boolean);
   }
   export class ForbiddenException extends Error {
-    constructor(option?: OptionArgs | string, log?: boolean);
+    constructor(option?: OptionArgs | string | null, log?: boolean);
   }
   export class UnauthorizedException extends Error {
-    constructor(option?: OptionArgs | string, log?: boolean);
+    constructor(option?: OptionArgs | string | null, log?: boolean);
   }
   export class MethodNotAllowedException extends Error {
-    constructor(option?: OptionArgs | string, log?: boolean);
+    constructor(option?: OptionArgs | string | null, log?: boolean);
   }
   export class InternalServerErrorException extends Error {
-    constructor(option?: OptionArgs | string, log?: boolean);
+    constructor(option?: OptionArgs | string | null, log?: boolean);
   }
 
 

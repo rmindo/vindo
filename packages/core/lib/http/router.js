@@ -76,7 +76,7 @@ function error(req, res, ctx) {
 
   return {
     exit: (e) => {
-      var code = e.status.toString()
+      var code = e.statusCode.toString()
 
       if(e.log) {
         console.error(e)
@@ -87,7 +87,7 @@ function error(req, res, ctx) {
        */
       if(!e.data && exce.isErrorClass(e)) {
         e.data = {
-          error: e.message
+          message: e.message
         }
       }
 
@@ -146,7 +146,7 @@ function getErrorHandler(route, code) {
 /**
  * Get all methods in a file
  *
- * @param {array} path - Relative file path or path segments
+ * @param {string|array} path - Relative file path or path segments
  */
 function getMethods(path) {
   try {
@@ -189,7 +189,7 @@ function getIdPattern(id) {
  * Get parameter from directory 
  * 
  * @param {string} base - Path basename
- * @param {array} path - Relative file path or path segments
+ * @param {string|array} path - Relative file path or path segments
  * 
  * @returns {object} Key and value of parameter
  */
@@ -225,8 +225,12 @@ function params(base, data) {
   return data
 }
 
+
 /**
  * 
+ * @param {string} name Path basename
+ * @param {string|array} path Relative file path or path segments
+ * @returns {object} Route object
  */
 function isExpo(name, path) {
   const methods = getMethods(path)
@@ -248,21 +252,20 @@ function isExpo(name, path) {
  *    To:
  *      /api/v1/users/[uid:hex]
  * 
- * @param {array} root - Root directory including the source dir
- * @param {array} shreds - Shredded url with concatenated with root path
+ * @param {array} data - Route object
  * 
  * @returns {object} Returns path, parameters and rerouted (boolean)
  * 
  */
-function map(root, data) {
+function map(data) {
   var i = 2
-  var segs = root.concat(data.segments)
+  var p = data.path
 
   data.params = {}
   data.exported = false
 
-  while(i <= segs.length) {
-    var path = segs.slice(0, i)
+  while(i <= p.length) {
+    var path = p.slice(0, i)
     /**
      * Check the parent path directory if exists
      * else find the name in the current directory or inside the file.
@@ -271,7 +274,7 @@ function map(root, data) {
       data.path = path
     }
     else {
-      var name = segs[i-1]
+      var name = p[i-1]
 
       merge(data, params(name, data))
       merge(data, isExpo(name, data.path))
@@ -288,8 +291,8 @@ function map(root, data) {
   /**
    * Point to error file if not equal
    */
-  if(data.path.length !== segs.length) {
-    data.path = root.slice(0, 1)
+  if(p.length !== data.path.length) {
+    data.path = data.root.slice(0, 1)
   }
 
   return data
@@ -297,22 +300,22 @@ function map(root, data) {
 
 
 /**
- * Map the URL to the directory.
+ * Get current route
  * 
  * @param {string} req - Server request
- * 
  * @returns {object} - Current route details
  * 
  */
 exports.route = function route({url, root}) {
   const data = parse(url)
 
+  data.root = root
   data.path = root.concat(data.segments)
   /**
    * Start digging if not exist
    */
   if(!exists(data.path)) {
-    merge(data, map(root, data))
+    merge(data, map(data))
     merge(data, isExpo(data.name, data.path.slice(0, -1)))
   }
 

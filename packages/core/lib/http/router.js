@@ -233,7 +233,7 @@ function isExpo(name, path) {
   if(!methods) {
     return
   }
-  if(methods[name]) {
+  if(methods[toCamelCase(name)]) {
     return {path, methods, exported: true}
   }
 }
@@ -487,12 +487,12 @@ async function isFuncName(route, methods, args) {
     return false
   }
 
-  var fn = methods[toCamelCase(route.basename)]
+  var fn = methods[toCamelCase(route.name)]
   if(!fn) {
     return false
   }
   /**
-   * If the basename exists and invoked but returns nothing.
+   * If the basename exists and is invoked but returns nothing.
    */
   var methods = await invoke(fn, args)
   if(!methods) {

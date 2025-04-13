@@ -10,6 +10,7 @@
 const http = require('./http')
 const conf = require('./config')
 const cont = require('./context')
+const crypto = require('crypto')
 const utility = require('@vindo/utility')
 const exception = require('@vindo/exception')
 
@@ -43,6 +44,8 @@ function env(config) {
 
   
   process.env.PORT = config.port
+  process.env.RSID = crypto.randomBytes(16).toString('hex')
+
   /**
    * This allow to switch environment into production and vice versa
    * using the NODE_ENV from process.env

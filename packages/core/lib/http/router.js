@@ -53,10 +53,11 @@ async function invoke(func, args) {
      * Handle template render
      */
     if(has('render')) {
+      const res = args[0].response
       // The listener must return an html string to end the request.
       const html = emit('render', data)
       if(html) {
-        return args[0].response.html(html)
+        return res.html(html, res.statusCode)
       }
     }
 
@@ -91,18 +92,19 @@ function error(req, res, ctx) {
         }
       }
       /**
-       * If status code is not set, the set internal error message and status
+       * If there's uncaught error, then set internal error status and message
        */
       if(!code) {
+        code = '500'
         const msg = e.message.split(/\n/)
         if(msg) {
-          merge(e, {...exce.statuses['500'], data: {message: msg[0]}, log: true})
+          merge(e, {...exce.statuses[code], data: {message: msg[0]}, log: true})
         }
       }
       /**
        * Get handler from current directory or root
        */
-      var fn = getErrorHandler(req.path, code)
+      var fn = getErrorHandler(req.route.path, code)
       if(fn) {
         if(e.log) {
           console.error(e)
@@ -122,7 +124,7 @@ function error(req, res, ctx) {
         if(has('render')) {
           const html = emit('render', data)
           if(html) {
-            self.response.html(html)
+            self.response.html(html, code)
           }
         }
       }

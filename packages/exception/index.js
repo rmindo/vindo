@@ -23,9 +23,6 @@ const create = exports.createErrorSubClass = function createErrorSubClass(code, 
   exports.statuses[code] = {
     log: true,
     name,
-    data: {
-      message: status
-    },
     status,
     statusCode: code
   }
@@ -83,7 +80,6 @@ exports.error = function error(e, code = 500) {
     if(err) {
       Object.assign(e, {
         log: err.log,
-        data: err.data,
         status: err.status,
         statusCode: err.statusCode,
       })

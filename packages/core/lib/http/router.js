@@ -179,16 +179,16 @@ function getMethods(path) {
 
 
 /**
- * Validate ID pattern either a number or hex
+ * Validate name pattern either a number or hex
  * 
- * @param {string} id - Parameter from url
+ * @param {string} name - Parameter from url
  * 
  */
-function getIdPattern(id) {
+function getPattern(name) {
   var pat = /^\[([a-z]+)\]$/
 
-  var num = id.match(/^(\d+)$/)
-  var hex = id.match(/^([0-9a-f]{16,})$/)
+  var num = name.match(/^(\d+)$/)
+  var hex = name.match(/^([0-9a-f]{16,})$/)
 
   if(num) {
     pat = /^\[([a-z]+):num\]$/
@@ -221,7 +221,7 @@ function params(base, data) {
 
   const params = {}
   for(var {name} of files) {
-    var match = name.match(getIdPattern(base))
+    var match = name.match(getPattern(base))
 
     if(match) {
       params.key = match[1]

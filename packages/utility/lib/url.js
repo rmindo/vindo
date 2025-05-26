@@ -34,10 +34,15 @@ function parseQuery(string) {
     var [key, value] = item.split('=')
 
     var key = decodeURIComponent(key)
-    var value = decodeURIComponent(value)
+    var value = decodeURIComponent(value.replace(/\+/g, '%20'))
 
     const arr = key.match(/(\w+)\[\]$/)
     const obj = key.match(/(\w+)\[(\w+)\]$/)
+
+
+    value = !isNaN(value) ? parseInt(value) : value
+    value = value === 'true' ? true : value
+    value = value === 'false' ? false : value
 
     /**
      * Handle the object key/value in the query

@@ -254,7 +254,7 @@ function isExpo(name, path) {
     return
   }
   if(methods[toCamelCase(name)]) {
-    return {path, methods, exported: true}
+    return {path, methods}
   }
 }
 
@@ -275,22 +275,32 @@ function isExpo(name, path) {
  */
 function map(data) {
   var i = 2
-  var p = data.path
+  var path = data.path
 
   data.params = {}
-  data.exported = false
+  data.origin = false
 
-  while(i <= p.length) {
-    var path = p.slice(0, i)
+  /**
+   * If basename exists and exported
+   */
+  const exported = isExpo(data.name, path.slice(0, -1))
+  if(exported) {
+    merge(data, exported)
+    return data
+  }
+  
+
+  while(i <= path.length) {
+    var _path = path.slice(0, i)
     /**
      * Check the parent path directory if exists
      * else find the name in the current directory or inside the file.
      */
-    if(exists(path)) {
-      data.path = path
+    if(exists(_path)) {
+      data.path = _path
     }
     else {
-      var name = p[i-1]
+      var name = _path[i-1]
 
       merge(data, params(name, data))
       merge(data, isExpo(name, data.path))
@@ -304,12 +314,6 @@ function map(data) {
     i++
   }
 
-  /**
-   * Point to error file if not equal
-   */
-  if(p.length !== data.path.length) {
-    data.path = data.root.slice(0, 1)
-  }
 
   return data
 }
@@ -327,17 +331,22 @@ exports.route = function route({url, root}) {
 
   data.root = root
   data.path = root.concat(data.segments)
+
   /**
-   * Start digging if not exist
+   * Start mapping if not exist
    */
   if(!exists(data.path)) {
     merge(data, map(data))
-    merge(data, isExpo(data.name, data.path.slice(0, -1)))
   }
 
   if(!data.methods) {
     data.methods = getMethods(data.path)
   }
+
+  /**
+   * Base origin of the path
+   */
+  data.origin = data.path.slice(2).length == data.segments.length
 
   return data
 }
@@ -428,20 +437,20 @@ exports.handle = async function handle(route, methods, args) {
   }
 
   /**
-   * First attempt finding the route using the single export of a function.
+   * HTTP verb
    */
-  if(route.exported) {
-    exist = await isFuncName(route, methods, args)
+  if(route.origin) {
+    exist = await isHttpVerb(route, methods, args)
   }
   else {
-    exist = await isHttpVerb(route, methods, args)
+    exist = await isFuncName(route, methods, args)
   }
 
   /**
    * Execute only if the first attempt fails.
    */
   if(!exist) {
-    exist = await defaultExport(route, methods, args)
+    exist = await checkFromDefault(route, methods, args)
   }
   return exist
 }
@@ -543,7 +552,8 @@ async function isFuncName(route, methods, args) {
  * @returns {boolean} - Return true if the current route exists.
  * 
  */
-async function defaultExport(route, methods, [svr, req, res, ctx]) {
+async function checkFromDefault(route, methods, [svr, req, res, ctx]) {
+  const args = arguments[2]
   /**
    * Prevent sending new headers, No default found and no functions.
    */
@@ -558,13 +568,17 @@ async function defaultExport(route, methods, [svr, req, res, ctx]) {
    */
   ctx.request = req
   ctx.response = res
-  const def = await invoke(methods.default, [svr, ctx])
-  if(!def) {
+  const _default = await invoke(methods.default, [svr, ctx])
+  if(!_default) {
     return false
   }
 
   /**
-   * Try to check again if the route is in the default export.
+   * HTTP verb
    */
-  return await exports.handle(route, def, arguments[2])
+  if(route.origin) {
+    return await isHttpVerb(route, _default, args)
+  }
+
+  return await isFuncName(route, _default, args)
 }

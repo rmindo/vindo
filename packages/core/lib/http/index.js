@@ -81,7 +81,7 @@ exports.serve = function serve(port, ctx = {}) {
   /**
    * The last middleware to execute
    */
-  exports.stack.push((req, res) => {
+  exports.stack.push(function end(req, res) {
     server.request = req
     server.response = res
     

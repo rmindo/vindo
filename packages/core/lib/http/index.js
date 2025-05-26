@@ -47,7 +47,7 @@ exports.init = function init({root, cors}) {
   /**
    * Set default headers and status code
    */
-  return function initial(req, res, next) {
+  return function start(req, res, next) {
     req.root = root
     req.cors = cors
     
@@ -76,7 +76,7 @@ exports.init = function init({root, cors}) {
  * @param {number} port
  * @param {object} ctx  
  */
-exports.start = function start(port, ctx = {}) {
+exports.serve = function serve(port, ctx = {}) {
   exports.context = ctx
   /**
    * The last middleware to execute

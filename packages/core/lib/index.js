@@ -89,7 +89,7 @@ exports.server = function server(config = {}) {
    * Run the server
    */
   http.run = function run(cb = null) {
-    http.start(config.port, cont.context(config, cb))
+    http.serve(config.port, cont.context(config, cb))
   }
 
   return http

@@ -1,21 +1,15 @@
 
-exports.GET = function(req, res) {
-  res.json({auth: true})
-}
+exports.GET = function() {}
 
 
-exports.sign = function(req, res) {
+exports.sign = function() {
   return {
-    POST() {
-      res.json({checked: true})
-    },
+    POST() {}
   }
 }
 
-exports.default = function(ctx) {
+exports.default = function() {
   return {
-    verify(req, res) {
-      res.json({verified: true})
-    }
+    verify() {}
   }
 }

@@ -469,19 +469,59 @@ exports.route = function route({url, root}) {
   /**
    * Start mapping if not exist
    */
-  if(!exists(data.path)) {
-    merge(data, map(data))
-  }
+  // if(exists(data.path)) {
+  //   if(data.name) {
+  //     data.isFile = true
+  //   }
+  //   else {
+  //     data.isIndex = true
+  //   }
+  // }
+  // else {
+  //   merge(data, map(data))
+  // }
 
   if(!data.methods) {
     data.methods = getMethods(data.path)
-
     /**
      * Base origin of the path
      */
     data.origin = data.path.slice(2).length == data.segments.length
   }
   return data
+}
+
+
+/**
+ * 
+ * Route using function name or HTTP verb
+ * 
+ * @param {object} route - Route details
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ * 
+ */
+exports.handle = async function handle(route, args) {
+  var exist = false
+
+  /**
+   * HTTP verb
+   */
+  if(route.origin) {
+    exist = await isHttpVerb(route, args)
+  }
+  else {
+    exist = await isFuncName(route, args)
+  }
+
+  /**
+   * Execute only if the first attempt fails.
+   */
+  if(!exist) {
+    exist = await checkFromDefault(route, args)
+  }
+  return exist
 }
 
 
@@ -543,45 +583,4 @@ exports.start = function start(req) {
     })
   }
   define(req, 'route', {value: route})
-}
-
-
-/**
- * 
- * Route using function name or HTTP verb
- * 
- * @param {object} route - Route details
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- * 
- */
-exports.handle = async function handle(route, args) {
-  var exist = false
-  /**
-   * Set default for commonJS module exports
-   * @example
-   *    module.exports = function() {}
-   */
-  if(isFunc(route.methods)) {
-    route.methods = {default: route.methods}
-  }
-
-  /**
-   * HTTP verb
-   */
-  if(route.origin) {
-    exist = await isHttpVerb(route, args)
-  }
-  else {
-    exist = await isFuncName(route, args)
-  }
-
-  /**
-   * Execute only if the first attempt fails.
-   */
-  if(!exist) {
-    exist = await checkFromDefault(route, args)
-  }
-  return exist
 }

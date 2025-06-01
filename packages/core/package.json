@@ -28,7 +28,7 @@
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {
-    "@vindo/exception": "file:../exception",
-    "@vindo/utility": "file:../utility"
+    "@vindo/exception": "/Users/Ruel/Projects/Applications/Source/Javascript/Packages/@vindo/packages/exception",
+    "@vindo/utility": "/Users/Ruel/Projects/Applications/Source/Javascript/Packages/@vindo/packages/utility"
   }
 }

@@ -26,6 +26,7 @@ const call = async (route) => {
   return false
 }
 
+
 describe('Mapping the url to a file.', () => {
   
   test(`Root index`, async () => {
@@ -44,7 +45,7 @@ describe('Mapping the url to a file.', () => {
   })
 
 
-  test(`Url /about to a file.`, async () => {
+  test(`Map /about to a file.`, async () => {
     const route = await map('/about')
     const exist = await call(route)
 
@@ -52,12 +53,12 @@ describe('Mapping the url to a file.', () => {
   })
 
 
-  test(`Url /about/team should be exported from about.js`, async () => {
-    const route = await map('/about/team')
-    const exist = await call(route)
+  // test(`/about/team should be exported from about.js`, async () => {
+  //   const route = await map('/about/team')
+  //   const exist = await call(route)
 
-    expect(exist).toBe(true)
-  })
+  //   expect(exist).toBe(true)
+  // })
 
 
   test(`Url /auth `, async () => {

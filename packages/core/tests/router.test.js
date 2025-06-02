@@ -7,14 +7,18 @@ const root = [
   'http'
 ]
 
-const call = async (url, method = 'GET') => {
+const map = async (url, method = 'GET') => {
   const route = await router.route({url, root})
-  
+  route.method = method
+  return route
+}
+
+
+const call = async (route) => {
   try {
-    const funcs = util.file.get(route.path)
-    if(funcs) {
-      route.method = method
-      return await router.handle(route, funcs, [{}, {}, {}, {}])
+    route.methods = util.file.get(route.path)
+    if(route.methods) {
+      return await router.handle(route, [{}, {}, {}, {}])
     }
   }
   catch(e) {}
@@ -22,25 +26,43 @@ const call = async (url, method = 'GET') => {
   return false
 }
 
-
 describe('Mapping the url to a file.', () => {
   
   test(`Root index`, async () => {
-    const exist = await call('/')
+    const route = await map('/')
+    const exist = await call(route)
 
     expect(exist).toBe(true)
   })
 
 
   test(`Function docs should be exported from root index.`, async () => {
-    const exist = await call('/docs')
+    const route = await map('/docs')
+    const exist = await call(route)
 
     expect(exist).toBe(true)
   })
 
 
-  test(`Map basename /about to a file.`, async () => {
-    const exist = await call('/about')
+  test(`Url /about to a file.`, async () => {
+    const route = await map('/about')
+    const exist = await call(route)
+
+    expect(exist).toBe(true)
+  })
+
+
+  test(`Url /about/team should be exported from about.js`, async () => {
+    const route = await map('/about/team')
+    const exist = await call(route)
+
+    expect(exist).toBe(true)
+  })
+
+
+  test(`Url /auth `, async () => {
+    const route = await map('/auth')
+    const exist = await call(route)
 
     expect(exist).toBe(true)
   })

@@ -1,4 +1,12 @@
-exports.default = function(ctx) {
+
+exports.team = function() {
+  return {
+    GET() {}
+  }
+}
+
+
+exports.default = function() {
   return {
     GET() {}
   }

@@ -293,7 +293,7 @@ function map(data) {
   //   merge(data, params(name, data))
   //   merge(data, isExpo(name, data.path))
   // }
-  console.log(params(data.name, data))
+  // console.log(params(data.name, data))
 
   return data
   while(i <= path.length) {
@@ -343,12 +343,11 @@ function map(data) {
  * 
  * @returns {boolean} - Return true if the current route exists.
  */
-async function isHttpVerb(route, methods, args) {
-  if(!methods) {
+async function isHttpVerb(route, args) {
+  if(!route.methods) {
     return false
   }
-
-  var fn = methods[route.method]
+  var fn = route.methods[route.method]
   if(!fn) {
     return false
   }
@@ -378,25 +377,25 @@ async function isHttpVerb(route, methods, args) {
  * 
  * @returns {boolean} - Return true if the current route exists.
  */
-async function isFuncName(route, methods, args) {
-  if(!methods) {
+async function isFuncName(route, args) {
+  if(!route.methods) {
     return false
   }
-  var fn = methods[toCamelCase(route.name)]
+  var fn = route.methods[toCamelCase(route.name)]
   if(!fn) {
     return false
   }
   /**
    * If the basename exists and is invoked but returns nothing.
    */
-  methods = await invoke(fn, args)
-  if(!methods) {
+  route.methods = await invoke(fn, args)
+  if(!route.methods) {
     return true
   }
   /**
    * If it returns an object then try to execute using the request method.
    */
-  return await isHttpVerb(route, methods, args)
+  return await isHttpVerb(route, args)
 }
 
 
@@ -419,8 +418,9 @@ async function isFuncName(route, methods, args) {
  * @returns {boolean} - Return true if the current route exists.
  * 
  */
-async function checkFromDefault(route, methods, [svr, req, res, ctx]) {
-  const args = arguments[2]
+async function checkFromDefault(route, [svr, req, res, ctx]) {
+  const args = arguments[1]
+  const methods = route.methods
   /**
    * Prevent sending new headers, No default found and no functions.
    */
@@ -437,8 +437,8 @@ async function checkFromDefault(route, methods, [svr, req, res, ctx]) {
    * @example
    *    export default function(ctx) {}
    */
-  const _default = await invoke(methods.default, [svr, ctx])
-  if(!_default) {
+  route.methods = await invoke(methods.default, [svr, ctx])
+  if(!route.methods) {
     return false
   }
 
@@ -446,10 +446,10 @@ async function checkFromDefault(route, methods, [svr, req, res, ctx]) {
    * HTTP verb
    */
   if(route.origin) {
-    return await isHttpVerb(route, _default, args)
+    return await isHttpVerb(route, args)
   }
 
-  return await isFuncName(route, _default, args)
+  return await isFuncName(route, args)
 }
 
 
@@ -499,10 +499,9 @@ exports.end = async function end(args) {
   try {
     var exist
     var route = req.route
-    var methods = route.methods
     
-    if(methods) {
-      exist = await exports.handle(route, methods, args)
+    if(route.methods) {
+      exist = await exports.handle(route, args)
     }
 
     /**
@@ -552,38 +551,37 @@ exports.start = function start(req) {
  * Route using function name or HTTP verb
  * 
  * @param {object} route - Route details
- * @param {object} methods - List of functions from exported routes
  * @param {array} args - Http request, respnse and context
  * 
  * @returns {boolean} - Return true if the current route exists.
  * 
  */
-exports.handle = async function handle(route, methods, args) {
+exports.handle = async function handle(route, args) {
   var exist = false
   /**
    * Set default for commonJS module exports
    * @example
    *    module.exports = function() {}
    */
-  if(isFunc(methods)) {
-    methods = {default: methods}
+  if(isFunc(route.methods)) {
+    route.methods = {default: route.methods}
   }
 
   /**
    * HTTP verb
    */
   if(route.origin) {
-    exist = await isHttpVerb(route, methods, args)
+    exist = await isHttpVerb(route, args)
   }
   else {
-    exist = await isFuncName(route, methods, args)
+    exist = await isFuncName(route, args)
   }
 
   /**
    * Execute only if the first attempt fails.
    */
   if(!exist) {
-    exist = await checkFromDefault(route, methods, args)
+    exist = await checkFromDefault(route, args)
   }
   return exist
 }

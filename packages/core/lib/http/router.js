@@ -48,7 +48,6 @@ function isFunc(fn) {
 async function invoke(func, args) {
   if(isFunc(func)) {
     const data = await func.call(...args)
-
     /**
      * Handle template render
      */
@@ -60,7 +59,6 @@ async function invoke(func, args) {
         return res.html(html, res.statusCode)
       }
     }
-
     return data
   }
 }
@@ -254,7 +252,7 @@ function isExpo(name, path) {
     return
   }
   if(methods[toCamelCase(name)]) {
-    return {path, methods}
+    return {path, methods, origin: false}
   }
 }
 
@@ -288,8 +286,16 @@ function map(data) {
     merge(data, exported)
     return data
   }
-  
 
+  data.path = path.slice(0, -1)
+  
+  // const dig = function dig(name, data) {
+  //   merge(data, params(name, data))
+  //   merge(data, isExpo(name, data.path))
+  // }
+  console.log(params(data.name, data))
+
+  return data
   while(i <= path.length) {
     var _path = path.slice(0, i)
     /**
@@ -302,8 +308,7 @@ function map(data) {
     else {
       var name = _path[i-1]
 
-      merge(data, params(name, data))
-      merge(data, isExpo(name, data.path))
+      dig(name, data)
       /**
        * Add to the path if the name exists in the sub-directory
        */
@@ -316,6 +321,135 @@ function map(data) {
 
 
   return data
+}
+
+
+/**
+ * Invoke route using http verb name from exported routes
+ * 
+ * @example
+ *    export function GET(req, res) {}
+ * 
+ *    Or
+ * 
+ *    export default function(ctx) {
+ *      returns {
+ *        GET(req, res) {}
+ *      }
+ *    }
+ * 
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ */
+async function isHttpVerb(route, methods, args) {
+  if(!methods) {
+    return false
+  }
+
+  var fn = methods[route.method]
+  if(!fn) {
+    return false
+  }
+  await invoke(fn, args)
+
+  return true
+}
+
+
+/**
+ * Invoke route using basename as function name from exported routes
+ * 
+ * @example
+ *    export function about(req, res) {}
+ * 
+ *    Or
+ * 
+ *    export default function(ctx) {
+ *      returns {
+ *        about(req, res) {}
+ *      }
+ *    }
+ * 
+ * @param {object} route - Route details
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, respnse and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ */
+async function isFuncName(route, methods, args) {
+  if(!methods) {
+    return false
+  }
+  var fn = methods[toCamelCase(route.name)]
+  if(!fn) {
+    return false
+  }
+  /**
+   * If the basename exists and is invoked but returns nothing.
+   */
+  methods = await invoke(fn, args)
+  if(!methods) {
+    return true
+  }
+  /**
+   * If it returns an object then try to execute using the request method.
+   */
+  return await isHttpVerb(route, methods, args)
+}
+
+
+/**
+ * Use default export as the last routing attempt
+ * 
+ * @example
+ *    export default function(ctx) {
+ *      return {
+ *        GET(req, res) {},
+ *        about(req, res) {}
+ *        ....
+ *      }
+ *    }
+ * 
+ * @param {object} route - Route details
+ * @param {object} methods - List of functions from exported routes
+ * @param {array} args - Http request, response and context
+ * 
+ * @returns {boolean} - Return true if the current route exists.
+ * 
+ */
+async function checkFromDefault(route, methods, [svr, req, res, ctx]) {
+  const args = arguments[2]
+  /**
+   * Prevent sending new headers, No default found and no functions.
+   */
+  if(!methods || !isFunc(methods.default) || res && res.writableEnded) {
+    return false
+  }
+
+  
+  ctx.request = req
+  ctx.response = res
+
+  /**
+   * Default export
+   * @example
+   *    export default function(ctx) {}
+   */
+  const _default = await invoke(methods.default, [svr, ctx])
+  if(!_default) {
+    return false
+  }
+
+  /**
+   * HTTP verb
+   */
+  if(route.origin) {
+    return await isHttpVerb(route, _default, args)
+  }
+
+  return await isFuncName(route, _default, args)
 }
 
 
@@ -341,13 +475,12 @@ exports.route = function route({url, root}) {
 
   if(!data.methods) {
     data.methods = getMethods(data.path)
+
+    /**
+     * Base origin of the path
+     */
+    data.origin = data.path.slice(2).length == data.segments.length
   }
-
-  /**
-   * Base origin of the path
-   */
-  data.origin = data.path.slice(2).length == data.segments.length
-
   return data
 }
 
@@ -453,132 +586,4 @@ exports.handle = async function handle(route, methods, args) {
     exist = await checkFromDefault(route, methods, args)
   }
   return exist
-}
-
-
-/**
- * Invoke route using http verb name from exported routes
- * 
- * @example
- *    export function GET(req, res) {}
- * 
- *    Or
- * 
- *    export default function(ctx) {
- *      returns {
- *        GET(req, res) {}
- *      }
- *    }
- * 
- * @param {object} methods - List of functions from exported routes
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- */
-async function isHttpVerb(route, methods, args) {
-  if(!methods) {
-    return false
-  }
-
-  var fn = methods[route.method]
-  if(!fn) {
-    return false
-  }
-  await invoke(fn, args)
-
-  return true
-}
-
-
-/**
- * Invoke route using basename as function name from exported routes
- * 
- * @example
- *    export function about(req, res) {}
- * 
- *    Or
- * 
- *    export default function(ctx) {
- *      returns {
- *        about(req, res) {}
- *      }
- *    }
- * 
- * @param {object} route - Route details
- * @param {object} methods - List of functions from exported routes
- * @param {array} args - Http request, respnse and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- */
-async function isFuncName(route, methods, args) {
-  if(!methods) {
-    return false
-  }
-
-  var fn = methods[toCamelCase(route.name)]
-  if(!fn) {
-    return false
-  }
-  /**
-   * If the basename exists and is invoked but returns nothing.
-   */
-  var methods = await invoke(fn, args)
-  if(!methods) {
-    return true
-  }
-  /**
-   * If it returns an object then try to execute using the request method.
-   */
-  return await isHttpVerb(route, methods, args)
-}
-
-
-/**
- * Use default export as the last routing attempt
- * 
- * @example
- *    export default function(ctx) {
- *      return {
- *        GET(req, res) {},
- *        about(req, res) {}
- *        ....
- *      }
- *    }
- * 
- * @param {object} route - Route details
- * @param {object} methods - List of functions from exported routes
- * @param {array} args - Http request, response and context
- * 
- * @returns {boolean} - Return true if the current route exists.
- * 
- */
-async function checkFromDefault(route, methods, [svr, req, res, ctx]) {
-  const args = arguments[2]
-  /**
-   * Prevent sending new headers, No default found and no functions.
-   */
-  if(!methods || !isFunc(methods.default) || res && res.writableEnded) {
-    return false
-  }
-
-  /**
-   * Default export
-   * @example
-   *    export default function(ctx) {}
-   */
-  ctx.request = req
-  ctx.response = res
-  const _default = await invoke(methods.default, [svr, ctx])
-  if(!_default) {
-    return false
-  }
-
-  /**
-   * HTTP verb
-   */
-  if(route.origin) {
-    return await isHttpVerb(route, _default, args)
-  }
-
-  return await isFuncName(route, _default, args)
 }

@@ -1,12 +1,9 @@
-
-exports.check = function() {
-  return {
-    GET() {}
-  }
+exports.test = function(req, res, ctx) {
 }
 
-exports.default = function() {
+exports.default = function(ctx) {
   return {
-    GET() {}
+    GET: async (req, res) => {
+    }
   }
 }

@@ -1,11 +1,11 @@
 
-exports.docs = function() {
+exports.docs = function(req, res) {
   return {
     GET() {}
   }
 }
 
-exports.default = function() {
+exports.default = function(ctx) {
   return {
     GET() {}
   }

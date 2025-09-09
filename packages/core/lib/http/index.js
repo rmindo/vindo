@@ -41,15 +41,15 @@ module.exports = exports = Object.create(server, {
  * Initial configuration
  * @public
  * 
- * @param {object} req - Server request
+ * @param {object} conf - Config
  */
-exports.init = function init({root, cors}) {
+exports.init = function init({root}) {
   /**
    * Set default headers and status code
    */
-  return function initial(req, res, next) {
+  return function start(req, res, next) {
+    req.body = {}
     req.root = root
-    req.cors = cors
     
     router.start(req)
   
@@ -76,12 +76,12 @@ exports.init = function init({root, cors}) {
  * @param {number} port
  * @param {object} ctx  
  */
-exports.start = function start(port, ctx = {}) {
+exports.serve = function serve(port, ctx = {}) {
   exports.context = ctx
   /**
    * The last middleware to execute
    */
-  exports.stack.push((req, res) => {
+  exports.stack.push(function end(req, res) {
     server.request = req
     server.response = res
     

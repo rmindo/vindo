@@ -12,7 +12,6 @@ const {parse:get, extname:ext} = require('node:path')
 
 /**
  * Split url
- * @param url
  */
 function split(url) {
   if(url) {
@@ -21,8 +20,86 @@ function split(url) {
 }
 
 
+function getType(val) {
+  if(!isNaN(val)) {
+    return 'num'
+  }
+  if(val.match(/^([0-9a-f]{16,})$/)) {
+    return 'hex'
+  }
+  if(val.match(/^([^-]*-){2,}([^-]+)$/)) {
+    return 'slug'
+  }
 
-function parseQuery(string) {
+  const char = val.match(/^([a-zA-Z0-9-=_@]+)$/)
+  if(char) {
+    if(char[0]) {
+      var str = char[0]
+
+      if(str.match(/^([a-zA-Z]+)$/)) {
+        return 'alpha'
+      }
+
+      if(str.match(/^(?![a-z]*$)([a-zA-Z0-9]+)$/)) {
+        return 'leno'
+      }
+    }
+    return 'char'
+  }
+}
+
+
+/**
+ * Set query
+ * @param data 
+ */
+exports.setQuery = function setQuery(data) {
+  let p = []
+  for(let i in data) {
+    p.push(encodeURIComponent(i) + '=' + encodeURIComponent(data[i]))
+  }
+  return p.join('&')
+}
+
+
+/**
+ * URL Parser
+ * @param url
+ */
+exports.parse = function parse(url) {
+  var [path, query] = url.split('?')
+  
+  var query = exports.parseQuery(query)
+  var segments = split(path)
+  var data = {
+    path,
+    query,
+    args: [],
+    segments,
+    pathname: path,
+    basename: segments.at(-1),
+    extension: undefined,
+  }
+
+  if(data.basename) {
+    data.name = get(data.basename).name
+    data.extension = ext(data.basename)
+  }
+
+  for(var key in segments) {
+    var val = segments[key]
+    var type = getType(val)
+    if(type) {
+      data.args.push({key: parseInt(key), type, value: type == 'num' ? parseInt(val) : val})
+    }
+  }
+ 
+  return data
+}
+
+
+
+exports.parseQuery = function parseQuery(string) {
   const query = {}
 
   if(!string) {
@@ -33,12 +110,24 @@ function parseQuery(string) {
   for(let item of data) {
     var [key, value] = item.split('=')
 
+    if(!key | !value) {
+      continue
+    }
+    
+    var value = value.replace(/<|>/g, '')
+    var value = value.replace(/\+/g, '%20')
+
     var key = decodeURIComponent(key)
     var value = decodeURIComponent(value)
 
+
+    value = !isNaN(value) ? parseInt(value) : value
+    value = value === 'true' ? true : value
+    value = value === 'false' ? false : value
+
+
     const arr = key.match(/(\w+)\[\]$/)
     const obj = key.match(/(\w+)\[(\w+)\]$/)
-
     /**
      * Handle the object key/value in the query
      */
@@ -74,57 +163,4 @@ function parseQuery(string) {
   }
 
   return query
-}
-
-
-/**
- * Set query
- * @param data 
- */
-exports.setQuery = function setQuery(data) {
-  let p = []
-  for(let i in data) {
-    p.push(encodeURIComponent(i) + '=' + encodeURIComponent(data[i]))
-  }
-  return p.join('&')
-}
-
-
-/**
- * URL Parser
- * @param url
- */
-exports.parse = function parse(url) {
-  var [path, query] = url.split('?')
-  
-  var query = parseQuery(query)
-  var segments = split(path)
-  var data = {
-    path,
-    query,
-    args: {},
-    segments,
-    pathname: path,
-    basename: segments.at(-1),
-    extension: undefined,
-  }
-
-  if(data.basename) {
-    data.name = get(data.basename).name
-    data.extension = ext(data.basename)
-  }
-
-  for(var val of segments) {
-    if(val.match(/^([\d]+)$/)) {
-      data.args.num = parseInt(val)
-    }
-    if(val.match(/^([0-9a-f]{16,})$/)) {
-      data.args.hex = val
-    }
-    if(val.match(/^([^-]*-){2,}([^-]+)$/)) {
-      data.args.slug = val
-    }
-  }
-
-  return data
 }

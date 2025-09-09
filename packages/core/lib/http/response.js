@@ -51,11 +51,12 @@ exports.redirect = function redirect(url) {
  * @param code
  * @param headers
  */
-exports.html = function html(body = null, code = 200) {
+exports.html = function html(body = null, code = 200, headers = {}) {
   if(this.writableEnded) {
     return
   }
   this.writeHead(code, {
+    ...headers,
     'Content-Type': 'text/html'
   })
   this.end(body)
@@ -67,7 +68,7 @@ exports.html = function html(body = null, code = 200) {
  * @param code
  * @param headers
  */
-exports.json = function json(body = {}, code = 200) {
+exports.json = function json(body = {}, code = 200, headers = {}) {
   if(this.writableEnded) {
     return
   }
@@ -76,6 +77,7 @@ exports.json = function json(body = {}, code = 200) {
   }
 
   this.writeHead(code, {
+    ...headers,
     'Content-Type': 'application/json'
   })
   this.end(JSON.stringify(body, null, 2))
@@ -98,14 +100,14 @@ exports.print = function print(body = null, code = 200, headers = {}) {
 /**
  * Use stream event
  */
-exports.eventStream = function(headers = {}) {
+exports.eventStream = function eventStream(headers = {}) {
   const res = this
 
   res.headers({
+    ...headers,
     connection: 'keep-alive',
     cacheControl: 'no-cache',
-    contentType: 'text/event-stream',
-    ...headers
+    contentType: 'text/event-stream'
   })
 
   return {

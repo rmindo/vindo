@@ -28,7 +28,7 @@
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {
-    "@vindo/exception": "^1.0.0",
-    "@vindo/utility": "^0.0.5"
+    "@vindo/exception": "file:../exception",
+    "@vindo/utility": "file:../utility"
   }
 }

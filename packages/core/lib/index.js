@@ -44,7 +44,7 @@ function env(config) {
 
   
   process.env.PORT = config.port
-  process.env.RSID = crypto.randomBytes(16).toString('hex')
+  process.env.UUID = crypto.randomBytes(16).toString('hex')
 
   /**
    * This allow to switch environment into production and vice versa
@@ -56,6 +56,9 @@ function env(config) {
   }
   delete config.env.ENV_PATH
   
+  /**
+   * Add env vars to process env
+   */
   for(var i in config.env) {
     if(typeof config.env[i] == 'string') {
       process.env[i] = config.env[i]
@@ -89,7 +92,7 @@ exports.server = function server(config = {}) {
    * Run the server
    */
   http.run = function run(cb = null) {
-    http.start(config.port, cont.context(config, cb))
+    cont.context(config, cb).then(ctx => http.serve(config.port, ctx))
   }
 
   return http

@@ -23,16 +23,16 @@ export namespace Utility {
    */
   export interface FileInterface {
     ext(name: string): string;
-    get(args: string | string[]): object;
-    html(args: string | string[], data?: object): string;
-    read(args: string | string[]): string;
-    stats(args: string | string[]): object;
-    isDir(args: string | string[]): boolean;
-    join(args: string | string[]): string;
-    parse(args: string | string[]): object;
-    exists(args: string | string[]): boolean;
-    readdir(args: string | string[]): string;
-    readAsync(args: string | string[]): Promise<Buffer>;
+    get(...args: string | string[]): object;
+    html(...args: string | string[] | object): string;
+    read(...args: string | string[]): string;
+    stats(...args: string | string[]): object;
+    isDir(...args: string | string[]): boolean;
+    join(...args: string | string[]): string;
+    parse(...args: string | string[]): object;
+    exists(...args: string | string[]): boolean;
+    readdir(...args: string | string[]): string;
+    readAsync(...args: string | string[]): Promise<Buffer>;
   }
 
 
@@ -42,11 +42,13 @@ export namespace Utility {
    */
   export interface ObjectInterface extends Object {
     define(object: object, key: string, descriptor: object): void;
+    set(object: object, key: string, descriptor: object): void;
     get(object: object, key: string): object;
     map(object: object, cb: Function): object;
     has(array: string[] | string, object: object): boolean;
-    merge(one: object, two: object): void;
-    filter(object: object, exclude: string[], data?: object): object;
+    count(obj: object): number;
+    merge(one: object, two: object, excl?: string[]): object;
+    filter(object: object, exclude: string[]): object;
   }
 
   /**

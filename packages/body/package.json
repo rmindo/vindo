@@ -23,5 +23,7 @@
   ],
   "author": "Ruel Mindo",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "@vindo/utility": "file:../utility"
+  }
 }

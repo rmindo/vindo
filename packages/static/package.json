@@ -23,6 +23,6 @@
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {
-    "mime-types": "^2.1.35"
+    "mime-types": "^3.0.1"
   }
 }

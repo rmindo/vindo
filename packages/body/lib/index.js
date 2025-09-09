@@ -7,7 +7,7 @@
 'use strict'
 
 
-const querystring = require('querystring')
+const {url} = require('@vindo/utility')
 
 /**
  * 
@@ -41,7 +41,7 @@ function getJSON(data) {
  * @returns 
  */
 function getUrlencodedData(data) {
-  return querystring.decode(data.toString())
+  return url.parseQuery(data.toString())
 }
 
 /**
@@ -66,7 +66,7 @@ function parseBody(data, type) {
      * multipart/x-www-form-urlencoded
      */
     case 'urlencoded':
-      body = getUrlencodedData(exert)
+      body = getUrlencodedData(data)
       break
   }
   return body

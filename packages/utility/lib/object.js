@@ -13,7 +13,17 @@ module.exports = exports = Object.create(Object)
 /**
  * Shortname
  */
-exports.define = Object.defineProperty
+exports.set = Object.defineProperty
+exports.define = Object.defineProperties
+
+
+/**
+ * Count object
+ * @param {object} obj The object to count
+ */
+exports.count = function count(obj) {
+  return Object.keys(obj).length
+}
 
 /**
  * Check if key exist in an object
@@ -110,8 +120,9 @@ exports.get = function get(data, key) {
  * 
  * @param {object} one Target object where you what to merge
  * @param {object} two The object you want to merge
+ * @param {array} excl The items to exclude
  */
-exports.merge = function merge(one, two) {
+exports.merge = function merge(one, two, excl = []) {
   if(!one || !two) {
     return
   }
@@ -123,20 +134,22 @@ exports.merge = function merge(one, two) {
       Object.getOwnPropertyDescriptor(two, key)
     )
   })
+
+  if(excl.length) {
+    excl.forEach((key) => delete one[key])
+  }
+  return one
 }
 
 /**
  * Filter out unwanted data from an object
  * 
  * @param {object} object - The object you want to filter
- * @param {array} exclude - The list of key you want to filter out
- * @param {object} data - The object you want to merge or replace
+ * @param {array} excl - The list of key you want to filter out
  */
-exports.filter = function filter(object, exclude = [], data = {}) {
-  for(var name in object) {
-    if(!exclude.includes(name)) {
-      data[name] = object[name]
-    }
-  }
-  return data
+exports.filter = function filter(object, excl = []) {
+  excl.forEach((key) => {
+    delete object[key]
+  })
+  return object
 }

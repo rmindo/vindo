@@ -35,6 +35,10 @@ exports.padStart = function padStart(str, pad) {
 * @param {object} data
 */
 exports.replace = function replace(string, data = {}) {
+  if(Object.keys(data).length == 0) {
+    return string
+  }
+
   function repl(v) {
     var value = data[v.match(/([a-z_]+)/g)]
     if(value) {

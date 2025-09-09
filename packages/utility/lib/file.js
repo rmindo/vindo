@@ -12,7 +12,7 @@ const path = require('path')
 const string = require('./string')
 
 
-module.exports = exports = {path}
+module.exports = exports = Object.create(path)
 
 
 /**
@@ -48,12 +48,36 @@ exports.join = function join(...args) {
   if(Array.isArray(args[0])) {
     args = args[0]
   }
-  const abs = args.join('/')
 
-  if(path.isAbsolute(abs)) {
-    return abs
+  /**
+   * Return if path is absolute
+   */
+  {
+    var abs = args.join(process.platform == 'win32' ? '\\' : '/')
+    if(path.isAbsolute(abs)) {
+      return abs
+    }
   }
-  return path.join(path.dirname(require.main.path), ...args.filter(v => v))
+  /**
+   * Make sure the path "dir/file" is separated into segments.
+   */
+  var args = args.reduce(
+    (d, i) => {
+      if(i) {
+        d.push(...i.split('/'))
+      }
+      return d
+    },
+  [])
+
+  var dir = require.main.path
+  /**
+   * Get current directory of the caller if the path is relative
+   */
+  if(args[0] && args[0].match(/\.$/)) {
+    dir = exports.getCaller()
+  }
+  return path.join(path.dirname(dir), ...args)
 }
 
 
@@ -67,35 +91,44 @@ exports.exists = function exists(...args) {
     args = args[0]
   }
 
+  const exist = fs.existsSync(exports.join(...args))
+  if(exist) {
+    return true
+  }
+  /**
+   * Exclude file with extension that's not exist
+   */
   var base = args.at(-1)
-  if(base) {
-    if(path.isAbsolute(base)) {
-      args = base.split('/')
-  
-      if(args.length > 0) {
-        base = args.at(-1)
-      }
-    }
-  
-    const names = [
-      base,
+  if(!base || base && base.match(/\./g)) {
+    return false
+  }
+  /**
+   * Allow searching file without extension
+   * and support extensions such as ts, tsx and jsx.
+   */
+  var names = []
+  if(!process[Symbol.for('ts-node.register.instance')]) {
+    names = [
       base.concat('.js'),
-      base.concat('.ts'),
-      base.concat('.tsx'),
-      base.concat('.jsx'),
+      base.concat('.jsx')
     ]
-    const index = args.indexOf(base)
-  
-  
-    for(var key of names) {
-      const path = [...args]
-  
-      if(path[index]) {
-        path[index] = key
-      }
-      if(fs.existsSync(exports.join(...path))) {
-        return true
-      }
+  }
+  else {
+    names = [
+      base.concat('.ts'),
+      base.concat('.tsx')
+    ]
+  }
+
+  const index = args.indexOf(base)
+  for(var key of names) {
+    const path = [...args]
+
+    if(path[index]) {
+      path[index] = key
+    }
+    if(fs.existsSync(exports.join(...path))) {
+      return true
     }
   }
   return false
@@ -131,45 +164,53 @@ exports.readdir = function readdir(...args) {
  * @param {string | string[]} args The path of the file
  */
 exports.html = function html(...args) {
-  var src = 'src'
-  var ext = '.html'
-  
+  /**
+   * Reserve data for string interpolation
+   */
   var data = {}
   if(args.length > 1) {
-    data = args.pop()
+    const last = args.pop()
+    if(typeof last == 'object') {
+      data = last
+    }
   }
+  return string.replace(exports.read(args, '.html'), data)
+}
 
-  var args = args.reduce(
+
+/**
+ * Make relative path
+ * @param {*} path File path
+ * @param {string} ext File extension
+ * @returns 
+ */
+exports.relative = function relative(path, ext) {
+  if(Array.isArray(path[0])) {
+    path = path[0]
+  }
+  /**
+   * Split forward slashed into segments
+   */
+  path = path.reduce(
     (d, i) => {
-      d.push(...i.split('/'))
+      if(i) {
+        d.push(...i.split('/'))
+      }
       return d
     },
   [])
+  const name = path.at(-1)
 
   /**
-   * Only if you go one level higher directory
+   * Set single dot for current directory lookup
    */
-  if(args[0] == '..') {
-    src = null
+  path[path.indexOf(name)] = ext ? name.concat(ext) : name
+
+  if(path[0] && path[0].match(/^([a-z]+)$/)) {
+    path = ['.'].concat(path)
   }
 
-  var _path = [src].concat(args).filter(v => v)
-  if(args.length > 1) {
-    _path = _path.slice(0, -1)
-  }
-  const filename = args.at(-1).concat(ext)
-
-  /**
-   * Set default index if file not exist
-   */
-  if(exports.exists(..._path, filename)) {
-    _path.push(filename)
-  }
-  else {
-    _path.push('index'.concat(ext))
-  }
-
-  return string.replace(exports.read(..._path), data)
+  return path
 }
 
 
@@ -205,12 +246,17 @@ exports.isDir = function isDir(...args) {
  * @param {string | string[]} args The path of the file
  */
 exports.read = function read(...args) {
-  const file = exports.join(...args)
-  
+  var ext
+
+  if(args.length > 1) {
+    ext = args.pop()
+  }
+
   if(exports.isDir(...args)) {
     return
   }
 
+  const file = exports.join(...exports.relative(args, ext))
   if(exports.exists(file)) {
     return fs.readFileSync(file, 'utf8')
   }
@@ -218,7 +264,7 @@ exports.read = function read(...args) {
 
 
 /**
- * Read file with promises (asynchronous)
+ * Read file with promises
  * 
  * @param {string | string[]} args The path of the file
  */
@@ -255,5 +301,35 @@ exports.parse = function parse(...args) {
       }
     }
     return items
+  }
+}
+
+
+/**
+ * Get current caller file path
+ * 
+ * @returns {string}
+ */
+exports.getCaller = function getCaller() {
+  const ost = Error.prepareStackTrace
+
+  try {
+    var e = new Error()
+
+    Error.prepareStackTrace = function(e, st) {
+      return st
+    }
+
+    const cur = e.stack[0].getFileName()
+    while(e.stack.length) {
+      const cal = e.stack.shift().getFileName()
+      if(cur !== cal) {
+        return cal
+      }
+    }
+  }
+  catch(e) {}
+  finally {
+    Error.prepareStackTrace = ost
   }
 }

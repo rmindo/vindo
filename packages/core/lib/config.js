@@ -6,7 +6,7 @@
 
 'use strict'
 
-
+const path = require('path')
 const util = require('@vindo/utility')
 
 /**
@@ -17,46 +17,72 @@ var defaultConfig = {
   env: {
     ENV_PATH: {}
   },
-  cors: {},
+  meta: {},
   exert: {},
-  include: {
-    lib: 'lib'
-  },
-  sourceDirectory: 'src',
+  include: {},
   routesDirectory: 'http',
+}
+
+/**
+ * Merge two config
+ */
+function merge(def, conf) {
+  for(let name in def) {
+    const item = conf[name]
+
+    if(item) {
+      if(typeof item == 'object') {
+        def[name] = Object.assign(def[name], item)
+      }
+      else {
+        def[name] = item
+      }
+    }
+  }
+  return def
+}
+
+/**
+ * Get config file
+ */
+function getConfig() {
+  const file = path.resolve(path.dirname(require.main.path), 'vindo.json')
+  try {
+    if(util.file.exists(file)) {
+      return util.file.get(file)
+    }
+  }
+  catch(e) {}
 }
 
 
 module.exports = function(config) {
-  var conf = Object.assign(defaultConfig, config)
+  var conf = merge(defaultConfig, config)
 
-  try {
-    config = util.file.get('vindo.json')
-  }
-  catch(e) {}
-
-  if(config) {
-    for(let name in conf) {
-      const item = config[name]
-
-      if(item) {
-        if(typeof item == 'object') {
-          conf[name] = {...conf[name], ...item}
-        }
-        else {
-          conf[name] = item
-        }
+  var configFile = getConfig()
+  if(configFile) {
+    /**
+     * Config getters
+     */
+    conf.vindo = {
+      get meta() {
+        return configFile.meta
+      },
+      get exert() {
+        return configFile.exert
+      },
+      get buildOption() {
+        return configFile.buildOption
       }
-    } 
+    }
+    conf = merge(conf, configFile)
   }
 
   /**
    * Root directory of routes
    */
-  conf.root = [
-    conf.sourceDirectory,
-    conf.routesDirectory
-  ]
+  conf.root = ['src', conf.routesDirectory]
+
 
   return conf
 }

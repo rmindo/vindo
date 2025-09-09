@@ -21,6 +21,13 @@ exports.is = function is(name) {
 }
 
 /**
+ * Get header
+ */
+exports.get = function get(name) {
+  return this.headers[name]
+}
+
+/**
  * Check root path e.g. /
  */
 exports.root = function root() {

@@ -8,20 +8,19 @@
 
 
 const fs = require('fs')
-const path = require('path')
+const join = require('path').join
 const mime = require('mime-types')
 
 
-exports.fs = fs
-exports.path = path
-exports.mime = mime
+exports.type = function type(ext) {
+  return mime.lookup(ext)
+}
 
-exports.serve = function serve(option = {}) {
-  var root = process.cwd()
+exports.serve = function serve(path) {
+  var dir = process.cwd()
 
-  var serve = option.path || null
-  if(serve) {
-    root = path.join(root, serve)
+  if(path) {
+    dir = join(dir, path)
   }
   
   return function(req, res, next) {
@@ -36,7 +35,7 @@ exports.serve = function serve(option = {}) {
     /**
      * 
      */
-    const file = path.join(root, req.route.pathname)
+    const file = join(dir, req.route.pathname)
     if(!fs.existsSync(file)) {
       return next()
     }

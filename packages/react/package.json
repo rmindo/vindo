@@ -1,0 +1,23 @@
+{
+  "name": "@vindo/react",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/react#readme",
+  "keywords": [
+    "react"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {}
+}

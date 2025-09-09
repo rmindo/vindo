@@ -1,6 +1,9 @@
 node_modules
 .DS_Store
 *exp
+*lock
+*lock.json
 *ui
 *.tgz
 .watchman*
+develop

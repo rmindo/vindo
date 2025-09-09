@@ -25,6 +25,13 @@
     "middleware",
     "dependencies"
   ],
+  "files": [
+    "lib",
+    "index.js",
+    "index.d.ts",
+    "package.json",
+    "README.md"
+  ],
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {

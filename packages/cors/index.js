@@ -13,14 +13,6 @@
 const allow = 'Access-Control-Allow'
 
 /**
- * Default options
- */
-const defaults = {
-  origin: '*',
-  methods: 'GET,PUT,POST,HEAD,PATCH,DELETE'
-}
-
-/**
  * Access control allow origin
  */
 function allowOrigin(headers, origin) {

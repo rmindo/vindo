@@ -1,6 +1,6 @@
 {
   "name": "@vindo/body",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -24,6 +24,6 @@
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {
-    "@vindo/utility": "file:../utility"
+    "@vindo/utility": "^0.0.6"
   }
 }

@@ -1,12 +1,12 @@
-## Cross-origin (CORS)
-Resource sharing restriction for Web and API
+## React SSR
+React server side rendering with @vindo/core
 
 
 ## Installation
 ```
-npm install @vindo/cors
+npm install @vindo/react
 ```
 Or
 ```
-yarn add @vindo/cors
+yarn add @vindo/react
 ```

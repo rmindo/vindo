@@ -14,16 +14,15 @@ const option = {
 
 
 /**
- * 
+ * Resolve path
  */
 function resolve(...args) {
 	return path.resolve(process.cwd(), ...args)
 }
 
 
-      
 /**
- * 
+ * Directory name
  */
 function dirname(...args) {
 	return path.resolve(__dirname, ...args)
@@ -31,7 +30,7 @@ function dirname(...args) {
 
 
 /**
- * 
+ * Resolve alias in the bundle
  */
 function resolveAlias(buildPath) {
 	return {
@@ -60,12 +59,12 @@ function resolveAlias(buildPath) {
 	}
 }
 
+
 /**
- * 
- * @param {*} file 
- * @param {*} conf 
+ * Create a chunk of components
+ * @param {object} conf 
  */
-async function createMap(conf) {
+async function chunk(conf) {
 	var imp = ''
 
 	const out = resolve(conf.output, 'chunk.js')
@@ -105,14 +104,14 @@ async function createMap(conf) {
 
 
 /**
- * 
+ * Create a bundle file
  * @param {string} outbundle
  * @param {object} conf
  */
 async function bundle(outbundle, conf) {
 	option.minify = conf.minify ?? false
 
-	const out = await createMap(conf)
+	const out = await chunk(conf)
 	await esbuild({
 		...option,
 		outfile: resolve(conf.output, outbundle),

@@ -1,10 +1,13 @@
 {
-  "name": "vindo",
-  "version": "1.0.0",
-  "description": "A CLI to translate between languages in the terminal",
+  "name": "@vindo/cli",
+  "version": "0.0.1",
+  "description": "Command line for running vindo server and react SSR for development.",
   "main": "bin/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\""
   },
   "keywords": [
     "cli"
@@ -12,10 +15,16 @@
   "bin": {
     "vindo": "./bin/index.js"
   },
-  "author": "Your Name",
-  "license": "ISC",
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/cli",
   "dependencies": {
-    "@vindo/utility": "file:../utility",
+    "@vindo/utility": "^0.0.6",
     "chokidar": "^4.0.3",
     "esbuild": "^0.25.4"
   }

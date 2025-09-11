@@ -29,8 +29,8 @@ function allowOrigin(headers, origin) {
  */
 exports.cors = function cors(opt = {}) {
 
-  return function(req, res, next) {
-    opt = Object.assign(opt, req.cors)
+  return function(req, res, next, {vindo}) {
+    opt = Object.assign(opt, vindo.cors)
 
     /**
      * Proceed to the next middleware if empty.

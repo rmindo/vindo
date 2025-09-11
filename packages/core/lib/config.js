@@ -18,7 +18,6 @@ var defaultConfig = {
     ENV_PATH: {}
   },
   meta: {},
-  exert: {},
   include: {},
   routesDirectory: 'http',
 }
@@ -61,20 +60,14 @@ module.exports = function(config) {
 
   var configFile = getConfig()
   if(configFile) {
-    /**
+    /** 
      * Config getters
      */
-    conf.vindo = {
-      get meta() {
-        return configFile.meta
-      },
-      get exert() {
-        return configFile.exert
-      },
-      get buildOption() {
-        return configFile.buildOption
+    conf.vindo = new Proxy({}, {
+      get(_, name) {
+        return configFile[name]
       }
-    }
+    })
     conf = merge(conf, configFile)
   }
 

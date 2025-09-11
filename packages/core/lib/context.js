@@ -85,14 +85,28 @@ function get(path, ctx) {
 
 /**
  * Check if function is async
+ * 
+ * TODO:
+ *  Need to improve
  * @param {function} fun Function to check
  */
 function isAsync(fun) {
-  var str = fun.toString().split('\n')
+  var lns = fun.toString().split('\n').slice(0,4)
+
   /**
    * Both commonjs and es6
    */
-  if(str[0].match(/^async\s/) || str[1].match(/return\s__awaiter/g)) {
+  var async = lns.filter((v, k) => {
+    var t = v.trim()
+    if(t.match(/^async\s/)) {
+      return t
+    }
+
+    if(t.match(/^return\s__awaiter/g) || k == 0 && t.match(/^function/) && t.match(/return\s__awaiter/)) {
+      return t
+    }
+  })
+  if(async.length == 1) {
     return true
   }
   return false
@@ -136,7 +150,7 @@ function toAsync(def, ctx) {
     [name]: toFunc(name, {
       args: ['arg'],
       refs: {def, ctx},
-      code: 'def({...ctx, ...arg})'
+      code: 'def(Object.assign(ctx, arg))'
     })
   }
 }

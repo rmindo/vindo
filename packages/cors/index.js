@@ -16,9 +16,11 @@ const allow = 'Access-Control-Allow'
  * Access control allow origin
  */
 function allowOrigin(headers, origin) {
-
-  if(Array.isArray(origin) && origin.indexOf(headers.origin) !== -1) {
-    return origin.join(',')
+  if(Array.isArray(origin)) {
+    const key = origin.indexOf(headers.origin)
+    if(origin[key]) {
+      return origin[key]
+    }
   }
   return origin
 }

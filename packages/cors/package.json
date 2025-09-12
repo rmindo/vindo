@@ -1,7 +1,7 @@
 {
   "name": "@vindo/cors",
-  "version": "0.0.6",
-  "description": "",
+  "version": "0.0.7",
+  "description": "Resource sharing restriction for Web and API",
   "main": "./index.js",
   "types": "./index.d.ts",
   "publishConfig": {

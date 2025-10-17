@@ -32,8 +32,8 @@ const server = http.createServer()
  * Default export
  */
 module.exports = exports = Object.create(server, {
-  listener: {
-    value: handler
+  router: {
+    value: router
   }
 })
 
@@ -77,45 +77,49 @@ exports.init = function init({root}) {
  * @param {object} ctx  
  */
 exports.serve = function serve(port, ctx = {}) {
-  exports.context = ctx
   /**
    * The last middleware to execute
    */
-  exports.stack.push(function end(req, res) {
+  exports.stack.push(async function end(req, res, next, ctx) {
     server.request = req
     server.response = res
-    
+
     router.end([server, req, res, ctx])
   })
-  exports.on('request', exports.listener).listen(port)
+  /**
+   * Handle http request
+   */
+  exports.on('request', handler(exports.stack, ctx)).listen(port)
 }
 
 /**
- * Handle http request
- * @param req
- * @param res
+ * Request handler
+ * @param stc
+ * @param ctx
  */
-function handler(req, res) {
-  var i = 0
-  var done = false
+function handler(stc, ctx) {
+  return function(req, res) {
 
-  const stack = exports.stack
-  const context = exports.context
+    var i = 0
+    var done = false
 
-  function next() {
-    while(i < stack.length) {
-      var func = stack[i++]
+    function next(arg) {
+      merge(ctx, arg)
 
-      if(typeof func !== 'function') {
-        continue
+      while(i < stc.length) {
+        var func = stc[i++]
+
+        if(typeof func !== 'function') {
+          continue
+        }
+
+        func.call(server, req, res, next, ctx)
+        if(!done) {
+          return
+        }
       }
-
-      func.call(server, req, res, next, context)
-      if(!done) {
-        return
-      }
+      done = true
     }
-    done = true
+    next()
   }
-  next()
 }

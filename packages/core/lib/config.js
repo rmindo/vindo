@@ -45,7 +45,7 @@ function merge(def, conf) {
  * Get config file
  */
 function getConfig() {
-  const file = path.resolve(path.dirname(require.main.path), 'vindo.json')
+  const file = path.resolve(process.cwd(), 'vindo.json')
   try {
     if(util.file.exists(file)) {
       return util.file.get(file)
@@ -58,17 +58,17 @@ function getConfig() {
 module.exports = function(config) {
   var conf = merge(defaultConfig, config)
 
-  var configFile = getConfig()
-  if(configFile) {
+  var vindo = getConfig()
+  if(vindo) {
     /** 
      * Config getters
      */
     conf.vindo = new Proxy({}, {
       get(_, name) {
-        return configFile[name]
+        return vindo[name]
       }
     })
-    conf = merge(conf, configFile)
+    conf = merge(conf, vindo)
   }
 
   /**

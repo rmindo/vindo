@@ -16,7 +16,7 @@ module.exports = exports = Object.create(path)
 
 
 /**
- * Reuse path
+ * Get file extension
  * @param {string} name
  */
 exports.ext = function ext(name) {

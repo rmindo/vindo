@@ -21,6 +21,7 @@ module.exports = exports = {}
  */
 const has = util.events.has
 const emit = util.events.emit
+const clear = util.events.clear
 const parse = util.url.parse
 const merge = util.object.merge
 const define = util.object.define
@@ -105,9 +106,9 @@ async function invoke(func, args) {
   /**
    * Stop the process if response is ended before rendering the content.
    */
-  if(isEnded(res)) {
-    return
-  }
+  // if(isEnded(res)) {
+  //   return
+  // }
   /**
    * Emit external template renderer.
    */
@@ -567,9 +568,15 @@ exports.end = async function end(args) {
     var exists = await exports.handle(args[1].route, args)
 
     /**
+     * Clear all events when the response ended. 
+     */
+    if(isEnded(args[2])) {
+      // clear()
+    }
+    /**
      * If no response is being called then exit with 404.
      */
-    if(!isEnded(args[2])) {
+    else {
       /**
        * If the route exists and still no response then let it freeze.
        */

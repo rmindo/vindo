@@ -7,19 +7,15 @@
 'use strict'
 
 
-module.exports = exports = {}
-
-
-/**
- * Custom events
- */
-const events = {}
+module.exports = exports = {
+  stack: {}
+}
 
 /**
  * Add event
  */
 exports.on = function on(name, cb) {
-  events[name] = {
+  exports.stack[name] = {
     name,
     event: cb
   }
@@ -29,21 +25,28 @@ exports.on = function on(name, cb) {
  * Check if event exists
  */
 exports.has = function has(name) {
-  return events[name] ? true : false
+  return exports.stack[name] ? true : false
 }
 
 /**
  * Execute the event
  */
 exports.emit = function emit(name, ...args) {
-  if(events[name]) {
-    return events[name].event(...args)
+  if(exports.stack[name]) {
+    return exports.stack[name].event(...args)
   }
+}
+
+/**
+ * Clear events
+ */
+exports.clear = function clear() {
+  exports.stack = {}
 }
 
 /**
  * Remove event
  */
 exports.remove = function remove(name) {
-  delete events[name]
+  delete exports.stack[name]
 }

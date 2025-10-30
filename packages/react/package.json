@@ -17,6 +17,21 @@
   "keywords": [
     "react"
   ],
+  "peerDependencies": {
+    "react": "*",
+    "react-dom": "*"
+  },
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    },
+    "./util": {
+      "default": "./lib/util.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    }
+  },
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {}

@@ -1,5 +1,5 @@
 /*
- * Canine
+ * @vindo/core
  * Copyright(c) 2023 Ruel Mindo
  * MIT Licensed
  */

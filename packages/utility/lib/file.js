@@ -144,7 +144,7 @@ exports.readdir = function readdir(...args) {
   var opts = {withFileTypes: true}
 
   if(args.length > 1) {
-    const lastArg = args.at(-1)
+    const lastArg = args.pop()
 
     if(typeof lastArg == 'object') {
       opts = Object.assign(opts, lastArg)

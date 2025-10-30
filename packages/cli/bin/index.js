@@ -1,78 +1,37 @@
 #! /usr/bin/env node
 
 
-
-const {file} = require('@vindo/utility')
-const {exec, spawn} = require('node:child_process')
-const {watch:watcher} = require('chokidar')
-const {styleText:color} = require('node:util')
-
-
-var evt = {}
-var cwd = process.cwd()
-var child = null
-
-
+const util = require('./util')
 const build = require('./build')
 const server = require('./server')
-const {option, pattern, devScript} = require('./config')
+const config = require('./config')
 
+const {watch} = require('chokidar')
+const {exec, spawn} = require('node:child_process')
+
+
+const {log, read, events, colors, resolve} = util
+
+
+var child = null
+var option = config.option
 
 /**
  * Set to global environment
  */
-process.env.DEV_SERVER = devScript
-process.env.DEV_SERVER_PORT = option.port
-
-
-/**
- * Add event
- */
-function on(name, cb) {
-  evt[name] = cb
-}
-
-/**
- * Call the event
- */
-function emit(name, ...args) {
-  if(evt[name]) {
-    evt[name].call(...args)
-  }
-}
-
-/**
- * Log with colors
- */
-function log(name, text) {
-  if(name) {
-    return console.log(color(name, text.toString().trim()))
-  }
-  return console.log(text)
-}
-
-/**
- * 
- */
-function setColors(text) {
-  var text = text.toString()
-
-  for(var item of Object.values(pattern)) {
-    text = text.replace(item.pat, color(item.color, item.text))
-  }
-  return text.trim()
-}
+process.env.DEV_SERVER = config.devScript
+process.env.DEV_SERVER_PORT = config.option.port
 
 
 /**
  * 
  */
-async function watch(dirs, cb) {
+async function watcher(dirs, cb) {
   try {
     if(!Array.isArray(dirs)) {
       throw TypeError('Expected a value of type `Array` but received a `String`.')
     }
-    watcher(dirs, {
+    watch(dirs, {
       // ignored: (path, stats) => stats?.isFile() && !path.endsWith('.js'), // only watch js files
       persistent: true
     })
@@ -90,8 +49,8 @@ async function watch(dirs, cb) {
 function execute() {
   var i = 0
   var sp = exec(option.execute, {
-    cwd,
-    env: process.env
+    env: process.env,
+    cwd: process.cwd(),
   })
   log('green', `[vindo] Running ${option.execute}`)
 
@@ -105,9 +64,9 @@ function execute() {
      * It means the server runs successfully.
      */
     if(i == 1) {
-      emit('change')
+      events.emit('change')
     }
-    console.log(setColors(data))
+    console.log(colors.colorize(data))
   })
   
   /**
@@ -118,11 +77,11 @@ function execute() {
 
     for(var i in text) {
       if(i == 0) {
-        text[0] = color('red', text[0])
+        text[0] = colors.set('red', text[0])
       }
-      text[i] = text[i].replace(/(at.*)/, color('gray', '$1'))
-      text[i] = text[i].replace(/:\s('.*')/, color('green', ': $1'))
-      text[i] = text[i].replace(/\s(-?\d+)/, color('yellow', ' $1'))
+      text[i] = text[i].replace(/(at.*)/, colors.set('gray', '$1'))
+      text[i] = text[i].replace(/:\s('.*')/, colors.set('green', ': $1'))
+      text[i] = text[i].replace(/\s(-?\d+)/, colors.set('yellow', ' $1'))
     }
     log(null, text.join('\r\n'))
   })
@@ -138,9 +97,8 @@ function restart(event) {
   log('green', `[vindo] Rebuilding...`)
   log('green', `[vindo] Restarting server...`)
 
-  if(option.output) {
-    build(option)
-  }
+  build(option)
+
   if(child) {
     if(process.platform === 'win32') {
       spawn('taskkill', ['/pid', child.pid, '/f', '/t'])
@@ -156,19 +114,19 @@ function restart(event) {
 /**
  * Create server
  */
-const http = server((req, res) => {
+const http = server(async (req, res) => {
   if(req.isStream()) {
-    on('change', () => {
+    events.on('change', () => {
       res.write(`data: {changed: true}\n\n`)
     })
   }
 
-  if(req.is('reload')) {
+  if(req.is('development')) {
     res.headers({
       'Content-Type':
       'application/javascript'
     })
-    res.end(file.read(__dirname.concat('/reload.js')))
+    res.end(await read(resolve.curr('development.js')))
   }
 })
 
@@ -177,15 +135,13 @@ const http = server((req, res) => {
 http.listen(option.port, function() {
   child = execute()
 
-  if(option.output) {
-    build(option)
-  }
+  build(option)
 
   if(option.watch) {
     log('yellow', '[vindo] v0.0.1')
     log('yellow', `[vindo] Watching at ${option.watch}`)
     log('yellow', `[vindo] Building at ${option.output}`)
 
-    watch(option.watch, restart)
+    watcher(option.watch, restart)
   }
 })

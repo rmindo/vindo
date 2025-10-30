@@ -1,137 +1,129 @@
 
-const fs = require('fs')
-const path = require('node:path')
-const {file} = require('@vindo/utility')
-const {writeFile} = require('node:fs/promises')
-const {build:esbuild} = require('esbuild')
-
-
-const option = {
-	bundle: true,
-	format: 'esm',
-	logLevel: 'error',
+const es = require('esbuild')
+const {
+	path,
+	read,
+	exists,
+	unlink,
+	resolve,
+	readdir,
+	makedir,
+	writeFile,
 }
+= require('./util')
 
 
 /**
- * Resolve path
+ * Get all codes from components
+ * @param {object} opt 
  */
-function resolve(...args) {
-	return path.resolve(process.cwd(), ...args)
-}
-
-
-/**
- * Directory name
- */
-function dirname(...args) {
-	return path.resolve(__dirname, ...args)
-}
-
-
-/**
- * Resolve alias in the bundle
- */
-function resolveAlias(buildPath) {
-	return {
-		name: 'resolve-alias',
-		setup(build) {
-			build.onResolve({filter: /.*/}, ({path}) => {
-				const build_ = /@build/
-
-				if(path.match(/^node_modules\//)) {
-					var absPath = resolve(path, 'index.js')
-
-					if(!file.exists(absPath)) {
-						absPath = resolve(path.concat('.js'))
-					}
-					return {path: absPath}
-				}
-				
-				if(path.match(build_)) {
-					return {
-						path: resolve(path.replace(build_, buildPath).concat('.js'))
-					}
-				}
-				return null
-			})
-		}
-	}
-}
-
-
-/**
- * Create a chunk of components
- * @param {object} conf 
- */
-async function chunk(conf) {
-	var imp = ''
-
-	const out = resolve(conf.output, 'chunk.js')
-	const dir = resolve(conf.entries)
-
-	
-	if(file.isDir(dir)) {
-		const dir_ = conf.entries.split('/')
-
-		const files = file.readdir(dir)
-		if(files.length == 0) {
-			return
-		}
-			
-		for(var item of files) {
-			const name = path.parse(item.name).name
-			if(name) {
-				imp += `import ${name}_ from '${dir_.slice(1).join('/')}/${name}'\n`
-				imp += `export const ${name} = ${name}_\n`
-			}
-		}
-	}
-	
-	await writeFile(out, imp, {flag: 'w'})
-	await esbuild({
-		...option,
-		outfile: out,
-		packages: 'external',
-		entryPoints: [
-			out
-		],
-		allowOverwrite: true
+async function getCode(opt) {
+	var files = await readdir(opt.components)
+	var files = files.filter(file => {
+		return /\.(tsx|jsx)$/.test(file.name)
 	})
+	
+	var code = [
+		`import client, {state} from '@vindo/react/client'`,
+		`const chunk = {
+			state: state
+		}`
+	]
 
-	return out
+	for(var file of files) {
+		const name = path.parse(file.name).name
+		if(name) {
+			code.push(
+				`import ${name} from '${path.join(file.parentPath, name)}'`,
+				`chunk.${name} = ${name}`
+			)
+		}
+	}
+	return code
+}
+
+/**
+ * Get imported files
+ * @param {object} opt 
+ * @param {string} data 
+ */
+async function getImports(data) {
+	var imp = []
+	var data = data.matchAll(/import\s(.*)\sfrom.*\/([a-zA-Z_-]+)('|")/g)
+
+	for(var v of data) {
+		if(/components\//.test(v[0])) {
+			imp.push(`const ${v[1]} = ${v[2]}`)
+		}
+		else {
+			imp.push(v[0])
+		}
+	}
+	return imp
+}
+
+
+/**
+ * Collect components and assemble before building
+ * 
+ * @param {object} opt option
+ */
+async function build(opt) {
+	var data = await read(opt.entry)
+	
+	var code = await getCode(opt)
+	var impo = await getImports(data)
+
+	code = code.concat(
+		impo,
+		`chunk.body = function body() {
+			return (
+				${data.match(/<body.*>((.|\n)*)<\/body>/g)[0]}
+			)
+		}`,
+		'client(document, chunk).render()'
+	)
+
+	await writeFile(opt.chunk, code.join('\n'), {flag: 'w'})
 }
 
 
 /**
  * Create a bundle file
- * @param {string} outbundle
- * @param {object} conf
+ * 
+ * @param {object} opt option
  */
-async function bundle(outbundle, conf) {
-	option.minify = conf.minify ?? false
+async function bundle(opt) {
+	if(exists(opt.chunk)) {
+		await es.build({
+			...opt.settings,
+			minify: opt.minify,
+			outfile: opt.bundle,
+			entryPoints: [opt.chunk],
+		})
 
-	const out = await chunk(conf)
-	await esbuild({
-		...option,
-		outfile: resolve(conf.output, outbundle),
-		entryPoints: [
-			dirname(outbundle)
-		],
-		plugins: [resolveAlias(conf.output)]
-	})
-
-	if(file.exists(out)) fs.unlinkSync(out)
+		unlink(opt.chunk)
+	}
 }
-
 
 /**
  * 
- * @param {object} conf 
+ * @param {object} config 
  */
-module.exports = async function build(conf) {
+module.exports = async function(opt) {
+	/**
+	 * Create build directory
+	 */
+	await makedir(resolve.main(opt.output))
+	
+	opt.entry = resolve.main(opt.entry)
+	opt.chunk = resolve.main(opt.output, 'chunk.jsx')
+	opt.bundle = resolve.main(opt.output, 'bundle.js')
+	opt.components = resolve.dirname(opt.entry, 'components')
+
 	try {
-		await bundle('bundle.js', conf)
+		await build(opt)
+		await bundle(opt)
 	}
 	catch(e) {
 		console.log(e)

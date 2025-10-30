@@ -71,6 +71,7 @@ export namespace Utility {
   export interface EventsInterface {
     on(name: string, cb: Function): void;
     has(name: string): void;
+    clear(): void;
     emit(name: string, ...args: any): void;
     remove(name: string): void;
   }

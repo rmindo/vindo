@@ -1,7 +1,7 @@
 {
   "name": "@vindo/core",
-  "version": "0.0.8",
-  "description": "Core service for managing routes and middleware.",
+  "version": "0.0.10",
+  "description": "Core service for managing routes, context and middleware.",
   "main": "./index.js",
   "types": "./index.d.ts",
   "publishConfig": {
@@ -34,8 +34,19 @@
   ],
   "author": "Ruel Mindo",
   "license": "MIT",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./config": {
+      "default": "./lib/config.js"
+    },
+    "./context": {
+      "default": "./lib/context.js"
+    }
+  },
   "dependencies": {
     "@vindo/exception": "^1.0.1",
-    "@vindo/utility": "^0.0.6"
+    "@vindo/utility": "file:../utility"
   }
 }

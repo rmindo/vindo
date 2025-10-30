@@ -89,7 +89,6 @@ export interface HttpResponse extends Http.ServerResponse {
 export interface Context extends UtilityType {
   lib: DynamicAnyType
   env: DynamicStringType
-  meta: DynamicStringType
 }
 
 /**

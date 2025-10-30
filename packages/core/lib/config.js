@@ -31,14 +31,17 @@ function merge(def, conf) {
 
     if(item) {
       if(typeof item == 'object') {
-        def[name] = Object.assign(def[name], item)
+        conf[name] = Object.assign(def[name], item)
       }
       else {
-        def[name] = item
+        conf[name] = item
       }
     }
+    else {
+      conf[name] = def[name]
+    }
   }
-  return def
+  return conf
 }
 
 /**
@@ -46,17 +49,17 @@ function merge(def, conf) {
  */
 function getConfig() {
   const file = path.resolve(process.cwd(), 'vindo.json')
-  try {
-    if(util.file.exists(file)) {
-      return util.file.get(file)
-    }
+
+  if(!util.file.exists(file)) {
+    throw ReferenceError(`vindo.config file does not exists.`)    
   }
-  catch(e) {}
+
+  return util.file.get(file)
 }
 
 
-module.exports = function(config) {
-  var conf = merge(defaultConfig, config)
+module.exports = function config(_conf) {
+  var conf = merge(defaultConfig, _conf)
 
   var vindo = getConfig()
   if(vindo) {

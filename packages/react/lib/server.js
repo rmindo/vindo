@@ -26,7 +26,6 @@ const isValid = React.isValidElement
 
 var data = {}
 var env = process.env
-var xFetch = 'x-fetch-request-token'
 
 
 /**
@@ -153,7 +152,7 @@ function body(children, args) {
 
 
 /**
- * Reduce object to fewer necessary props
+ * Reduce object to necessary props
  * @param {array|object} children 
  */
 function reducer(children) {
@@ -231,14 +230,18 @@ function reduce(data) {
  * @param {object} res
  */
 function HTTPResponse(req, res) {
-  const token = req.get(xFetch)
+  const token = req.get('x-fetch-request-token')
+
+  function json(data) {
+    if(token) {
+      res.json(data, 200, {'X-Fetch-Response': token})
+    }
+  }
 
   state.use = function use(data) {
-    
     if(typeof data == 'function') {
       data = data()
     }
-
     if(token) {
       data = Object.assign(state.data, data, req.query)
       if(!data.__initialize) {
@@ -257,13 +260,6 @@ function HTTPResponse(req, res) {
   state.post = function post(cb) {
     if(req.method == 'POST') {
       json(cb(req.body))
-    }
-  }
-
-  function json(data) {
-    const token = req.get(xFetch)
-    if(token) {
-      res.json(data, 200, {'X-Fetch-Response': token})
     }
   }
 

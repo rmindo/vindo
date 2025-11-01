@@ -24,6 +24,7 @@ async function getCode(opt) {
 	})
 	
 	var code = [
+		`import React from 'react'`,
 		`import client, {state} from '@vindo/react/client'`,
 		`const chunk = {
 			state: state
@@ -52,7 +53,7 @@ async function getImports(data) {
 	var data = data.matchAll(/import\s(.*)\sfrom.*\/([a-zA-Z_-]+)('|")/g)
 
 	for(var v of data) {
-		if(/components\//.test(v[0])) {
+		if(/(\.\/|)components\//.test(v[0])) {
 			imp.push(`const ${v[1]} = ${v[2]}`)
 		}
 		else {
@@ -76,10 +77,11 @@ async function build(opt) {
 
 	code = code.concat(
 		impo,
-		`chunk.body = function body() {
-			return (
-				${data.match(/<body.*>((.|\n)*)<\/body>/g)[0]}
-			)
+		`chunk.provider = function provider(props) {
+			const {type, props:{children}} = React.cloneElement((
+				${data.match(/<Provider.*>((.|\n)*)<\/Provider>/g)[0]}
+			))
+			return type({children, ...props})
 		}`,
 		'client(document, chunk).render()'
 	)
@@ -101,7 +103,6 @@ async function bundle(opt) {
 			outfile: opt.bundle,
 			entryPoints: [opt.chunk],
 		})
-
 		unlink(opt.chunk)
 	}
 }

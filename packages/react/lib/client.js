@@ -93,8 +93,6 @@ export function Link({href, text, children}) {
   const onClick = (e) => {
     e.preventDefault()
 
-    document.title = text
-
     state.set({
       path: href,
       __initialize: true
@@ -112,8 +110,8 @@ export function Link({href, text, children}) {
 /**
  * Find current route
  */
-export function Content({data, meta, content, ...props}) {
-  data.state = state
+export function Content(props) {
+  const {data, meta, content} = context()
   /**
    * View content coming from backend component (src/http)
    */
@@ -134,11 +132,24 @@ export function Content({data, meta, content, ...props}) {
   }))
 }
 
+import {useContext, createContext} from 'react'
+
+const getContext = createContext({test: 'tae'})
+
+
+export function context() {
+  return useContext(getContext)
+}
+
+export function Provider({children, ...ctx}) {
+  return React.createElement(getContext, {value: ctx}, children)
+}
+
 
 /**
  * Http Request
  */
-function request({path, data, headers}, opts = {}) {
+function request({init, path, data, headers}, opts = {}) {
   if(data && typeof data !== 'object') {
     throw TypeError(`Invalid type of 'data'. Expected value of type 'object' but got ${typeof data}'.`)
   }
@@ -169,8 +180,13 @@ function request({path, data, headers}, opts = {}) {
     opts.body = JSON.stringify(data ?? {})
   }
 
-  return fetch(url, opts).then((res) => {
-    return res.headers.get('X-Fetch-Response') == uuid && res.json()
+  return fetch(url, opts).then(async (res) => {
+    const data = await res.json()
+
+    if(init) {
+      return data
+    }
+    return res.headers.get('X-Fetch-Response') == uuid && data
   })
 }
 
@@ -252,69 +268,32 @@ function transform(children, chunk) {
 }
 
 
-/**
- * Get the root react dom
- */
-function getRoot(data, chunk) {
-  var {props:{children}} = chunk.body()
-
-  chunk.meta = data.meta
-
-  if(!isArr(children)) {
-    children = [children]
-  }
-
-  if(data.content) {
-    data.content = transform(data.content, chunk)[0]
-  }
-
-  return children.map((child, key) => {
-    if(typeof child.type == 'function') {
-      child = child.type({...child.props, ...data})
-    }
-    return React.cloneElement(child, {key})
-  })
-}
-
-
-
 export default function({body, scripts}, chunk) {
-  const url = new URL(scripts.bundle.src)
+  const root = ReactDom.createRoot(body)
 
-  const hash = url.searchParams.get('hash')
-  const name = url.searchParams.get('name')
+  event.update = function render(data) {
+    document.title = data.meta.title
 
-
-  const nodes = []
-  for(var node of body.children) {
-    if(node && node.nodeType === Node.ELEMENT_NODE) {
-      nodes.push(ReactDom.createRoot(node))
+    if(data.content) {
+      data.content = transform(data.content, chunk)[0]
     }
-  }
-
-  function render(data) {
-    for(var i in nodes) {
-      nodes[i].render(data[i].props.children)
-    }
-  }
-
-  event.update = function(data) {
-    render(getRoot(data, chunk))
+    root.render(chunk.provider(data))
   }
 
   return {
     render() {
-      fetch(
-        hash.concat('?',
+      const url = new URL(scripts.bundle.src)
+
+      const hash = url.searchParams.get('hash')
+      const name = url.searchParams.get('name')
+
+      httpState.get({
+        init: true,
+        path: hash.concat('?',
           (new URLSearchParams({name})).toString()
         )
-      )
-      .then(async function(res) {
-        var data = await res.json()
-        if(data) {
-          render(getRoot(data, chunk))
-        }
       })
+      .then(data => event.update(data))
     }
   }
 }

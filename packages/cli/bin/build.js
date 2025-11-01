@@ -25,10 +25,8 @@ async function getCode(opt) {
 	
 	var code = [
 		`import React from 'react'`,
-		`import client, {state} from '@vindo/react/client'`,
-		`const chunk = {
-			state: state
-		}`
+		`import client from '@vindo/react/client'`,
+		`const chunk = {}`
 	]
 
 	for(var file of files) {

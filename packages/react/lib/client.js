@@ -10,70 +10,49 @@
 import React from 'react'
 import runtime from 'react/jsx-runtime'
 import ReactDom from 'react-dom/client'
+import {useContext, createContext} from 'react'
 import {isObj, isArr, isStr, isNum} from '@vindo/react/util'
 
 
-
 const event = {}
+const context_ = createContext({})
+
 
 /**
  * Http state request
  */
-const httpState = {
-  data: {},
+export const state = Object.defineProperties({}, {
   /**
    * Update DOM
    */
-  set({path, ...args}) {
-    httpState.get({
-      path,
-      data: Object.assign(httpState.data, args),
-    })
-    .then((data) => event.update(data))
+  set: {
+    value: function set({path, ...args}) {
+      state.get({
+        path,
+        data: Object.assign(state, args),
+      })
+      .then((data) => event.update(data))
+    },
+    writable: false
   },
   /**
    * GET request
    */
-  get(args = {}) {
-    return request(args, {method: 'GET'})
+  get: {
+    value: function get(args = {}) {
+      return request(args, {method: 'GET'})
+    },
+    writable: false
   },
   /**
    * POST request
    */
-  post(args = {}) {
-    return request(args, {method: 'POST'})
+  post: {
+    value: function post(args = {}) {
+      return request(args, {method: 'POST'})
+    },
+    writable: false
   },
-}
-
-/**
- * State setter and getter
- */
-export const state = new Proxy(httpState, {
-  /**
-   * Get property
-   */
-  get(target, key) {
-    if(target[key]) {
-      return target[key]
-    }
-    return state.data[key]
-  },
-  /**
-   * Set property
-   */
-  set(target, key, value, receiver) {
-    const insert = [
-      'use',
-      'get',
-      'post'
-    ]
-    if(insert.includes(key)) {
-      return Reflect.set(target, key, value, receiver)
-    }
-    state.data[key] = value
-
-    return true
-  }
 })
 
 /**
@@ -81,6 +60,19 @@ export const state = new Proxy(httpState, {
  */
 export function View() {}
 
+/**
+ * Context
+ */
+export function context() {
+  return useContext(context_)
+}
+
+/**
+ * Wrapper
+ */
+export function Provider({children, ...value}) {
+  return React.createElement(context_, {value}, children)
+}
 
 /**
  * Link
@@ -132,22 +124,8 @@ export function Content(props) {
   }))
 }
 
-import {useContext, createContext} from 'react'
-
-const getContext = createContext({test: 'tae'})
-
-
-export function context() {
-  return useContext(getContext)
-}
-
-export function Provider({children, ...ctx}) {
-  return React.createElement(getContext, {value: ctx}, children)
-}
-
-
 /**
- * Http Request
+ * State request
  */
 function request({init, path, data, headers}, opts = {}) {
   if(data && typeof data !== 'object') {
@@ -159,7 +137,7 @@ function request({init, path, data, headers}, opts = {}) {
     ...opts,
     headers: {
       ...headers,
-      'X-Fetch-Request-Token': uuid
+      'X-State-Request-Token': uuid
     }
   }
 
@@ -186,7 +164,7 @@ function request({init, path, data, headers}, opts = {}) {
     if(init) {
       return data
     }
-    return res.headers.get('X-Fetch-Response') == uuid && data
+    return res.headers.get('X-State-Response-Token') == uuid && data
   })
 }
 
@@ -203,9 +181,7 @@ function toFunc(name, {code, args = [], refs}) {
     )
   }
   if(typeof code == 'string') {
-    arr.push(
-      `{${code}}`
-    )
+    arr.push(`{${code}}`)
   }
   return new Function(...Object.keys(refs), arr.join(' '))(...Object.values(refs))
 }
@@ -245,7 +221,7 @@ function transform(children, chunk) {
             p[i] = toFunc(v.name, {
               args: v.args,
               code: v.code,
-              refs: {meta: chunk.meta, state: chunk.state}
+              refs: {meta: chunk.meta, state: Object.assign(state, chunk.state)}
             })
           }
         }
@@ -259,9 +235,6 @@ function transform(children, chunk) {
         })
       }
     }
-    if(typeof type == 'function') {
-      p.state = chunk.state
-    }
 
     return runtime.jsx(type, p, key)
   })
@@ -273,7 +246,8 @@ export default function({body, scripts}, chunk) {
 
   event.update = function render(data) {
     document.title = data.meta.title
-
+    
+    chunk.state = data.state
     if(data.content) {
       data.content = transform(data.content, chunk)[0]
     }
@@ -287,7 +261,7 @@ export default function({body, scripts}, chunk) {
       const hash = url.searchParams.get('hash')
       const name = url.searchParams.get('name')
 
-      httpState.get({
+      state.get({
         init: true,
         path: hash.concat('?',
           (new URLSearchParams({name})).toString()

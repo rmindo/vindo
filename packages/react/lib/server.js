@@ -10,8 +10,7 @@
 const path = require('path')
 const React = require('react')
 const ReactDom = require('react-dom/server')
-const {state} = require('@vindo/react/client')
-const {has, isObj, isArr, isStr, isNum, isFunc} = require('@vindo/react/util')
+const {isObj, isArr, isStr, isNum, isFunc} = require('@vindo/react/util')
 
 /**
  * Shorthand
@@ -23,10 +22,14 @@ const isValid = React.isValidElement
 
 
 
-
 var data = {}
 var env = process.env
-
+var state = {
+  set() {
+    throw new ReferenceError(`You can only call it inside mouse event function.`)
+  },
+  data: {}
+}
 
 /**
  * Require main component from react directory
@@ -230,40 +233,52 @@ function reduce(data) {
  * @param {object} res
  */
 function HTTPResponse(req, res) {
-  const token = req.get('x-fetch-request-token')
-
+  const token = req.get('x-state-request-token')
+  
   function json(data) {
     if(token) {
-      res.json(data, 200, {'X-Fetch-Response': token})
+      res.json(data, 200, {'X-State-Response-Token': token})
     }
   }
 
-  state.use = function use(data) {
+  state.use = function use(data = {}) {
     if(typeof data == 'function') {
       data = data()
     }
-    if(token) {
-      data = Object.assign(state.data, data, req.query)
-      if(!data.__initialize) {
-        return
-      }
+    var _state = {}
+    if(req.method == 'GET') {
+      _state = req.query
+    }
+    if(req.method == 'POST') {
+      _state = req.body
+    }
+    if(!_state.__initialize) {
+      data = Object.assign(state.data, data, _state)
+      return
     }
     Object.assign(state.data, data)
   }
 
   state.get = function get(cb) {
     if(req.method == 'GET') {
-      json(cb(req.query))
+      json(cb(state.data))
     }
   }
 
   state.post = function post(cb) {
     if(req.method == 'POST') {
-      json(cb(req.body))
+      json(cb(state.data))
     }
   }
 
-  return state
+  return new Proxy(state, {
+    get(target, key) {
+      if(target[key]) {
+        return target[key]
+      }
+      return state.data[key]
+    }
+  })
 }
 
 
@@ -279,9 +294,12 @@ exports.server = function server() {
      * Send content to client
      */
     if(req.is(env.UUID)) {
-      res.json(
-        reduce(data[req.query.name])
-      )
+      state.get((state) => {
+        return {
+          state,
+          ...reduce(data[req.query.name])
+        }
+      })
       data = {}
       return
     }
@@ -302,11 +320,17 @@ exports.server = function server() {
         data[args.name] = {...args.data}
 
         /**
-         * Response to HTTP GET request from client to update the DOM
+         * Only for requesting a state
          */
-        state.get(() => {
-          return reduce(args.data)
-        })
+        const token = req.get('x-state-request-token')
+        if(token) {
+          state.get((state) => {
+            return {
+              state,
+              ...reduce(args.data)
+            }
+          })
+        }
 
         /**
          * If the request not matched.

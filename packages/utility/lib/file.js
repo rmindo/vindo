@@ -12,7 +12,9 @@ const path = require('path')
 const string = require('./string')
 
 
-module.exports = exports = Object.create(path)
+module.exports = exports = Object.create(fs, {
+  path: {value: path}
+})
 
 
 /**
@@ -259,20 +261,6 @@ exports.read = function read(...args) {
   const file = exports.join(...exports.relative(args, ext))
   if(exports.exists(file)) {
     return fs.readFileSync(file, 'utf8')
-  }
-}
-
-
-/**
- * Read file with promises
- * 
- * @param {string | string[]} args The path of the file
- */
-exports.readAsync = async function readAsync(...args) {
-  const file = exports.join(...args)
-
-  if(fs.existsSync(file)) {
-    return await fs.promises.readFile(file, {encoding: 'utf8'})
   }
 }
 

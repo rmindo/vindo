@@ -30,6 +30,9 @@
     },
     "./client": {
       "default": "./lib/client.js"
+    },
+    "./request": {
+      "default": "./lib/request.js"
     }
   },
   "author": "Ruel Mindo",

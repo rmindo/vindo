@@ -39,16 +39,16 @@ exports.replace = function replace(string, data = {}) {
     return string
   }
 
-  function repl(v) {
-    var value = data[v.match(/([a-z_]+)/g)]
+  function repl(val) {
+    var value = data[val.match(/([a-zA-Z_]+)/g)]
     if(value) {
       return value
     }
-    return ''
+    return val
   }
 
   if(string) {
-    var patt = string.match(/(\{[a-z_]+\})/g)
+    var patt = string.match(/(\{[a-zA-Z_]+\})/g)
     if(patt) {
       return string.replace(new RegExp(patt.join('|'), 'g'), repl)
     }

@@ -32,7 +32,6 @@ export namespace Utility {
     parse(...args: string | string[]): object;
     exists(...args: string | string[]): boolean;
     readdir(...args: string | string[]): string;
-    readAsync(...args: string | string[]): Promise<Buffer>;
   }
 
 

@@ -21,7 +21,7 @@ module.exports = exports = {}
  */
 const has = util.events.has
 const emit = util.events.emit
-const clear = util.events.clear
+const remove = util.events.remove
 const parse = util.url.parse
 const merge = util.object.merge
 const define = util.object.define
@@ -106,16 +106,23 @@ async function invoke(func, args) {
   /**
    * Stop the process if response is ended before rendering the content.
    */
-  // if(isEnded(res)) {
-  //   return
-  // }
-  /**
-   * Emit external template renderer.
-   */
-  if(has('render')) {
-    const render = await emit('render', data)
+  if(isEnded(res)) {
+    return
+  }
+  return render.call(args[0], data, res.statusCode)
+}
+
+
+/**
+ * Emit external template renderer.
+ * @param {object} data 
+ * @param {number} code 
+ */
+async function render(data, code) {
+  if(has('__render')) {
+    const render = await emit('__render', data)
     if(render) {
-      return res.html(render.html, res.statusCode)
+      return this.response.html(render.html, code)
     }
   }
   return data
@@ -177,13 +184,9 @@ function error(req, res, ctx) {
         /**
          * Handle template render
          */
-        if(has('render')) {
-          const render = await emit('render', data)
-          if(render) {
-            return self.response.html(render.html, code)
-          }
-        }
+        return render.call(self, data, code)
       }
+      
       res.print(exce.statuses[code].status, code)
     }
   }
@@ -540,9 +543,7 @@ exports.start = function start(req) {
     'methods'
   ]
   route.method = req.method
-  /**
-   * Add route properties to request
-   */
+
   const data = {}
   for(var name in route) {
     if(!exclude.includes(name)) {
@@ -567,15 +568,9 @@ exports.end = async function end(args) {
   try {
     var exists = await exports.handle(args[1].route, args)
 
-    /**
-     * Clear all events when the response ended. 
-     */
     if(isEnded(args[2])) {
-      // clear()
+      remove('__render')
     }
-    /**
-     * If no response is being called then exit with 404.
-     */
     else {
       /**
        * If the route exists and still no response then let it freeze.

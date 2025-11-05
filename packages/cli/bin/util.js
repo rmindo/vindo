@@ -1,27 +1,12 @@
-const path = require('path')
-const file = require('fs/promises')
 const {styleText:color} = require('util')
+const {file, events, string} = require('@vindo/utility')
+
 
 
 module.exports = exports = Object.create(file, {
-  path: {value: path},
+  string: {value: string},
+  events: {value: events},
 })
-
-const evt = {}
-
-/**
- * Events
- */
-const events = {
-  on(name, cb) {
-    evt[name] = cb
-  },
-  emit(name, ...args) {
-    if(evt[name]) {
-      evt[name].call(...args)
-    }
-  }
-}
 
 /**
  * Set colors
@@ -52,18 +37,40 @@ const colors = {
   }
 }
 
+function replace(string, data = {}) {
+  if(Object.keys(data).length == 0) {
+    return string
+  }
+
+  function repl(v) {
+    var value = data[v.match(/([a-z_]+)/g)]
+    if(value) {
+      return value
+    }
+    return ''
+  }
+
+  if(string) {
+    var patt = string.match(/(\{[a-z_]+\})/g)
+    if(patt) {
+      return string.replace(new RegExp(patt.join('|'), 'g'), repl)
+    }
+  }
+  return string
+}
+
 /**
  * Resolve path
  */
 const resolve = {
   main(...args) {
-    return path.resolve(process.cwd(), ...args)
+    return file.path.resolve(process.cwd(), ...args)
   },
   curr(...args) {
-    return path.resolve(__dirname, ...args)
+    return file.path.resolve(__dirname, ...args)
   },
-  dirname(file, ...args) {
-    return resolve.main(path.dirname(file), ...args)
+  dirname(path, ...args) {
+    return resolve.main(file.path.dirname(path), ...args)
   },
 }
 
@@ -93,20 +100,14 @@ async function copy(dest) {
   const src = resolve.curr(
     path.basename(dest)
   )
-  return await file.cp(src, dest)
-}
-/**
- * 
- */
-async function read(path) {
-  return await file.readFile(path, 'utf-8')
+  return await file.promises.cp(src, dest)
 }
 /**
  * 
  */
 async function makedir(path) {
 	try {
-    await file.mkdir(path)
+    await file.promises.mkdir(path)
 	}
 	catch(e) {}
 }
@@ -115,35 +116,16 @@ async function makedir(path) {
  */
 async function unlink(path) {
 	try {
-    await file.unlink(path)
+    await file.promises.unlink(path)
 	}
 	catch(e) {}
-}
-/**
- * 
- */
-async function exists(path) {
-  try {
-    return await file.access(path, file.constants.F_OK)
-  }
-	catch(e) {}
-}
-/**
- * 
- */
-async function readdir(path) {
-  return await file.readdir(path, {recursive: true, withFileTypes: true})
 }
 
 
 exports.log = log
 exports.use = use
-exports.read = read
 exports.copy = copy
-exports.exists = exists
 exports.unlink = unlink
 exports.makedir = makedir
-exports.readdir = readdir
 exports.colors = colors
-exports.events = events
 exports.resolve = resolve

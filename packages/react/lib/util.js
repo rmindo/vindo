@@ -1,16 +1,15 @@
+import runtime from 'react/jsx-runtime'
 
-export function str(val) {
-  return JSON.stringify(val)
-}
+
+export const str = JSON.stringify
+export const merge = Object.assign
+export const isArr = Array.isArray
+
 
 export function has(val) {
   if(isObj(val) && Object.keys(val).length > 0) {
     return val
   }
-}
-
-export function isArr(val) {
-  return Array.isArray(val)
 }
 
 export function isMore(val) {
@@ -31,4 +30,71 @@ export function isFunc(val) {
 
 export function isObj(val) {
   return val && typeof val === 'object' && val.constructor === Object && Object.prototype === Object.getPrototypeOf(val)
+}
+
+export function toFunc(name, {code, args = [], refs}) {
+  var arr = ['return', 'function', name]
+
+  if(args) {
+    arr.push(
+      `(${args.length ? args.join(',') : ''})`
+    )
+  }
+  if(typeof code == 'string') {
+    arr.push(`{${code}}`)
+  }
+  return new Function(...Object.keys(refs), arr.join(' '))(...Object.values(refs))
+}
+
+
+/**
+ * Transform back to react object
+ */
+export function transform(children, data) {
+  if(!children) {
+    return
+  }
+  if(!isArr(children)) {
+    children = [children]
+  }
+
+  return children.map(({type, props}, key) => {
+    var p = {}
+
+    if(isArr(type)) {
+      type = data[type[0]]
+    }
+
+    for(var i in props) {
+      var v = props[i]
+
+      if(isStr(v) || isNum(v)) {
+        p[i] = v
+      }
+      if(isObj(v)) {
+        if(i == 'children') {
+          p.children = transform(v, data)
+        }
+        else {
+          if(v.mouseevent) {
+            p[i] = toFunc(v.name, {
+              args: v.args,
+              code: v.code,
+              refs: data.refs
+            })
+          }
+        }
+      }
+      if(isArr(v)) {
+        p.children = v.map((i) => {
+          if(isObj(i)) {
+            return transform(i, data)
+          }
+          return i
+        })
+      }
+    }
+
+    return runtime.jsx(type, p, key)
+  })
 }

@@ -52,7 +52,7 @@ exports.redirect = function redirect(url) {
  * @param headers
  */
 exports.html = function html(body = null, code = 200, headers = {}) {
-  if(this.writableEnded) {
+  if(!body || this.writableEnded) {
     return
   }
   this.writeHead(code, {

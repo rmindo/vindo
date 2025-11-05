@@ -38,13 +38,6 @@ exports.emit = function emit(name, ...args) {
 }
 
 /**
- * Clear events
- */
-exports.clear = function clear() {
-  exports.stack = {}
-}
-
-/**
  * Remove event
  */
 exports.remove = function remove(name) {

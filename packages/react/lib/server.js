@@ -10,20 +10,17 @@
 const path = require('path')
 const React = require('react')
 const ReactDom = require('react-dom/server')
-const {isObj, isArr, isStr, isNum, isFunc} = require('@vindo/react/util')
+const {has, isObj, isArr, isStr, isNum, isFunc} = require('@vindo/react/util')
 
 /**
  * Shorthand
  */
-const map = React.Children.map
 const clone = React.cloneElement
 const create = React.createElement
 const isValid = React.isValidElement
 
 
 
-var data = {}
-var env = process.env
 var state = {
   set() {
     throw new ReferenceError(`You can only call it inside mouse event function.`)
@@ -45,22 +42,6 @@ function get(point, data) {
 
 
 /**
- * React DOM
- * @param {object} data 
- */
-function dom(data) {
-  return (item) => {
-    if(item.type == 'head') {
-      return clone(item, {}, head(item.props.children, data))
-    }
-    if(item.type == 'body') {
-      return clone(item, {}, body(item.props.children, data))
-    }
-  }
-}
-
-
-/**
  * Set data
  * @param {object} e 
  * @param {object} context 
@@ -71,26 +52,35 @@ function set(e, {meta, path}) {
    * Metadata and component
    */
   const {children, ...props} = e.props
-  const args = {
-    data: props,
+  const data = {
     meta: {
       name,
       bundle: true,
       ...meta
     },
-    content: isFunc(e.type) ? null : e
+    data: {
+      props,
+      content: isFunc(e.type) ? null : e
+    },
   }
 
   /**
    * Get main react component
    */
-  var app = get(path, {content: args.content, ...args.meta})
+  var app = get(path, data.meta)
   return {
     name,
-    data: args,
+    data,
     html: html(
       clone(app, {
-        children: map(app.props.children, dom(args))
+        children: app.props.children.map((item, key) => {
+          if(item.type == 'head') {
+            return clone(item, {key}, head(item.props.children, data))
+          }
+          if(item.type == 'body') {
+            return clone(item, {key}, body(item.props.children, data))
+          }
+        })
       })
     )
   }
@@ -112,23 +102,20 @@ function html(obj) {
  * @param args
  */
 function head(children, {meta}) {
-  const isDev = (env.NODE_ENV == 'dev' || env.NODE_ENV == 'develop' || env.NODE_ENV == 'development')
-
-  const queries = new URLSearchParams({
-    hash: env.UUID,
-    name: meta.name
-  })
+  const env = process.env
+  
+  if(env.NODE_ENV == 'dev' || env.NODE_ENV == 'develop' || env.NODE_ENV == 'development') {
+    children = children.concat(
+      create('script', {key: 0, src: env.DEV_SERVER}
+    ))
+  }
 
   return children.concat(
-    isDev && create('script', {
-      key: 0,
-      src: env.DEV_SERVER
-    }),
     meta.bundle && create('script', {
       key: 1,
       id: 'bundle',
       type: 'module',
-      src: '/bundle.js?'.concat(queries.toString())
+      src: `/bundle.js?hash=${env.UUID}`
     })
   )
 }
@@ -139,18 +126,11 @@ function head(children, {meta}) {
  * @param {array} children 
  * @param {object} args
  */
-function body(children, args) {
-
+function body(children, data) {
   if(!isArr(children)) {
     children = [children]
   }
-
-  return children.map((child, key) => {
-    if(typeof child.type == 'function') {
-      child = child.type({...child.props, ...args})
-    }
-    return clone(child, {key})
-  })
+  return children.map((child, key) => clone(child, {key, ...data}))
 }
 
 
@@ -218,57 +198,73 @@ function reducer(children) {
  * 
  * @param {string} name 
  */
-function reduce(data) {
-  if(data) {
-    data.content = reducer(data.content)[0]
+function reduce(args) {
+  if(!args) {
+    return
   }
-  return data
+  const {content} = args.data
+  if(content) {
+    args.data.content = reducer(content)[0]
+  }
+  return args
+}
+
+
+
+function getState(req) {
+  switch(req.method) {
+    case 'GET':
+      return req.query
+    case 'POST':
+      return req.body
+    default:
+      return {}
+  }
 }
 
 
 /**
- * Client fetch response
+ * Create HTTP state event ID
+ * @param {string} method 
+ * @param {string} name 
+ */
+function concatID(method, name) {
+  if(!name) {
+    name = 'root'
+  }
+  return method.concat('-', name)
+}
+
+/**
+ * State response
  * 
  * @param {object} req 
- * @param {object} res
+ * @param {object} events
  */
-function HTTPResponse(req, res) {
-  const token = req.get('x-state-request-token')
-  
-  function json(data) {
-    if(token) {
-      res.json(data, 200, {'X-State-Response-Token': token})
-    }
-  }
+function HTTPState(req, events) {
+  state.token = req.get('x-state-request')
 
   state.use = function use(data = {}) {
     if(typeof data == 'function') {
-      data = data()
-    }
-    var _state = {}
-    if(req.method == 'GET') {
-      _state = req.query
-    }
-    if(req.method == 'POST') {
-      _state = req.body
-    }
-    if(!_state.__initialize) {
-      data = Object.assign(state.data, data, _state)
-      return
+      if(!state.token) {
+        data = data()
+      }
     }
     Object.assign(state.data, data)
   }
 
   state.get = function get(cb) {
-    if(req.method == 'GET') {
-      json(cb(state.data))
-    }
+    request('GET', cb)
   }
 
   state.post = function post(cb) {
-    if(req.method == 'POST') {
-      json(cb(state.data))
-    }
+    request('POST', cb)
+  }
+
+  function request(key, cb) {
+    events.on(concatID(key, req.name), function(data) {
+      return cb(data)
+    })
   }
 
   return new Proxy(state, {
@@ -276,7 +272,12 @@ function HTTPResponse(req, res) {
       if(target[key]) {
         return target[key]
       }
-      return state.data[key]
+
+      const data = getState(req)
+      if(has(data)) {
+        Object.assign(target.data, !data.__reload && data)
+      }
+      return target.data[key]
     }
   })
 }
@@ -286,52 +287,49 @@ function HTTPResponse(req, res) {
  * Middleware
  */
 exports.server = function server() {
-
+  var data = {}
+  
   return function(req, res, next, {env, meta, vindo, events, exception}) {
-    const state = HTTPResponse(req, res)
+    const state = HTTPState(req, events)
 
     /**
-     * Send content to client
+     * Disable devtools
      */
-    if(req.is(env.UUID)) {
-      state.get((state) => {
-        return {
-          state,
-          ...reduce(data[req.query.name])
-        }
-      })
+    if(['com.chrome.devtools.json'].includes(req.basename)) {
+      return next({state})
+    }
+    
+    /**
+     * Dispatch data and clear
+     */
+    function dispatch(obj) {
       data = {}
-      return
+      state.data = {}
+      
+      res.json(obj, 200, {'X-State-Response': state.token})
     }
 
     /**
      * Render on first request
      */
-    events.on('render', function(e) {
+    events.on('__render', function(e) {
       if(isValid(e)) {
         var args = set(e, {meta, path: vindo.buildOption.entry})
-        if(!args) {
-          return
-        }
-
         /**
-         * Initial data
+         * Initial content
          */
-        data[args.name] = {...args.data}
-
-        /**
-         * Only for requesting a state
-         */
-        const token = req.get('x-state-request-token')
-        if(token) {
-          state.get((state) => {
-            return {
-              state,
-              ...reduce(args.data)
-            }
-          })
+        if(!state.token) {
+          data = args.data
         }
-
+        /**
+       * Update content
+       */
+        else {
+          return dispatch(
+            reduce({...args.data, state: state.data})
+          )
+        }
+        
         /**
          * If the request not matched.
          */
@@ -344,6 +342,19 @@ exports.server = function server() {
         return args
       }
     })
+
+
+    if(req.is(env.UUID)) {
+      const id = concatID(req.method, req.query.name)
+
+      if(req.query.__initialize) {
+        return dispatch({
+          ...reduce(data),
+          state: state.data,
+        })
+      }
+      return dispatch(events.emit(id, getState(req)))
+    }
     
     next({state})
   }

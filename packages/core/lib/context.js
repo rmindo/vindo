@@ -22,7 +22,7 @@ module.exports = exports = {}
 const set = util.object.set
 const merge = util.object.merge
 const define = util.object.define
-const resolve = util.file.resolve
+const resolve = util.file.path.resolve
 
 
 /**

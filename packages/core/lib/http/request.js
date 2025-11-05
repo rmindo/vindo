@@ -17,7 +17,7 @@ module.exports = exports = {}
  * Check endpoint
  */
 exports.is = function is(name) {
-  return this.route.name == name || this.route.basename == name
+  return this.route.name == name || this.route.basename == name || this.method == name
 }
 
 /**

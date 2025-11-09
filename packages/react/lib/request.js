@@ -1,14 +1,12 @@
-
 /**
  * Get hash to create new url
  */
 function getURL() {
-  const src = new URL(document.scripts.bundle.src)
+  var src = new URL(document.scripts.bundle.src)
 
-  if(src.searchParams.size > 0) {
-    var url = new URL(
-      src.searchParams.get('hash'), location.origin
-    )
+  var name = src.pathname.match(/^\/bundle-(.*)\.js$/)
+  if(name) {
+    var url = new URL(name[1], location.origin)
 
     var name = location.pathname.split('/').at(-1)
     if(!name) {
@@ -21,19 +19,19 @@ function getURL() {
 }
 
 /**
- * HTTP State
+ * HTTP Request
  */
-export function HTTPState() {
-  const http = Object.defineProperties({data: {}}, {
+export function HTTPRequest() {
+  const http = Object.defineProperties({}, {
     get: {
       value: function get(args = {}) {
-        return request({...args, path: getURL()}, {method: 'GET'})
+        return request({type: 'fetch', ...args, path: getURL()}, {method: 'GET'})
       },
       writable: false
     },
     post: {
       value: function post(args = {}) {
-        return request({...args, path: getURL()}, {method: 'POST'})
+        return request({type: 'fetch', ...args, path: getURL()}, {method: 'POST'})
       },
       writable: false
     },
@@ -47,18 +45,17 @@ export function HTTPState() {
 /**
  * State request
  */
-export function request({data, path, ...args}, opts = {}) {
+export function request({data, path, type, ...args}, opts = {}) {
 
   if(data && typeof data !== 'object') {
-    throw TypeError(`Invalid type of 'data'. Expected value of type 'object' but got ${typeof data}'.`)
+    throw new TypeError(`Invalid type of 'data'. Expected value of type 'object' but got ${typeof data}'.`)
   }
 
-  var uuid = window.crypto.randomUUID()
   var opts = {
     method: 'GET',
     ...opts,
     headers: Object.assign(opts.headers ?? {}, {
-      'X-State-Request': uuid
+      'X-State-Type': type,
     })
   }
 
@@ -85,7 +82,5 @@ export function request({data, path, ...args}, opts = {}) {
     opts.headers['Content-Type'] = 'application/json'
   }
 
-  return fetch(path, opts).then((res) => {
-    return res.headers.get('X-State-Response') == uuid && res.json()
-  })
+  return fetch(path, opts).then((res) => res.json())
 }

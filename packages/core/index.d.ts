@@ -55,7 +55,7 @@ export interface Server extends Http.Server {
   set(middleware: Function): void
   run(dependencies?: Function, cb?: Function): void
 }
-export function server(config?: Configuration): Server
+export function server(): Server
 
 /**
  * Http Request

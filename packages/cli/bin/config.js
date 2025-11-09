@@ -15,7 +15,7 @@ module.exports = {
 	 */
 	get vindo() {
 
-		return config({
+		return config.config({
 			buildOption: {
 				port: 2001,
 				minify: true,

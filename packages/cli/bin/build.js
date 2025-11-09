@@ -6,54 +6,12 @@ const {
 	exists,
 	string,
 	unlink,
+	makedir,
 	resolve,
 	readdir,
-	makedir,
 	promises,
 }
 = require('./util')
-
-
-
-/**
- * Collect components and assemble before building
- * 
- * @param {object} opt option
- */
-async function build(opt) {
-	const data = read(opt.entry)
-	const temp = read(opt.template)
-	
-	const impo = await getImports(data)
-	const comp = await getComponents(opt)
-
-	const code = string.replace(temp, {
-		CHUNK_IMPORTS: comp.join('\n'),
-		ENTRY_IMPORTS: impo.join('\n'),
-		HEAD_COMPONENT: data.match(/<head.*>((.|\n)*)<\/head>/g)[0],
-		BODY_COMPONENT: data.match(/<Provider.*>((.|\n)*)<\/Provider>/g)[0]
-	})
-
-	await promises.writeFile(opt.chunk, code, {flag: 'w'})
-}
-
-
-/**
- * Create a bundle file
- * 
- * @param {object} opt option
- */
-async function bundle(opt) {
-	if(exists(opt.chunk)) {
-		await es.build({
-			...opt.settings,
-			minify: opt.minify,
-			outfile: opt.bundle,
-			entryPoints: [opt.chunk],
-		})
-		unlink(opt.chunk)
-	}
-}
 
 /**
  * Get imported files
@@ -100,6 +58,79 @@ async function getComponents(opt) {
 	return code
 }
 
+
+/**
+ * Collect components and assemble before building
+ * 
+ * @param {object} opt option
+ */
+async function build(opt) {
+	const data = read(opt.entry)
+	const temp = read(opt.template)
+	
+	const impo = await getImports(data)
+	const comp = await getComponents(opt)
+
+	const code = string.replace(temp, {
+		CHUNK_IMPORTS: comp.join('\n'),
+		ENTRY_IMPORTS: impo.join('\n'),
+		HEAD_COMPONENT: data.match(/<head.*>((.|\n)*)<\/head>/g)[0],
+		BODY_COMPONENT: data.match(/<Provider.*>((.|\n)*)<\/Provider>/g)[0]
+	})
+
+	await promises.writeFile(opt.chunk, code, {flag: 'w'})
+}
+
+
+/**
+ * Create a bundle file
+ * 
+ * @param {object} opt option
+ */
+async function bundle(opt) {
+	if(!exists(opt.chunk)) {
+		return
+	}
+	
+	const {metafile} = await es.build({
+		...opt.settings,
+		metafile: true,
+		minify: opt.minify,
+		outfile: opt.bundle,
+		entryPoints: [opt.chunk],
+		entryNames: '[name]-[hash]'
+	})
+
+	const file = Object.keys(metafile.outputs)[0]
+	const data = {
+		file,
+		hash: file.match(/-(.*).js/)[1],
+		bundle: file.match(/.*(\/.*)$/)[1]
+	}
+
+	/**
+	 * Delete old bundle
+	 */
+	const manifest = resolve.main(opt.output, 'manifest.json')
+	if(exists(manifest)) {
+		const files = readdir(resolve.main(opt.output))
+
+		files.forEach((file) => {
+			const matched = file.name.match(/^bundle-([A-Z0-9+]{8})\.js$/)
+			if(matched) {
+				if(data.hash == matched[1]) {
+					return
+				}
+				unlink(path.resolve(file.parentPath, file.name))
+			}
+		})
+	}
+
+	await promises.writeFile(manifest, JSON.stringify(data), {flag: 'w'})
+	unlink(opt.chunk)
+}
+
+
 /**
  * 
  * @param {object} config 
@@ -109,7 +140,7 @@ module.exports = async function(opt) {
 	 * Create build directory
 	 */
 	await makedir(resolve.main(opt.output))
-	
+
 	opt.entry = resolve.main(opt.entry)
 	opt.chunk = resolve.main(opt.output, 'chunk.jsx')
 	opt.bundle = resolve.main(opt.output, 'bundle.js')

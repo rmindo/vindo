@@ -47,21 +47,25 @@ function merge(def, conf) {
 /**
  * Get config file
  */
-function getConfig() {
+exports.get = function get(name = null) {
   const file = path.resolve(process.cwd(), 'vindo.json')
 
   if(!util.file.exists(file)) {
     throw ReferenceError(`vindo.config file does not exists.`)    
   }
+  const config = util.file.get(file)
 
-  return util.file.get(file)
+  if(config[name]) {
+    return config[name]
+  }
+  return config
 }
 
 
-module.exports = function config(_conf) {
-  var conf = merge(defaultConfig, _conf)
+exports.config = function config(config = {}) {
+  var conf = merge(defaultConfig, config)
 
-  var vindo = getConfig()
+  var vindo = exports.get()
   if(vindo) {
     /** 
      * Config getters
@@ -78,7 +82,6 @@ module.exports = function config(_conf) {
    * Root directory of routes
    */
   conf.root = ['src', conf.routesDirectory]
-
 
   return conf
 }

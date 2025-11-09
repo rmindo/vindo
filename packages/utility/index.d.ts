@@ -68,6 +68,12 @@ export namespace Utility {
    * @public
    */
   export interface EventsInterface {
+    stack: {
+      [key:string]: {
+        name: string,
+        event: Function
+      }
+    }
     on(name: string, cb: Function): void;
     has(name: string): void;
     clear(): void;

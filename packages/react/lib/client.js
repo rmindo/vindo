@@ -9,58 +9,90 @@
 
 import React from 'react'
 import ReactDom from 'react-dom/client'
-import {request, HTTPState} from '@vindo/react/request'
-import {merge, transform} from '@vindo/react/util'
+import {request, HTTPRequest} from '@vindo/react/request'
+import {isObj, isFunc, merge, transform} from '@vindo/react/util'
 
 
 const event = {}
-const http = HTTPState()
-const context_ = React.createContext({})
+const _http = HTTPRequest()
+const _context = React.createContext({})
 
 
 /**
  * Update DOM
  */
-Object.defineProperty(http, 'set', {
-  value: function set({path, ...args}) {
-    request({
-      path,
-      data: merge(http.data, args)
-    })
-    .then((data) => event.update(data))
-  },
-  writable: false
-})
+export function update({path, ...args}) {
+  request({
+    type: 'update',
+    path,
+    data: merge(event.data, args)
+  })
+  .then((data) => event.render(data))
+}
 
 /**
- * Http state request
+ * Use state
  */
-export const state = new Proxy(http, {
-  get(target, key) {
-    if(target[key]) {
-      return target[key]
-    }
-    return target.data[key]
+export function useState(initialState = {}) {
+  if(!isObj(initialState)) {
+    throw Error('Custom state hook only allow object as parameter.')
   }
-})
 
-/**
- * Component Holder
- */
-export function View() {}
+  const data = React.useRef({})
+  const [state, setState] = React.useState(initialState)
+
+  Object.assign(data.current, state)
+
+  const obj = {
+    get(args = {}) {
+      return _http.get(args)
+    },
+    post(args = {}) {
+      return _http.post(args)
+    },
+    async set(state) {
+      
+      if(isObj(state)) {
+        setState(state)
+      }
+      if(isFunc(state)) {
+        const dataState = state(data.current)
+
+        if(dataState) {
+          if(dataState instanceof Promise) {
+            setState(await dataState)
+          }
+          else {
+            setState(dataState)
+          }
+        }
+      }
+      return data.current
+    },
+  }
+
+  return new Proxy(obj, {
+    get(target, key) {
+      if(target[key]) {
+        return target[key]
+      }
+      return data.current[key]
+    }
+  })
+}
 
 /**
  * Context
  */
-export function context() {
-  return React.useContext(context_)
+export function useContext() {
+  return React.useContext(_context)
 }
 
 /**
  * Wrapper
  */
 export function Provider({children, ...value}) {
-  return React.createElement(context_, {value}, children)
+  return React.createElement(_context, {value}, children)
 }
 
 /**
@@ -74,7 +106,7 @@ export function Link({href, text, children}) {
   const onClick = (e) => {
     e.preventDefault()
 
-    state.set({
+    update({
       path: new URL(href, location.origin),
       __reload: true
     })
@@ -89,10 +121,16 @@ export function Link({href, text, children}) {
 
 
 /**
+ * Component Holder
+ */
+export function View() {}
+
+
+/**
  * Find current route
  */
 export function Content(props) {
-  const {data, meta} = context()
+  const {data, meta} = useContext()
 
   /**
    * View content coming from backend component (src/http)
@@ -115,21 +153,41 @@ export function Content(props) {
 }
 
 
+/**
+ * Render react dom to root
+ * @param {object} document 
+ * @param {object} chunk 
+ */
 export function render({head, body}, chunk) {
   var head = ReactDom.createRoot(head)
   var body = ReactDom.createRoot(body)
   
-
-  event.update = function update(args) {
+  /**
+   * Render content
+   */
+  event.render = function render(args) {
     const meta = args.meta
     /**
      * Set default state
      */
-    state.data = args.state
+    event.data = args.state
     /**
      * Reference for mouse event functions
      */
-    chunk.refs = {state, meta}
+    chunk.refs = {
+      meta,
+      state: new Proxy(event, {
+        get(target, key) {
+          switch(key) {
+            case 'set':
+              return update
+            case 'render':
+              return
+          }
+          return target.data[key]
+        }
+      })
+    }
     /**
      * Set only for dynamic content coming from server
      */
@@ -141,7 +199,7 @@ export function render({head, body}, chunk) {
     body.render(chunk.body(args))
   }
 
-  state.get({__initialize: true}).then(data => event.update(data))
+  _http.get({type: 'initialize'}).then(data => event.render(data))
 }
 
 

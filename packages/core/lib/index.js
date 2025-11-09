@@ -8,9 +8,8 @@
 
 
 const http = require('./http')
-const conf = require('./config')
 const cont = require('./context')
-const crypto = require('crypto')
+const config = require('./config')
 const utility = require('@vindo/utility')
 const exception = require('@vindo/exception')
 
@@ -29,57 +28,55 @@ exports.exception = exception
 /**
  * Set initial middleware
  */
-function init(config) {
-  http.stack.push(http.init(config))
+function init(conf) {
+  http.stack.push(http.init(conf))
 }
 
 
 /**
  * Include config file
- * @param {object} config
+ * @param {object} conf
  */
-function env(config) {
+function env(conf) {
   const file = utility.file
   const object = utility.object
 
   
-  process.env.PORT = config.port
-  process.env.UUID = crypto.randomBytes(16).toString('hex')
+  process.env.PORT = conf.port
 
   /**
    * This allow to switch environment into production and vice versa
    * using the NODE_ENV from process.env
    */
-  const envFile = file.parse(object.get(config.env.ENV_PATH, process.env.NODE_ENV))
+  const envFile = file.parse(object.get(conf.env.ENV_PATH, process.env.NODE_ENV))
   if(envFile) {
     object.merge(process.env, envFile)
   }
-  delete config.env.ENV_PATH
+  delete conf.env.ENV_PATH
   
   /**
    * Add env vars to process env
    */
-  for(var i in config.env) {
-    if(typeof config.env[i] == 'string') {
-      process.env[i] = config.env[i]
+  for(var i in conf.env) {
+    if(typeof conf.env[i] == 'string') {
+      process.env[i] = conf.env[i]
     }
   }
-  object.merge(config.env, process.env)
+  object.merge(conf.env, process.env)
 }
 
 
 /**
  * Server
- * @param {object} config
  */
-exports.server = function server(config = {}) {
-  var config = conf(config)
+exports.server = function server() {
+  var conf = config.config()
 
   /**
    * Initial config
    */
-  env(config)
-  init(config)
+  env(conf)
+  init(conf)
 
   /**
    * Set middileware
@@ -92,7 +89,7 @@ exports.server = function server(config = {}) {
    * Run the server
    */
   http.run = function run(cb = null) {
-    cont.context(config, cb).then(ctx => http.serve(config.port, ctx))
+    cont.context(conf, cb).then(ctx => http.serve(conf.port, ctx))
   }
 
   return http

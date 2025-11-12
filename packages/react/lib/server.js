@@ -21,14 +21,8 @@ const create = React.createElement
 const isValid = React.isValidElement
 
 
-var state = {
-  set() {
-    throw new ReferenceError(`You can only call set() inside mouse event function.`)
-  },
-  data: {}
-}
-var opt = config.get('buildOption')
-var man = require(path.resolve(opt.output, 'manifest.json'))
+var build = config.get('buildOption')
+var manif = require(path.resolve(build.output, 'manifest.json'))
 
 
 /**
@@ -37,7 +31,7 @@ var man = require(path.resolve(opt.output, 'manifest.json'))
  * @param {object} data
  */
 function entry(data) {
-  const app = require(path.resolve(path.dirname(opt.entry)))
+  const app = require(path.resolve(path.dirname(build.entry)))
   if(app) {
     return app.default(data)
   }
@@ -65,7 +59,7 @@ function dom(data) {
  * @param {object} e 
  * @param {object} context 
  */
-function set(e, {meta}) {
+function set(e, {type, meta, state}) {
   const name = e.props.name ?? e.props.id
   /**
    * Metadata and component
@@ -79,9 +73,10 @@ function set(e, {meta}) {
     },
     data: {
       props,
-      content: isFunc(e.type) ? null : e
+      children: isFunc(e.type) ? null : e
     },
-    state: state.data
+    type,
+    state,
   }
 
   /**
@@ -127,7 +122,7 @@ function head(children, {meta}) {
       key: 1,
       id: 'bundle',
       type: 'module',
-      src: man.bundle
+      src: manif.bundle
     })
   )
 }
@@ -214,9 +209,9 @@ function reduce(args) {
   if(!args) {
     return
   }
-  const {content} = args.data
-  if(content) {
-    args.data.content = reducer(content)[0]
+  const {children} = args.data
+  if(children) {
+    args.data.children = reducer(children)[0]
   }
   return args
 }
@@ -231,7 +226,7 @@ function mkId(method, name) {
   if(!name) {
     name = 'root'
   }
-  return Buffer.from(method.concat('-', name)).toString('base64')
+  return Buffer.from(method.concat(name)).toString('base64')
 }
 
 
@@ -239,9 +234,40 @@ function mkId(method, name) {
  * Get query and body request as state
  * @param {object} req
  */
-function getState(req) {
-  return Object.assign({}, req.body, req.query)
+function merge() {
+  return Object.assign(...arguments)
 }
+
+
+function decode(data) {
+  return JSON.parse(
+    Buffer.from(data, 'base64').toString('utf8')
+  )
+}
+
+
+
+/**
+ * Get state
+ * @param {object} req 
+ */
+function getState(req) {
+  const state = {
+    data: {},
+    type: 'initial',
+  }
+
+  var token = req.get('x-state-request')
+  if(token) {
+    merge(state, decode(token))
+  }
+
+  if(state.type == 'fetch' || state.type == 'update') {
+    merge(state.data, req.body, req.query)
+  }
+  return state
+}
+
 
 /**
  * State response
@@ -250,36 +276,47 @@ function getState(req) {
  * @param {object} events
  */
 function HTTPState(req, events) {
-  const data = getState(req)
+  var exert = {}
+  var state = getState(req)
 
-  state.type = req.get('x-state-type')
 
-  
   state.on = function on(name, cb) {
     events.on(mkId(name, req.name), function(data) {
       return cb(data)
     })
   }
+
+  state.set = function set(data) {
+    merge(exert, data)
+  }
+
   state.get = function get(cb) {
     state.on('GET', cb)
   }
+
   state.post = function post(cb) {
     state.on('POST', cb)
   }
 
-  state.use = function use(cb) {
-    if(typeof cb == 'function') {
-      Object.assign(state.data, cb(data))
+  state.use = function use(initial = {}) {
+    if(isFunc(initial)) {
+      initial = initial()
+    }
+    if(state.type == 'route' || state.type == 'initial') {
+      merge(state.data, initial)
     }
   }
 
-  state.init = function init(data = {}) {
-    if(typeof data == 'function') {
-      if(!state.type) {
-        data = data()
+  state.apply = function apply(cb) {
+    if(!isFunc(cb)) {
+      return
+    }
+    if(state.type == 'update') {
+      var data = cb(state.data)
+      if(data) {
+        exert = data
       }
     }
-    Object.assign(state.data, data)
   }
 
   return new Proxy(state, {
@@ -287,11 +324,13 @@ function HTTPState(req, events) {
       if(target[key]) {
         return target[key]
       }
-
-      if(!data.__reload) {
-        Object.assign(target.data, data)
+      if(exert[key]) {
+        return exert[key]
       }
       return target.data[key]
+    },
+    set() {
+      throw new TypeError(`Cannot assign to read only object.`)
     }
   })
 }
@@ -309,9 +348,9 @@ exports.server = function server() {
     /**
      * Emit state request event
      */
-    function emit(data) {
+    function emit(name) {
       dispatch(
-        events.emit(mkId(req.method, data.name), data)
+        events.emit(mkId(name, state.page), state.data)
       )
     }
 
@@ -320,10 +359,11 @@ exports.server = function server() {
      */
     function dispatch(obj) {
       data = {}
-      state.data = {}
 
-      if(obj.state) {
-        return res.json(reduce(obj))
+      if(obj.meta && obj.data && obj.state) {
+        return res.json(
+          reduce(obj)
+        )
       }
       res.json(obj)
     }
@@ -333,17 +373,17 @@ exports.server = function server() {
      */
     events.on('__render', function(e) {
       if(isValid(e)) {
-        var args = set(e, {meta})
+        var args = set(e, {meta, state: state.data, type: state.type})
         /**
          * Initial content
          */
-        if(!state.type) {
-          data[man.hash] = args.data
+        if(state.type == 'initial') {
+          data[manif.hash] = args.data
         }
         /**
          * Update content
          */
-        if(state.type == 'update') {
+        if(state.type == 'route' || state.type == 'update') {
           return dispatch(args.data)
         }
         
@@ -360,12 +400,12 @@ exports.server = function server() {
       }
     })
 
-    if(req.is(man.hash)) {
+    if(req.is(manif.hash)) {
       if(state.type == 'fetch') {
-        return emit(getState(req))
+        return emit(req.method)
       }
-      if(state.type == 'initialize') {
-        return dispatch(data[man.hash])
+      if(state.type == 'render') {
+        return dispatch(data[manif.hash])
       }
     }
     

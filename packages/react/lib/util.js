@@ -6,10 +6,11 @@ export const merge = Object.assign
 export const isArr = Array.isArray
 
 
-export function has(val) {
-  if(isObj(val) && Object.keys(val).length > 0) {
-    return val
+export function isEmpty(obj) {
+  if(obj && Object.keys(obj).length == 0) {
+    return true
   }
+  return false
 }
 
 export function isMore(val) {

@@ -21,9 +21,9 @@ const _context = React.createContext({})
 /**
  * Update DOM
  */
-export function update({path, ...args}) {
+export function update({path, type, ...args}) {
   request({
-    type: 'update',
+    type: type ?? 'update',
     path,
     data: merge(event.data, args)
   })
@@ -43,11 +43,11 @@ export function useState(initialState = {}) {
 
   Object.assign(data.current, state)
 
-  const obj = {
-    get(args = {}) {
+  return new Proxy({
+    get(args) {
       return _http.get(args)
     },
-    post(args = {}) {
+    post(args) {
       return _http.post(args)
     },
     async set(state) {
@@ -55,6 +55,7 @@ export function useState(initialState = {}) {
       if(isObj(state)) {
         setState(state)
       }
+
       if(isFunc(state)) {
         const dataState = state(data.current)
 
@@ -69,9 +70,8 @@ export function useState(initialState = {}) {
       }
       return data.current
     },
-  }
-
-  return new Proxy(obj, {
+  },
+  {
     get(target, key) {
       if(target[key]) {
         return target[key]
@@ -105,10 +105,13 @@ export function Link({href, text, children}) {
 
   const onClick = (e) => {
     e.preventDefault()
-
+    
+    if(location.pathname == href) {
+      return
+    }
     update({
-      path: new URL(href, location.origin),
-      __reload: true
+      type: 'route',
+      path: new URL(href, location.origin)
     })
     history.pushState({}, text, href)
   }
@@ -135,8 +138,8 @@ export function Content(props) {
   /**
    * View content coming from backend component (src/http)
    */
-  if(React.isValidElement(data.content)) {
-    return React.createElement('main', props, data.content)
+  if(React.isValidElement(data.children)) {
+    return React.createElement('main', props, data.children)
   }
 
   /**
@@ -161,16 +164,26 @@ export function Content(props) {
 export function render({head, body}, chunk) {
   var head = ReactDom.createRoot(head)
   var body = ReactDom.createRoot(body)
-  
+
+  /**
+   * Update when back/forward button is pressed
+   */
+  window.onpopstate = function() {
+    update({
+      type: 'route',
+      path: new URL(location.href)
+    })
+  }
+
   /**
    * Render content
    */
   event.render = function render(args) {
-    const meta = args.meta
+    const {type, meta, data, state} = args
     /**
      * Set default state
      */
-    event.data = args.state
+    event.data = state
     /**
      * Reference for mouse event functions
      */
@@ -180,9 +193,9 @@ export function render({head, body}, chunk) {
         get(target, key) {
           switch(key) {
             case 'set':
-              return update
+            case 'update':
             case 'render':
-              return
+              return update
           }
           return target.data[key]
         }
@@ -191,15 +204,15 @@ export function render({head, body}, chunk) {
     /**
      * Set only for dynamic content coming from server
      */
-    if(args.data.content) {
-      args.data.content = transform(args.data.content, chunk)[0]
+    if(data.children) {
+      data.children = transform(data.children, chunk)[0]
     }
 
     head.render(chunk.head(meta))
     body.render(chunk.body(args))
   }
 
-  _http.get({type: 'initialize'}).then(data => event.render(data))
+  _http.get({type: 'render'}).then(data => event.render(data))
 }
 
 

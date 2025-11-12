@@ -1,4 +1,32 @@
 /**
+ * Get name
+ * @param {string} pathname 
+ */
+function name(pathname) {
+  const name = pathname.split('/').at(-1)
+  if(name) {
+    return name
+  }
+}
+
+/**
+ * Get pagename
+ * @param {string} type
+ * @param {object} path
+ */
+function page(type, path) {
+  var base
+  switch(type) {
+    case 'route':
+      base = name(path.pathname)
+      break
+    case 'render':
+      base = name(location.pathname)
+  }
+  return base ?? 'root'
+}
+
+/**
  * Get hash to create new url
  */
 function getURL() {
@@ -6,15 +34,7 @@ function getURL() {
 
   var name = src.pathname.match(/^\/bundle-(.*)\.js$/)
   if(name) {
-    var url = new URL(name[1], location.origin)
-
-    var name = location.pathname.split('/').at(-1)
-    if(!name) {
-      name = 'root'
-    }
-    url.searchParams.append('name', name)
-
-    return url
+    return new URL(name[1], location.origin)
   }
 }
 
@@ -40,8 +60,6 @@ export function HTTPRequest() {
 }
 
 
-
-
 /**
  * State request
  */
@@ -55,7 +73,7 @@ export function request({data, path, type, ...args}, opts = {}) {
     method: 'GET',
     ...opts,
     headers: Object.assign(opts.headers ?? {}, {
-      'X-State-Type': type,
+      'X-State-Request': btoa(JSON.stringify({type, page: page(type, path)})),
     })
   }
 
@@ -75,10 +93,7 @@ export function request({data, path, type, ...args}, opts = {}) {
   }
 
   if(opts.method == 'POST') {
-    opts.body = JSON.stringify({
-      ...data,
-      name: path.searchParams.get('name')
-    })
+    opts.body = JSON.stringify(data)
     opts.headers['Content-Type'] = 'application/json'
   }
 

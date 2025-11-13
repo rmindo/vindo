@@ -11,7 +11,7 @@ const path = require('path')
 const React = require('react')
 const config = require('@vindo/core/config')
 const ReactDom = require('react-dom/server')
-const {isObj, isArr, isStr, isNum, isFunc} = require('@vindo/react/util')
+const {isObj, isArr, isStr, isNum, isFunc, merge} = require('@vindo/react/util')
 
 /**
  * Shorthand
@@ -24,6 +24,37 @@ const isValid = React.isValidElement
 var build = config.get('buildOption')
 var manif = require(path.resolve(build.output, 'manifest.json'))
 
+
+
+/**
+ * Create HTTP state event ID
+ * @param {string} method 
+ * @param {string} name 
+ */
+function mkId(method, name) {
+  if(!name) {
+    name = 'root'
+  }
+  return encode(method.concat(name))
+}
+
+/**
+ * Encode string to base64
+ * @param {string} string
+ */
+function encode(string) {
+  return Buffer.from(string).toString('base64')
+}
+
+/**
+ * Decode base64 string
+ * @param {string} string
+ */
+function decode(string) {
+  return JSON.parse(
+    Buffer.from(string, 'base64').toString('utf8')
+  )
+}
 
 /**
  * Require main component from react directory
@@ -50,47 +81,6 @@ function dom(data) {
     if(item.type == 'body') {
       return clone(item, {key}, body(item.props.children, data))
     }
-  }
-}
-
-
-/**
- * Set data
- * @param {object} e 
- * @param {object} context 
- */
-function set(e, {type, meta, state}) {
-  const name = e.props.name ?? e.props.id
-  /**
-   * Metadata and component
-   */
-  const {children, ...props} = e.props
-  const data = {
-    meta: {
-      name,
-      bundle: true,
-      ...meta
-    },
-    data: {
-      props,
-      children: isFunc(e.type) ? null : e
-    },
-    type,
-    state,
-  }
-
-  /**
-   * Get entry component
-   */
-  var app = entry(data.meta)
-  return {
-    name,
-    data,
-    html: html(
-      clone(app, {
-        children: app.props.children.map(dom(data))
-      })
-    )
   }
 }
 
@@ -217,35 +207,6 @@ function reduce(args) {
 }
 
 
-/**
- * Create HTTP state event ID
- * @param {string} method 
- * @param {string} name 
- */
-function mkId(method, name) {
-  if(!name) {
-    name = 'root'
-  }
-  return Buffer.from(method.concat(name)).toString('base64')
-}
-
-
-/**
- * Get query and body request as state
- * @param {object} req
- */
-function merge() {
-  return Object.assign(...arguments)
-}
-
-
-function decode(data) {
-  return JSON.parse(
-    Buffer.from(data, 'base64').toString('utf8')
-  )
-}
-
-
 
 /**
  * Get state
@@ -319,6 +280,10 @@ function HTTPState(req, events) {
     }
   }
 
+  state.clear = function clear() {
+    state.data = {}
+  }
+
   return new Proxy(state, {
     get(target, key) {
       if(target[key]) {
@@ -337,6 +302,42 @@ function HTTPState(req, events) {
 
 
 /**
+ * Prepare data
+ * @param {object} e 
+ * @param {object} context 
+ */
+function prepare(e, {meta, state}) {
+  const name = e.props.name ?? e.props.id
+  /**
+   * Metadata and component
+   */
+  const {children, ...props} = e.props
+  const data = {
+    meta: {name, bundle: true, ...meta},
+    data: {
+      props,
+      children: isFunc(e.type) ? null : e
+    },
+    state,
+  }
+
+  /**
+   * Get entry component
+   */
+  var app = entry(data.meta)
+  return {
+    name,
+    data,
+    html: html(
+      clone(app, {
+        children: app.props.children.map(dom(data))
+      })
+    )
+  }
+}
+
+
+/**
  * Middleware
  */
 exports.server = function server() {
@@ -349,8 +350,9 @@ exports.server = function server() {
      * Emit state request event
      */
     function emit(name) {
+      const id = mkId(name, state.page)
       dispatch(
-        events.emit(mkId(name, state.page), state.data)
+        events.emit(id, state.data)
       )
     }
 
@@ -359,6 +361,7 @@ exports.server = function server() {
      */
     function dispatch(obj) {
       data = {}
+      state.clear()
 
       if(obj.meta && obj.data && obj.state) {
         return res.json(
@@ -373,7 +376,7 @@ exports.server = function server() {
      */
     events.on('__render', function(e) {
       if(isValid(e)) {
-        var args = set(e, {meta, state: state.data, type: state.type})
+        var args = prepare(e, {meta, state: state.data})
         /**
          * Initial content
          */
@@ -404,7 +407,7 @@ exports.server = function server() {
       if(state.type == 'fetch') {
         return emit(req.method)
       }
-      if(state.type == 'render') {
+      if(state.type == 'hydrate') {
         return dispatch(data[manif.hash])
       }
     }

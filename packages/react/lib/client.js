@@ -166,20 +166,10 @@ export function render({head, body}, chunk) {
   var body = ReactDom.createRoot(body)
 
   /**
-   * Update when back/forward button is pressed
-   */
-  window.onpopstate = function() {
-    update({
-      type: 'route',
-      path: new URL(location.href)
-    })
-  }
-
-  /**
    * Render content
    */
   event.render = function render(args) {
-    const {type, meta, data, state} = args
+    const {meta, data, state} = args
     /**
      * Set default state
      */
@@ -212,7 +202,17 @@ export function render({head, body}, chunk) {
     body.render(chunk.body(args))
   }
 
-  _http.get({type: 'render'}).then(data => event.render(data))
+  /**
+   * Update when back/forward button is pressed
+   */
+  window.onpopstate = function onpopstate() {
+    update({
+      type: 'route',
+      path: new URL(location.href)
+    })
+  }
+
+  _http.get({type: 'hydrate'}).then(data => event.render(data))
 }
 
 

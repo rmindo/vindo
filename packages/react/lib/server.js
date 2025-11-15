@@ -363,6 +363,9 @@ exports.server = function server() {
       data = {}
       state.clear()
 
+      if(!obj) {
+        return
+      }
       if(obj.meta && obj.data && obj.state) {
         return res.json(
           reduce(obj)

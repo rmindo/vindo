@@ -20,7 +20,7 @@ function page(type, path) {
     case 'route':
       base = name(path.pathname)
       break
-    case 'render':
+    default:
       base = name(location.pathname)
   }
   return base ?? 'root'

@@ -4,7 +4,7 @@ const router = require('../lib/http/router')
 
 
 const map = async (url, method = 'GET') => {
-  const route = await router.route({url, root: ['tests/src','http']})
+  const route = await router.route({url, root: ['src','http']})
   
   try {
     route.method = method

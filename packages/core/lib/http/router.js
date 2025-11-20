@@ -250,7 +250,7 @@ function getPattern(type) {
  */
 function getParams(item, path) {
   const data = {}
-  const files = readdir(...path)
+  const files = readdir(path)
 
   if(!files || !item.value) {
     return data
@@ -460,6 +460,10 @@ async function checkFromDefault(route, args) {
  */
 exports.route = function route({url, root}) {
   const data = parse(url)
+
+  if(data.extension) {
+    return data
+  }
 
   data.base = false
   data.root = root

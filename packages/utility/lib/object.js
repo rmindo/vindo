@@ -18,11 +18,29 @@ exports.define = Object.defineProperties
 
 
 /**
- * Count object
+ * Check if value is object
+ * @param {object} obj The object to check
+ */
+exports.is = function is(obj) {
+  return obj && typeof obj === 'object' && obj.constructor === Object && Object.prototype === Object.getPrototypeOf(obj)
+}
+
+/**
+ * Count keys of the object
  * @param {object} obj The object to count
  */
 exports.count = function count(obj) {
   return Object.keys(obj).length
+}
+
+/**
+ * Check if object is empty
+ */
+exports.empty = function empty(obj) {
+  if(exports.is(obj) && exports.count(obj) == 0) {
+    return true
+  }
+  return false
 }
 
 /**

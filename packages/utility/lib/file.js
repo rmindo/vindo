@@ -9,6 +9,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const object = require('./object')
 const string = require('./string')
 
 
@@ -72,14 +73,14 @@ exports.join = function join(...args) {
     },
   [])
 
-  var dir = require.main.path
+  var dir = process.cwd()
   /**
    * Get current directory of the caller if the path is relative
    */
   if(args[0] && args[0].match(/\.$/)) {
     dir = exports.getCaller()
   }
-  return path.join(path.dirname(dir), ...args)
+  return path.join(dir, ...args)
 }
 
 
@@ -105,8 +106,7 @@ exports.exists = function exists(...args) {
     return false
   }
   /**
-   * Allow searching file without extension
-   * and support extensions such as ts, tsx and jsx.
+   * For development only with (ts-node)
    */
   var names = []
   if(!process[Symbol.for('ts-node.register.instance')]) {
@@ -145,11 +145,11 @@ exports.exists = function exists(...args) {
 exports.readdir = function readdir(...args) {
   var opts = {withFileTypes: true}
 
-  if(args.length > 1) {
+  if(object.is(args.at(-1))) {
     const lastArg = args.pop()
 
     if(typeof lastArg == 'object') {
-      opts = Object.assign(opts, lastArg)
+      opts = object.assign(opts, lastArg)
     }
   }
 

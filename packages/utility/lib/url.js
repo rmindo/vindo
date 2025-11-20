@@ -27,7 +27,7 @@ function getType(val) {
   if(val.match(/^([0-9a-f]{16,})$/)) {
     return 'hex'
   }
-  if(val.match(/^([^-]*-){2,}([^-]+)$/)) {
+  if(val.match(/^([^-]*-){3,}([^-]+)$/)) {
     return 'slug'
   }
 

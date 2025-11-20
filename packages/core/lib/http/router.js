@@ -21,7 +21,6 @@ module.exports = exports = {}
  */
 const has = util.events.has
 const emit = util.events.emit
-const remove = util.events.remove
 const parse = util.url.parse
 const merge = util.object.merge
 const define = util.object.define
@@ -573,7 +572,7 @@ exports.end = async function end(args) {
     var exists = await exports.handle(args[1].route, args)
 
     if(isEnded(args[2])) {
-      remove('__render')
+      args[3].clear()
     }
     else {
       /**

@@ -242,8 +242,8 @@ function HTTPState(req, events) {
 
 
   state.on = function on(name, cb) {
-    events.on(mkId(name, req.name), function(data) {
-      return cb(data)
+    events.on(mkId(name, req.name), async function(data) {
+      return await cb(data)
     })
   }
 
@@ -259,21 +259,21 @@ function HTTPState(req, events) {
     state.on('POST', cb)
   }
 
-  state.use = function use(initial = {}) {
+  state.use = async function use(initial = {}) {
     if(isFunc(initial)) {
-      initial = initial()
+      initial = await initial()
     }
     if(state.type == 'route' || state.type == 'initial') {
       merge(state.data, initial)
     }
   }
 
-  state.apply = function apply(cb) {
+  state.apply = async function apply(cb) {
     if(!isFunc(cb)) {
       return
     }
     if(state.type == 'update') {
-      var data = cb(state.data)
+      var data = await cb(state.data)
       if(data) {
         exert = data
       }
@@ -349,23 +349,20 @@ exports.server = function server() {
     /**
      * Emit state request event
      */
-    function emit(name) {
+    async function emit(name) {
       const id = mkId(name, state.page)
       dispatch(
-        events.emit(id, state.data)
+        await events.emit(id, state.data)
       )
     }
 
     /**
      * Dispatch data and clear
      */
-    function dispatch(obj) {
+    function dispatch(obj = {}) {
       data = {}
       state.clear()
 
-      if(!obj) {
-        return
-      }
       if(obj.meta && obj.data && obj.state) {
         return res.json(
           reduce(obj)

@@ -24,6 +24,7 @@ const emit = util.events.emit
 const parse = util.url.parse
 const merge = util.object.merge
 const define = util.object.define
+const filter = util.object.filter
 const exists = util.file.exists
 const readdir = util.file.readdir
 const toCamelCase = util.string.toCamelCase
@@ -572,7 +573,8 @@ exports.end = async function end(args) {
     var exists = await exports.handle(args[1].route, args)
 
     if(isEnded(args[2])) {
-      args[3].clear()
+      args[3].meta = {}
+      args[3].events.remove('__render')
     }
     else {
       /**

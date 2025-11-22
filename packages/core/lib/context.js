@@ -217,12 +217,7 @@ exports.getter = function getter(path, ctx) {
  * @param inject Dependencies to inject
  */
 exports.context = async function context(conf, inject) {
-  const ctx = {
-    clear() {
-      ctx.meta = {}
-      ctx.events.remove('__render')
-    }
-  }
+  const ctx = {}
   /**
    * Built-in utilities
    */

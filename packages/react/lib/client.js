@@ -13,7 +13,10 @@ import {request, HTTPRequest} from '@vindo/react/request'
 import {isObj, isFunc, merge, transform} from '@vindo/react/util'
 
 
-const event = {}
+const event = {
+  data: {},
+  update: false
+}
 const _http = HTTPRequest()
 const _context = React.createContext({})
 
@@ -21,13 +24,13 @@ const _context = React.createContext({})
 /**
  * Update DOM
  */
-export function update({path, type, ...args}) {
-  request({
+function update({path, type, ...data}, opts = {}) {
+  const args = {
     type: type ?? 'update',
     path,
-    data: merge(event.data, args)
-  })
-  .then((data) => event.render(data))
+    data: merge(event.data, data)
+  }
+  request(args, opts).then((data) => event.render(data))
 }
 
 /**
@@ -38,26 +41,21 @@ export function useState(initialState = {}) {
     throw Error('Custom state hook only allow object as parameter.')
   }
 
-  const data = React.useRef({})
+  const ref = React.useRef({})
   const [state, setState] = React.useState(initialState)
-
-  Object.assign(data.current, state)
-
+  
+  merge(ref.current, state)
+  
   return new Proxy({
-    get(args) {
-      return _http.get(args)
-    },
-    post(args) {
-      return _http.post(args)
-    },
     async set(state) {
-      
+      event.update = false
+
       if(isObj(state)) {
         setState(state)
       }
 
       if(isFunc(state)) {
-        const dataState = state(data.current)
+        const dataState = state(ref.current)
 
         if(dataState) {
           if(dataState instanceof Promise) {
@@ -68,15 +66,32 @@ export function useState(initialState = {}) {
           }
         }
       }
-      return data.current
     },
+    get(data) {
+      if(isFunc(data)) {
+        return _http.get({}).then(data)
+      }
+      return _http.get({data})
+    },
+    post(data) {
+      if(isFunc(data)) {
+        return _http.post({}).then(data)
+      }
+      return _http.post({data})
+    },
+    update(data) {
+      update(data, {method: 'POST'})
+    }
   },
   {
     get(target, key) {
       if(target[key]) {
         return target[key]
       }
-      return data.current[key]
+      if(event.update && event.data[key]) {
+        merge(ref.current, event.data)
+      }
+      return ref.current[key]
     }
   })
 }
@@ -84,9 +99,48 @@ export function useState(initialState = {}) {
 /**
  * Context
  */
-export function useContext() {
-  return React.useContext(_context)
+export function useStore() {
+  const store = useContext('store')
+  
+  function dispatch(data) {
+    const args = {
+      data,
+      type: 'dispatch',
+    }
+    request(args, {method: 'POST'}).then((data) => event.render(data))
+  }
+  
+  const proto = {
+    clear() {
+      dispatch({action: 'clear'})
+    },
+    remove(name) {
+      dispatch({action: 'remove', data: name})
+    },
+    dispatch(data) {
+      dispatch({action: 'add', data})
+    }
+  }
+  return merge(Object.create(proto), store)
 }
+
+
+/**
+ * Context
+ */
+export function useContext(name = null) {
+  const {meta, data, state, store} = React.useContext(_context)
+
+  switch(name) {
+    case 'store':
+      return store
+    case 'content':
+      return {data, name: meta.name}
+    default:
+      return {meta, state}
+  }
+}
+
 
 /**
  * Wrapper
@@ -98,17 +152,17 @@ export function Provider({children, ...value}) {
 /**
  * Link
  */
-export function Link({href, text, children}) {
+export function Link({href, text, disabled, children}) {
   if(!href) {
     throw new ReferenceError(`Props 'href' is missing.`)
   }
 
   const onClick = (e) => {
-    e.preventDefault()
-    
-    if(location.pathname == href) {
+    if(disabled || location.pathname == href) {
       return
     }
+    e.preventDefault()
+    
     update({
       type: 'route',
       path: new URL(href, location.origin)
@@ -133,7 +187,7 @@ export function View() {}
  * Find current route
  */
 export function Content(props) {
-  const {data, meta} = useContext()
+  const {data, meta} = useContext('content')
 
   /**
    * View content coming from backend component (src/http)
@@ -170,6 +224,10 @@ export function render({head, body}, chunk) {
    */
   event.render = function render(args) {
     const {meta, data, state} = args
+    /**
+     * Updating content
+     */
+    event.update = true
     /**
      * Set default state
      */

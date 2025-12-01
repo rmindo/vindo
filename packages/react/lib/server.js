@@ -11,7 +11,7 @@ const path = require('path')
 const React = require('react')
 const config = require('@vindo/core/config')
 const ReactDom = require('react-dom/server')
-const {isObj, isArr, isStr, isNum, isFunc, merge} = require('@vindo/react/util')
+const {isObj, isArr, isStr, isNum, isFunc, merge, isEmpty} = require('@vindo/react/util')
 
 /**
  * Shorthand
@@ -146,6 +146,10 @@ function reducer(children) {
 	return children.map(({type, props}) => {
     var p = {}
 
+    if(!props) {
+      return
+    }
+
     if(isFunc(type)) {
       if(/^default_1/.test(type.name)) {
         throw new ReferenceError(`Component function requires a name. Currently have a default name of '${type.name}'.`)
@@ -168,7 +172,12 @@ function reducer(children) {
         })
       }
       if(isObj(v)) {
-        p.children = reducer(v)
+        if(i == 'style') {
+          p.style = v
+        }
+        if(i == 'children') {
+          p.children = reducer(v)
+        }
       }
       if(isFunc(v)) {
         var f = v.toString()
@@ -268,6 +277,13 @@ function HTTPState(req, events) {
     }
   }
 
+  state.update = async function update(cb) {
+    var data = await cb(state.data)
+    if(data) {
+      merge(state.data, data)
+    }
+  }
+
   state.apply = async function apply(cb) {
     if(!isFunc(cb)) {
       return
@@ -306,7 +322,7 @@ function HTTPState(req, events) {
  * @param {object} e 
  * @param {object} context 
  */
-function prepare(e, {meta, state}) {
+function prepare(e, {meta, store, state}) {
   const name = e.props.name ?? e.props.id
   /**
    * Metadata and component
@@ -318,7 +334,7 @@ function prepare(e, {meta, state}) {
       props,
       children: isFunc(e.type) ? null : e
     },
-    state,
+    store
   }
 
   /**
@@ -327,7 +343,7 @@ function prepare(e, {meta, state}) {
   var app = entry(data.meta)
   return {
     name,
-    data,
+    data: merge(data, {state}),
     html: html(
       clone(app, {
         children: app.props.children.map(dom(data))
@@ -342,7 +358,27 @@ function prepare(e, {meta, state}) {
  */
 exports.server = function server() {
   var data = {}
+  var store = {}
+
+
+  /**
+   * Persist data
+   */
+  function persist(type, {action, data}) {
+    if(type == 'dispatch') {
+      switch(action) {
+        case 'clear':
+          return {}
+        case 'remove':
+          delete store[data]
+        default:
+          return merge(store, data)
+      }
+    }
+    return store
+  }
   
+
   return function(req, res, next, {meta, events, exception}) {
     const state = HTTPState(req, events)
 
@@ -376,7 +412,11 @@ exports.server = function server() {
      */
     events.on('__render', function(e) {
       if(isValid(e)) {
-        var args = prepare(e, {meta, state: state.data})
+        var args = prepare(e, {
+          meta,
+          state: state.data,
+          store: persist(state.type, req.body)
+        })
         /**
          * Initial content
          */
@@ -386,7 +426,7 @@ exports.server = function server() {
         /**
          * Update content
          */
-        if(state.type == 'route' || state.type == 'update') {
+        if(state.type == 'route' || state.type == 'update' || state.type == 'dispatch') {
           return dispatch(args.data)
         }
         

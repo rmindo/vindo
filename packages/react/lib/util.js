@@ -62,6 +62,9 @@ export function transform(children, data) {
   return children.map(({type, props}, key) => {
     var p = {}
 
+    if(!props) {
+      return
+    }
     if(isArr(type)) {
       type = data[type[0]]
     }
@@ -73,17 +76,18 @@ export function transform(children, data) {
         p[i] = v
       }
       if(isObj(v)) {
+        if(i == 'style') {
+          p.style = v
+        }
         if(i == 'children') {
           p.children = transform(v, data)
         }
-        else {
-          if(v.mouseevent) {
-            p[i] = toFunc(v.name, {
-              args: v.args,
-              code: v.code,
-              refs: data.refs
-            })
-          }
+        if(v.mouseevent) {
+          p[i] = toFunc(v.name, {
+            args: v.args,
+            code: v.code,
+            refs: data.refs
+          })
         }
       }
       if(isArr(v)) {

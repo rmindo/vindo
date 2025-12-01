@@ -13,6 +13,15 @@ const {
 }
 = require('./util')
 
+
+/**
+ * Get basename
+ * @param {string} file
+ */
+function getname(file) {
+	return path.parse(file).name
+}
+
 /**
  * Get imported files
  * @param {object} opt 
@@ -39,20 +48,23 @@ async function getImports(data) {
  * @param {object} opt 
  */
 async function getComponents(opt) {
-	var files = await readdir(opt.components)
+	var files = await readdir(opt.components, {recursive: true})
 	var files = files.filter(file => {
 		return /\.(tsx|jsx)$/.test(file.name)
 	})
 	
 	var code = []
 
-	for(var file of files) {
-		const name = path.parse(file.name).name
+	for(var {name, parentPath} of files) {
+		var name = getname(name)
 		if(name) {
-			code.push(
-				`import ${name} from '${path.join(file.parentPath, name)}'`,
-				`chunk.${name} = ${name}`
-			)
+			var file = path.join(parentPath, name)
+
+			if(name == 'index') {
+				file = parentPath
+				name = getname(parentPath)
+			}
+			code.push(`import ${name} from '${file}'`, `chunk.${name} = ${name}`)
 		}
 	}
 	return code

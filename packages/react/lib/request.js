@@ -1,3 +1,20 @@
+/*
+ * @vindo/react
+ * Copyright(c) 2025 Ruel Mindo
+ * MIT Licensed
+ */
+
+'use strict'
+
+
+const requestTypes = [
+  'fetch',
+  'route',
+  'update',
+  'hydrate',
+  'dispatch'
+]
+
 /**
  * Get name
  * @param {string} pathname 
@@ -69,11 +86,20 @@ export function request({data, path, type, ...args}, opts = {}) {
     throw new TypeError(`Invalid type of 'data'. Expected value of type 'object' but got ${typeof data}'.`)
   }
 
+  if(!requestTypes.includes(type)) {
+    throw new ReferenceError(`Invalid request type.`)
+  }
+
   var opts = {
     method: 'GET',
     ...opts,
     headers: Object.assign(opts.headers ?? {}, {
-      'X-State-Request': btoa(JSON.stringify({type, page: page(type, path)})),
+      'X-State-Request': btoa(
+        JSON.stringify({
+          type,
+          page: page(type, path)
+        })
+      ),
     })
   }
 

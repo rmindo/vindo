@@ -187,8 +187,7 @@ export function View() {}
  * Find current route
  */
 export function Content(props) {
-  const {data, meta} = useContext('content')
-
+  const {data, name} = useContext('content')
   /**
    * View content coming from backend component (src/http)
    */
@@ -203,7 +202,7 @@ export function Content(props) {
     if(!child.props.name) {
       throw new ReferenceError(`Props 'name' is required for View component.`)
     }
-    if(meta.name == child.props.name) {
+    if(name == child.props.name) {
       return child.props.component(data.props)
     }
   }))

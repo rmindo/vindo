@@ -11,7 +11,7 @@ const path = require('path')
 const React = require('react')
 const config = require('@vindo/core/config')
 const ReactDom = require('react-dom/server')
-const {isObj, isArr, isStr, isNum, isFunc, merge, isEmpty} = require('@vindo/react/util')
+const {isObj, isArr, isStr, isNum, isFunc, merge} = require('@vindo/react/util')
 
 /**
  * Shorthand

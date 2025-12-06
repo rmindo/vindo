@@ -120,8 +120,9 @@ exports.parseQuery = function parseQuery(string) {
     var key = decodeURIComponent(key)
     var value = decodeURIComponent(value)
 
-
-    value = !isNaN(value) ? parseInt(value) : value
+    if(!isNaN(value)) {
+      value = value % 1 === 0 ? parseInt(value) : parseFloat(value)
+    }
     value = value === 'true' ? true : value
     value = value === 'false' ? false : value
 

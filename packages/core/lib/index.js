@@ -81,8 +81,8 @@ exports.server = function server() {
   /**
    * Set middileware
    */
-  http.set = function set(cb) {
-    http.stack.push(cb)
+  http.use = function use(callback) {
+    http.stack.push(callback)
   }
 
   /**

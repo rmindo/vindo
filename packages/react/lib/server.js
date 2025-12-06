@@ -358,6 +358,7 @@ function prepare(e, {meta, store, state}) {
  */
 exports.server = function server() {
   var data = {}
+  // TODO: Move to more reliable storage
   var store = {}
 
 
@@ -372,6 +373,7 @@ exports.server = function server() {
         case 'remove':
           delete store[data]
         default:
+          // TODO: Limit adding data
           return merge(store, data)
       }
     }
@@ -381,7 +383,7 @@ exports.server = function server() {
 
   return function(req, res, next, {meta, events, exception}) {
     const state = HTTPState(req, events)
-
+    const store = persist(state.type, req.body)
     /**
      * Emit state request event
      */
@@ -414,8 +416,8 @@ exports.server = function server() {
       if(isValid(e)) {
         var args = prepare(e, {
           meta,
+          store,
           state: state.data,
-          store: persist(state.type, req.body)
         })
         /**
          * Initial content
@@ -452,6 +454,6 @@ exports.server = function server() {
       }
     }
     
-    next({state})
+    next({state, store})
   }
 }

@@ -94,10 +94,10 @@ exports.serve = function serve(port, ctx = {}) {
 
 /**
  * Request handler
- * @param stc
+ * @param stack
  * @param ctx
  */
-function handler(stc, ctx) {
+function handler(stack, ctx) {
   return function(req, res) {
 
     var i = 0
@@ -106,8 +106,8 @@ function handler(stc, ctx) {
     function next(arg) {
       merge(ctx, arg)
 
-      while(i < stc.length) {
-        var func = stc[i++]
+      while(i < stack.length) {
+        var func = stack[i++]
 
         if(typeof func !== 'function') {
           continue

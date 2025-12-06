@@ -24,7 +24,6 @@ const emit = util.events.emit
 const parse = util.url.parse
 const merge = util.object.merge
 const define = util.object.define
-const filter = util.object.filter
 const exists = util.file.exists
 const readdir = util.file.readdir
 const toCamelCase = util.string.toCamelCase

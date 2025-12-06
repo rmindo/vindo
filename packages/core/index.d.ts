@@ -52,7 +52,7 @@ export interface Configuration {
  * Server
  */
 export interface Server extends Http.Server {
-  set(middleware: Function): void
+  use(middleware: Function): void
   run(dependencies?: Function, cb?: Function): void
 }
 export function server(): Server

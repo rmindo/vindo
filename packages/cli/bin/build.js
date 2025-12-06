@@ -27,13 +27,16 @@ function getname(file) {
  * @param {object} opt 
  * @param {string} data 
  */
-async function getImports(data) {
+async function getImports(entry, data) {
 	var imp = []
 	var matches = data.matchAll(/import\s(.*)\sfrom.*('|"|\/)([a-zA-Z_-]+)('|")/g)
 
 	for(var item of matches) {
 		if(/(\.\/|)components\//.test(item[0])) {
 			imp.push(`var ${item[1]} = ${item[3]}`)
+		}
+		else if(/(\.\/)/.test(item[0])) {
+			imp.push(item[0].replace(/('|")(\.\/)/, `$1${resolve.dirname(entry)}/`))
 		}
 		else {
 			imp.push(item[0])
@@ -80,7 +83,7 @@ async function build(opt) {
 	const data = read(opt.entry)
 	const temp = read(opt.template)
 	
-	const impo = await getImports(data)
+	const impo = await getImports(opt.entry, data)
 	const comp = await getComponents(opt)
 
 	const code = string.replace(temp, {

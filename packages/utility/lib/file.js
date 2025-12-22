@@ -78,7 +78,7 @@ exports.join = function join(...args) {
    * Get current directory of the caller if the path is relative
    */
   if(args[0] && args[0].match(/\.$/)) {
-    dir = exports.getCaller()
+    dir = path.dirname(exports.getCaller())
   }
   return path.join(dir, ...args)
 }

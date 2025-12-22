@@ -105,7 +105,7 @@ export function useStore() {
   function dispatch(data) {
     const args = {
       data,
-      type: 'dispatch',
+      type: 'store',
     }
     request(args, {method: 'POST'}).then((data) => event.render(data))
   }

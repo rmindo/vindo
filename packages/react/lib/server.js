@@ -28,14 +28,14 @@ var manif = require(path.resolve(build.output, 'manifest.json'))
 
 /**
  * Create HTTP state event ID
- * @param {string} method 
+ * @param {string} prefix 
  * @param {string} name 
  */
-function mkId(method, name) {
+function mkId(prefix, name) {
   if(!name) {
     name = 'root'
   }
-  return encode(method.concat(name))
+  return encode(prefix.concat(name)).replace(/=/, '')
 }
 
 /**
@@ -233,7 +233,12 @@ function getState(req) {
   }
 
   if(state.type == 'fetch' || state.type == 'update') {
-    merge(state.data, req.body, req.query)
+    if(req.method == 'GET') {
+      merge(state.data, req.query)
+    }
+    if(req.method == 'POST') {
+      merge(state.data, req.body)
+    }
   }
   return state
 }
@@ -259,15 +264,27 @@ function HTTPState(req, events) {
   state.set = function set(data) {
     merge(exert, data)
   }
-
+  /**
+   * Response for 'fetch' event from client
+   */
   state.get = function get(cb) {
     state.on('GET', cb)
   }
-
+  /**
+   * Response for 'fetch' event from client
+   */
   state.post = function post(cb) {
     state.on('POST', cb)
   }
-
+  /**
+   * Response for 'update' event request from client
+   */
+  state.update = async function update(cb) {
+    state.on('UPDATE', cb)
+  }
+  /**
+   * Initial state
+   */
   state.use = async function use(initial = {}) {
     if(isFunc(initial)) {
       initial = await initial()
@@ -276,14 +293,9 @@ function HTTPState(req, events) {
       merge(state.data, initial)
     }
   }
-
-  state.update = async function update(cb) {
-    var data = await cb(state.data)
-    if(data) {
-      merge(state.data, data)
-    }
-  }
-
+  /**
+   * Apply and update the current state
+   */
   state.apply = async function apply(cb) {
     if(!isFunc(cb)) {
       return
@@ -294,10 +306,6 @@ function HTTPState(req, events) {
         exert = data
       }
     }
-  }
-
-  state.clear = function clear() {
-    state.data = {}
   }
 
   return new Proxy(state, {
@@ -319,20 +327,20 @@ function HTTPState(req, events) {
 
 /**
  * Prepare data
- * @param {object} e 
- * @param {object} context 
+ * @param {object} component 
+ * @param {object} context
  */
-function prepare(e, {meta, store, state}) {
-  const name = e.props.name ?? e.props.id
+function prepare(component, {meta, store, state}) {
+  const name = component.props.name ?? e.props.id
   /**
    * Metadata and component
    */
-  const {children, ...props} = e.props
+  const {children, ...props} = component.props
   const data = {
     meta: {name, bundle: true, ...meta},
     data: {
       props,
-      children: isFunc(e.type) ? null : e
+      children: isFunc(component.type) ? null : component
     },
     store
   }
@@ -366,7 +374,7 @@ exports.server = function server() {
    * Persist data
    */
   function persist(type, {action, data}) {
-    if(type == 'dispatch') {
+    if(type == 'store') {
       switch(action) {
         case 'clear':
           return {}
@@ -388,23 +396,25 @@ exports.server = function server() {
      * Emit state request event
      */
     async function emit(name) {
-      const id = mkId(name, state.page)
-      dispatch(
-        await events.emit(id, state.data)
-      )
+      return await events.emit(mkId(name, state.page), state.data)
     }
 
     /**
      * Dispatch data and clear
      */
-    function dispatch(obj = {}) {
+    async function dispatch(obj = {}) {
       data = {}
-      state.clear()
 
-      if(obj.meta && obj.data && obj.state) {
-        return res.json(
-          reduce(obj)
-        )
+      if(state.type == 'fetch') {
+        return res.json(await emit(req.method))
+      }
+
+      if(state.type == 'update') {
+        merge(obj.state, await emit('UPDATE'))
+
+        if(obj.data) {
+          return res.json(reduce(obj))
+        }
       }
       res.json(obj)
     }
@@ -412,9 +422,9 @@ exports.server = function server() {
     /**
      * Render on first request
      */
-    events.on('__render', function(e) {
-      if(isValid(e)) {
-        var args = prepare(e, {
+    events.on('__render', function(comp) {
+      if(isValid(comp)) {
+        var args = prepare(comp, {
           meta,
           store,
           state: state.data,
@@ -428,7 +438,7 @@ exports.server = function server() {
         /**
          * Update content
          */
-        if(state.type == 'route' || state.type == 'update' || state.type == 'dispatch') {
+        if(state.type == 'route' || state.type == 'update' || state.type == 'store') {
           return dispatch(args.data)
         }
         
@@ -447,7 +457,7 @@ exports.server = function server() {
 
     if(req.is(manif.hash)) {
       if(state.type == 'fetch') {
-        return emit(req.method)
+        return dispatch()
       }
       if(state.type == 'hydrate') {
         return dispatch(data[manif.hash])

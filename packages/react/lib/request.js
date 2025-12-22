@@ -8,11 +8,11 @@
 
 
 const requestTypes = [
+  'store',
   'fetch',
   'route',
   'update',
   'hydrate',
-  'dispatch'
 ]
 
 /**

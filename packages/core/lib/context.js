@@ -236,7 +236,7 @@ exports.context = async function context(conf, inject) {
    * Add external libraries
    */
   if(inject) {
-    merge(ctx, inject(ctx))
+    merge(ctx, await inject(ctx))
   }
   /**
    * Add local libraries

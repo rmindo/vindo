@@ -331,7 +331,7 @@ function HTTPState(req, events) {
  * @param {object} context
  */
 function prepare(component, {meta, store, state}) {
-  const name = component.props.name ?? e.props.id
+  const name = component.props.name ?? component.props.id
   /**
    * Metadata and component
    */

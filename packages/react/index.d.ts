@@ -16,7 +16,7 @@ declare module '@vindo/react/client' {
     post(...args:any): Promise<object>
   }
   export function useStore(name?:string): any
-  export function useState(state:{[key:string]: any}): any
+  export function useState(state?:{[key:string]: any}): any
   export function useContext(): any
   export function Link(props:any): any
   export function View(props:any): any

@@ -277,12 +277,6 @@ function HTTPState(req, events) {
     state.on('POST', cb)
   }
   /**
-   * Response for 'update' event request from client
-   */
-  state.update = async function update(cb) {
-    state.on('UPDATE', cb)
-  }
-  /**
    * Initial state
    */
   state.use = async function use(initial = {}) {
@@ -409,12 +403,8 @@ exports.server = function server() {
         return res.json(await emit(req.method))
       }
 
-      if(state.type == 'update') {
-        merge(obj.state, await emit('UPDATE'))
-
-        if(obj.data) {
-          return res.json(reduce(obj))
-        }
+      if(obj.data) {
+        return res.json(reduce(obj))
       }
       res.json(obj)
     }
@@ -456,12 +446,7 @@ exports.server = function server() {
     })
 
     if(req.is(manif.hash)) {
-      if(state.type == 'fetch') {
-        return dispatch()
-      }
-      if(state.type == 'hydrate') {
-        return dispatch(data[manif.hash])
-      }
+      return dispatch(data[manif.hash])
     }
     
     next({state, store})

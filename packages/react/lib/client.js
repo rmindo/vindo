@@ -14,8 +14,10 @@ import {isObj, isFunc, merge, transform} from '@vindo/react/util'
 
 
 const event = {
-  data: {},
-  update: false
+  data: {
+    state: {}
+  },
+  updating: false
 }
 const _http = HTTPRequest()
 const _context = React.createContext({})
@@ -28,9 +30,9 @@ function update({path, type, ...data}, opts = {}) {
   const args = {
     type: type ?? 'update',
     path,
-    data: merge(event.data, data)
+    data: merge(event.data.state, data)
   }
-  request(args, opts).then((data) => event.render(data))
+  request(args, opts).then((data) => event.render(data, type))
 }
 
 /**
@@ -47,8 +49,15 @@ export function useState(initialState = {}) {
   merge(ref.current, state)
   
   return new Proxy({
-    async set(state) {
-      event.update = false
+    async set(state = {}) {
+      event.updating = false
+
+      /**
+       * Merge the arguments when the function has more than 1 object arguments
+       */
+      if(arguments.length > 1) {
+        merge(state, ...arguments)
+      }
 
       if(isObj(state)) {
         setState(state)
@@ -67,29 +76,48 @@ export function useState(initialState = {}) {
         }
       }
     },
+    /**
+     * Send GET request to the server
+     */
     get(data) {
+      if(isObj(data)) {
+        return _http.get({data})
+      }
       if(isFunc(data)) {
         return _http.get({}).then(data)
       }
-      return _http.get({data})
     },
+    /**
+     * Send POST request to the server
+     */
     post(data) {
+      if(isObj(data)) {
+        return _http.post({data})
+      }
       if(isFunc(data)) {
         return _http.post({}).then(data)
       }
-      return _http.post({data})
     },
-    update(data) {
-      update(data, {method: 'POST'})
-    }
+    /**
+     * Re-render DOM with new global state
+     */
+    update(data = {}) {
+      /**
+       * Merge the arguments when the function has more than 1 object arguments
+       */
+      if(arguments.length > 1) {
+        merge(data, ...arguments)
+      }
+      event.update(data)
+    },
   },
   {
     get(target, key) {
       if(target[key]) {
         return target[key]
       }
-      if(event.update && event.data[key]) {
-        merge(ref.current, event.data)
+      if(event.updating) {
+        merge(ref.current, event.data.state)
       }
       return ref.current[key]
     }
@@ -218,24 +246,35 @@ export function render({head, body}, chunk) {
   var head = ReactDom.createRoot(head)
   var body = ReactDom.createRoot(body)
 
+
+  /**
+   * Re-render DOM
+   */
+  event.update = function update(state) {
+    merge(
+      event.data.state,
+      state
+    )
+    event.render(event.data)
+  }
+  
   /**
    * Render content
    */
-  event.render = function render(args) {
-    const {meta, data, state} = args
+  event.render = function render(args, type = null) {
+    /**
+     * Set data
+     */
+    event.data = args
     /**
      * Updating content
      */
-    event.update = true
-    /**
-     * Set default state
-     */
-    event.data = state
+    event.updating = true
     /**
      * Reference for mouse event functions
      */
     chunk.refs = {
-      meta,
+      meta: args.meta,
       state: new Proxy(event, {
         get(target, key) {
           switch(key) {
@@ -248,14 +287,19 @@ export function render({head, body}, chunk) {
         }
       })
     }
+
+    /**
+     * For route request only
+     */
+    if(type == 'route') {
+      head.render(chunk.head(args.meta))
+    }
     /**
      * Set only for dynamic content coming from server
      */
-    if(data.children) {
-      data.children = transform(data.children, chunk)[0]
+    if(args.data.children) {
+      args.data.children = transform(args.data.children, chunk)[0]
     }
-
-    head.render(chunk.head(meta))
     body.render(chunk.body(args))
   }
 

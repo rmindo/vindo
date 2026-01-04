@@ -257,6 +257,9 @@ function HTTPState(req, events) {
 
   state.on = function on(name, cb) {
     events.on(mkId(name, req.name), async function(data) {
+      if(!cb) {
+        throw new ReferenceError('Callback function is required.')
+      }
       return await cb(data)
     })
   }

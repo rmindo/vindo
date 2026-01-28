@@ -1,0 +1,24 @@
+{
+  "name": "@vindo/cookie",
+  "version": "0.0.1",
+  "description": "Cookie parser and setter.",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/cookie"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/cookie#readme",
+  "keywords": [
+    "cookie",
+    "parser"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {}
+}

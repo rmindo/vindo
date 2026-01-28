@@ -63,6 +63,9 @@ export function server(): Server
 export interface HttpRequest extends Http.IncomingMessage, Route {
   body: DynamicAnyType
   route: Route
+  cookies: {
+    [key:string]: string
+  }
   get(name:string): string
   is(basename:string | undefined): boolean
   root(): boolean
@@ -73,6 +76,7 @@ export interface HttpRequest extends Http.IncomingMessage, Route {
  */
 export interface HttpResponse extends Http.ServerResponse {
   status(code: number): void
+  cookie(name, data: object): void
   headers(headers: object): void
   redirect(url: string): void
   json(body: object, code?: number, headers?: object): void

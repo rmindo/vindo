@@ -56,6 +56,13 @@ exports.cors = function cors(opt = {}) {
     }
   
     /**
+     * Allowed Credentials
+     */
+    if(opt.allowedCredentials) {
+      res.setHeader(`${allow}-Credentials`, opt.allowedCredentials)
+    }
+  
+    /**
      * Allowed Methods
      */
     if(opt.allowedMethods && req.method == 'OPTIONS') {

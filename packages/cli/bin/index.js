@@ -102,12 +102,6 @@ function restart(event) {
 
   if(child) {
     kill(child.pid)
-    // if(process.platform === 'win32') {
-    //   spawn('taskkill', ['/pid', child.pid, '/f', '/t'])
-    // }
-    // else {
-    //   child.kill('SIGINT')
-    // }
   }
   child = execute()
 }

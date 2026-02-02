@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/rmindo/vindo/tree/main/packages/cli",
   "dependencies": {
-    "@vindo/utility": "file:../utility",
+    "@vindo/utility": "^0.0.7",
     "chokidar": "^4.0.3",
     "esbuild": "^0.25.4",
     "esbuild-plugin-alias-path": "^2.0.2",

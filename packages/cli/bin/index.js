@@ -7,6 +7,7 @@ const server = require('./server')
 const config = require('./config')
 
 const {watch} = require('chokidar')
+const kill = require('tree-kill')
 const {exec, spawn} = require('node:child_process')
 
 
@@ -100,12 +101,13 @@ function restart(event) {
   build(option)
 
   if(child) {
-    if(process.platform === 'win32') {
-      spawn('taskkill', ['/pid', child.pid, '/f', '/t'])
-    }
-    else {
-      child.kill('SIGINT')
-    }
+    kill(child.pid)
+    // if(process.platform === 'win32') {
+    //   spawn('taskkill', ['/pid', child.pid, '/f', '/t'])
+    // }
+    // else {
+    //   child.kill('SIGINT')
+    // }
   }
   child = execute()
 }

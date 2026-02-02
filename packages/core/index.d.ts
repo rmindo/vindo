@@ -63,6 +63,7 @@ export function server(): Server
 export interface HttpRequest extends Http.IncomingMessage, Route {
   body: DynamicAnyType
   route: Route
+  method: string
   cookies: {
     [key:string]: string
   }
@@ -76,7 +77,7 @@ export interface HttpRequest extends Http.IncomingMessage, Route {
  */
 export interface HttpResponse extends Http.ServerResponse {
   status(code: number): void
-  cookie(name, data: object): void
+  cookie(data: object): void
   headers(headers: object): void
   redirect(url: string): void
   json(body: object, code?: number, headers?: object): void

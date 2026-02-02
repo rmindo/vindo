@@ -12,6 +12,7 @@ const {parse:get, extname:ext} = require('node:path')
 
 /**
  * Split url
+ * @param {string} url
  */
 function split(url) {
   if(url) {
@@ -19,7 +20,10 @@ function split(url) {
   }
 }
 
-
+/**
+ * Get path type
+ * @param {string} val
+ */
 function getType(val) {
   if(!isNaN(val)) {
     return 'num'
@@ -51,7 +55,7 @@ function getType(val) {
 
 /**
  * Set query
- * @param data 
+ * @param {object} data 
  */
 exports.setQuery = function setQuery(data) {
   let p = []
@@ -64,7 +68,7 @@ exports.setQuery = function setQuery(data) {
 
 /**
  * URL Parser
- * @param url
+ * @param {string} url
  */
 exports.parse = function parse(url) {
   var [path, query] = url.split('?')
@@ -98,14 +102,17 @@ exports.parse = function parse(url) {
 }
 
 
-
-exports.parseQuery = function parseQuery(string) {
+/**
+ * Parse query
+ * @param {string} url
+ */
+exports.parseQuery = function parseQuery(str) {
   const query = {}
 
-  if(!string) {
+  if(!str) {
     return query
   }
-  const data = string.split('&')
+  const data = str.split('&')
 
   for(let item of data) {
     var [key, value] = item.split('=')

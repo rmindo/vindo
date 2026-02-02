@@ -53,7 +53,7 @@ export function useState(initialState = {}) {
       event.updating = false
 
       /**
-       * Merge the arguments when the function has more than 1 object arguments
+       * Merge the value of its argument if the function (set) have more than 1 state as arguments
        */
       if(arguments.length > 1) {
         merge(state, ...arguments)
@@ -103,7 +103,7 @@ export function useState(initialState = {}) {
      */
     update(data = {}) {
       /**
-       * Merge the arguments when the function has more than 1 object arguments
+       * Merge the value of its argument if the function (set) have more than 1 state as arguments
        */
       if(arguments.length > 1) {
         merge(data, ...arguments)
@@ -220,20 +220,20 @@ export function Content(props) {
    * View content coming from backend component (src/http)
    */
   if(React.isValidElement(data.children)) {
-    return React.createElement('main', props, data.children)
+    return data.children
   }
 
   /**
    * View content coming from react directory (src/react)
    */
-  return React.createElement('main', props, React.Children.map(props.children, (child) => {
+  return React.Children.map(props.children, (child) => {
     if(!child.props.name) {
       throw new ReferenceError(`Props 'name' is required for View component.`)
     }
     if(name == child.props.name) {
       return child.props.component(data.props)
     }
-  }))
+  })
 }
 
 

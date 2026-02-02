@@ -28,6 +28,7 @@
     "chokidar": "^4.0.3",
     "esbuild": "^0.25.4",
     "esbuild-plugin-alias-path": "^2.0.2",
-    "esbuild-plugin-copy": "^2.1.1"
+    "esbuild-plugin-copy": "^2.1.1",
+    "tree-kill": "^1.2.2"
   }
 }

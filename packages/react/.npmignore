@@ -1,2 +1,3 @@
 *.tgz
 nodemon.json
+lib/transform.experimental.js

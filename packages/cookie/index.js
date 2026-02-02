@@ -14,12 +14,13 @@ exports.cookie = function(req, res, next) {
   const cookie = req.headers.cookie
 
   if(cookie) {
-    cookie.split(';').forEach((item) => {
+    const data = cookie.split(';')
+    for(var item of data) {
       const [name, value] = item.trim().split(/=/).map(decodeURIComponent)
       if(name) {
         req.cookies[name] = value
       }
-    })
+    }
   }
 
   res.cookie = function cookie(data = {}) {

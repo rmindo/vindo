@@ -1,7 +1,7 @@
 {
   "name": "@vindo/body",
-  "version": "0.0.3",
-  "description": "",
+  "version": "0.0.4",
+  "description": "A body parsing middleware for @vindo/core that makes incoming request bodies easily accessible via req.body.",
   "main": "./index.js",
   "types": "./index.d.ts",
   "publishConfig": {
@@ -24,6 +24,6 @@
   "author": "Ruel Mindo",
   "license": "MIT",
   "dependencies": {
-    "@vindo/utility": "^0.0.6"
+    "@vindo/utility": "^0.0.7"
   }
 }

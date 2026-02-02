@@ -1,6 +1,5 @@
 ## Utility
-Common utilities and helpers such as object, string, events, url and file.
-
+Common utilities for object, string, event, URL, and file.
 
 ## Installation
 ```

@@ -6,4 +6,92 @@
 
 'use strict'
 
-module.exports = require('./lib')
+
+const {url} = require('@vindo/utility')
+
+/**
+ * Get body content type 
+ * @param {string} type
+ */
+function getType(type) {
+  if(type.match(/application\/json/g)) {
+    return 'json'
+  }
+  if(type.match(/multipart\/form-data/g)) {
+    return 'form'
+  }
+  if(type.match(/application\/x-www-form-urlencoded/g)) {
+    return 'urlencoded'
+  }
+}
+
+/**
+ * Parse JSON
+ * @param {buffer} data 
+ */
+function getJSON(data) {
+  return JSON.parse(data)
+}
+
+/**
+ * Parse query
+ * @param {buffer} data
+ */
+function getUrlencodedData(data) {
+  return url.parseQuery(data.toString())
+}
+
+/**
+ * Parse body content
+ * @param {buffer} data 
+ * @param {string} type
+ */
+function parseBody(data, type) {
+  var body = {}
+  var type = getType(type)
+
+  switch(type) {
+    /**
+     * Raw JSON
+     * application/json
+     */
+    case 'json':
+      body = getJSON(data)
+      break
+    /**
+     * URL encoded
+     * multipart/x-www-form-urlencoded
+     */
+    case 'urlencoded':
+      body = getUrlencodedData(data)
+      break
+  }
+  return body
+}
+
+/**
+ * Parser middleware
+ */
+exports.parser = function(req, res, next) {
+  const type = req.headers['content-type']
+
+  
+  if(!type || getType(type) == 'form') {
+    return next()
+  }
+
+  const data = []
+  req.on('data', (chunk) => {
+    data.push(chunk)
+  })
+
+  req.on('close', () => {
+    const body = parseBody(data, type)
+
+    Object.defineProperty(req, 'body', {
+      value: body,
+      writable: false
+    })
+    next()
+  })
+}

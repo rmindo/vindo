@@ -1,5 +1,5 @@
 ## React SSR
-React server side rendering with @vindo/core
+React server side rendering for @vindo/core framework
 
 
 ## Installation

@@ -1,6 +1,6 @@
 {
   "name": "@vindo/cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Command line for running vindo server and react SSR for development.",
   "main": "bin/index.js",
   "publishConfig": {

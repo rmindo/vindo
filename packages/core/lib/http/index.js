@@ -79,6 +79,7 @@ exports.serve = function serve(port, ctx = {}) {
   exports.on('request', handler(exports.stack, ctx)).listen(port)
 }
 
+
 /**
  * Request handler
  * @param stack
@@ -90,8 +91,16 @@ function handler(stack, ctx) {
     var i = 0
     var done = false
 
-    function next(arg) {
-      merge(ctx, arg)
+    function next(data) {
+
+      if(data) {
+        if(data.meta) {
+          Object.assign(ctx.meta, data.meta)
+        }
+        else {
+          merge(ctx, data)
+        }
+      }
 
       while(i < stack.length) {
         var func = stack[i++]

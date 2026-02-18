@@ -322,7 +322,6 @@ function isParameter(data) {
       path[item.key] = para.name
     }
     if(para.key) {
-      data.dynamic = true
       data.params[para.key] = para.value
     }
   }

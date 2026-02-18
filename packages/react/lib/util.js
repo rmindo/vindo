@@ -6,33 +6,33 @@ export const merge = Object.assign
 export const isArr = Array.isArray
 
 
+
 export function isEmpty(obj) {
   if(obj && Object.keys(obj).length == 0) {
     return true
   }
   return false
 }
-
 export function isMore(val) {
   return isObj(val) || val == undefined ? 'jsx' : 'jsxs'
 }
-
 export function isNum(val) {
   return val && typeof val === 'number' && {}.toString.call(val) === '[object Number]'
 }
-
 export function isStr(val) {
   return val && typeof val === 'string' && {}.toString.call(val) === '[object String]'
 }
-
 export function isFunc(val) {
   return val && typeof val === 'function' && {}.toString.call(val) === '[object Function]'
 }
-
 export function isObj(val) {
   return val && typeof val === 'object' && val.constructor === Object && Object.prototype === Object.getPrototypeOf(val)
 }
 
+
+/**
+ * Create function
+ */
 export function toFunc(name, {code, args = [], refs}) {
   var arr = ['return', 'function', name]
 
@@ -66,7 +66,12 @@ export function transform(children, data) {
       return
     }
     if(isArr(type)) {
-      type = data[type[0]]
+      const key = type[0]
+
+      type = data[key]
+      if(!type) {
+        throw TypeError(`Cannot read property '${key}'.`)
+      }
     }
 
     for(var i in props) {

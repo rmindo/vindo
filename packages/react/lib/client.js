@@ -283,7 +283,7 @@ export function render({head, body}, chunk) {
             case 'render':
               return update
           }
-          return target.data[key]
+          return target.data.state[key]
         }
       })
     }

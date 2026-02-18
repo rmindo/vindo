@@ -22,18 +22,10 @@
     "react-dom": "*"
   },
   "exports": {
-    ".": {
-      "default": "./index.js"
-    },
-    "./util": {
-      "default": "./lib/util.js"
-    },
-    "./client": {
-      "default": "./lib/client.js"
-    },
-    "./request": {
-      "default": "./lib/request.js"
-    }
+    ".": "./index.js",
+    "./util": "./lib/util.js",
+    "./client": "./lib/client.js",
+    "./request": "./lib/request.js"
   },
   "author": "Ruel Mindo",
   "license": "MIT",

@@ -182,7 +182,7 @@ function reducer(children) {
       if(isFunc(v)) {
         var f = v.toString()
         var m = [
-          ...f.matchAll(/\((.*)\)(\s{|{)((.|\n)*)\}/g)
+          ...f.matchAll(/\((.*)\)(\s{|\s=>\s{|{)((.|\n)*)\}/g)
         ][0]
         p[i] = {
           name: i,
@@ -257,7 +257,7 @@ function HTTPState(req, events) {
 
   state.on = function on(name, cb) {
     events.on(mkId(name, req.name), async function(data) {
-      if(!cb) {
+      if(typeof cb !== 'function') {
         throw new ReferenceError('Callback function is required.')
       }
       return await cb(data)
@@ -386,7 +386,7 @@ exports.server = function server() {
   }
   
 
-  return function(req, res, next, {meta, events, exception}) {
+  return function(req, res, next, {meta, events}) {
     const state = HTTPState(req, events)
     const store = persist(state.type, req.body)
     /**
@@ -416,36 +416,29 @@ exports.server = function server() {
      * Render on first request
      */
     events.on('__render', function(comp) {
-      if(isValid(comp)) {
-        var args = prepare(comp, {
-          meta,
-          store,
-          state: state.data,
-        })
-        /**
-         * Initial content
-         */
-        if(state.type == 'initial') {
-          data[manif.hash] = args.data
-        }
-        /**
-         * Update content
-         */
-        if(state.type == 'route' || state.type == 'update' || state.type == 'store') {
-          return dispatch(args.data)
-        }
-        
-        /**
-         * If the request not matched.
-         */
-        const errors = Object.keys(exception.statuses).concat('error')
-        if(args.name && req.name) {
-          if(req.route.back && args.name !== req.name && !errors.includes(args.name)) {
-            return
-          }
-        }
-        return args
+      if(!isValid(comp)) {
+        return
       }
+      
+      var args = prepare(comp, {
+        meta,
+        store,
+        state: state.data,
+      })
+      /**
+       * Initial content
+       */
+      if(state.type == 'initial') {
+        data[manif.hash] = args.data
+      }
+      /**
+       * Update content
+       */
+      if(state.type == 'route' || state.type == 'update' || state.type == 'store') {
+        return dispatch(args.data)
+      }
+      
+      return args
     })
 
     if(req.is(manif.hash)) {

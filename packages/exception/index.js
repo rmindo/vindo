@@ -94,9 +94,8 @@ exports.error = function error(e, code = 500) {
  */
 exports.isErrorClass = function isErrorClass(e) {
   const pattern = /^(\w+)Error$/
-  const cannotFindModule = e.message.match(/Cannot\sfind\smodule/g)
 
-  if(e.name.match(pattern) && e instanceof Error || e.name == 'Error' && !cannotFindModule) {
+  if(e.name == 'Error' || e.name.match(pattern) && e instanceof Error) {
     return true
   }
   return false

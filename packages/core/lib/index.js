@@ -19,6 +19,11 @@ const exception = require('@vindo/exception')
 http.stack = []
 
 /**
+ * Default
+ */
+module.exports = exports
+
+/**
  * Export
  */
 exports.utility = utility
@@ -28,8 +33,17 @@ exports.exception = exception
 /**
  * Set initial middleware
  */
-function init(conf) {
-  http.stack.push(http.init(conf))
+function init({root}, cb) {
+  if(cb) {
+    cb(http)
+  }
+  else {
+    http.stack.push(function(req, res, next, ctx) {
+      req.root = root
+      http.start(req, res)
+      next()
+    })
+  }
 }
 
 
@@ -69,15 +83,15 @@ function env(conf) {
 /**
  * Server
  */
-exports.server = function server() {
+exports.start = function start(cb = null) {
   var conf = config.config()
 
   /**
    * Initial config
    */
   env(conf)
-  init(conf)
-
+  init(conf, cb)
+  
   /**
    * Set middileware
    */

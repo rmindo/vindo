@@ -6,9 +6,9 @@ const build = require('./build')
 const server = require('./server')
 const config = require('./config')
 
-const {watch} = require('chokidar')
 const kill = require('tree-kill')
-const {exec, spawn} = require('node:child_process')
+const {watch} = require('chokidar')
+const {exec} = require('node:child_process')
 
 
 const {log, read, events, colors, resolve} = util
@@ -110,7 +110,7 @@ function restart(event) {
 /**
  * Create server
  */
-const http = server(async (req, res) => {
+const http = server(async function(req, res) {
   if(req.isStream()) {
     events.on('change', () => {
       res.write(`data: {changed: true}\n\n`)

@@ -1,0 +1,8 @@
+{
+  "buildOption": {
+    "includes": [
+      "@vindo/panel/lib/app/components"
+    ],
+    "entry": "./src/theme/ruel/react/index.tsx"
+  }
+}

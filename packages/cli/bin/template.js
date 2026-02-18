@@ -1,8 +1,10 @@
 
 import React from 'react'
-import client from '@vindo/react/client'
+import {render, Link} from '@vindo/react/client'
 
 const chunk = {}
+
+chunk.Link = Link
 
 {CHUNK_IMPORTS}
 {ENTRY_IMPORTS}
@@ -26,4 +28,4 @@ chunk.body = function body(props) {
   return type({children, ...props})
 }
 
-client.render(document, chunk)
+render(document, chunk)

@@ -37,28 +37,6 @@ const colors = {
   }
 }
 
-function replace(string, data = {}) {
-  if(Object.keys(data).length == 0) {
-    return string
-  }
-
-  function repl(v) {
-    var value = data[v.match(/([a-z_]+)/g)]
-    if(value) {
-      return value
-    }
-    return ''
-  }
-
-  if(string) {
-    var patt = string.match(/(\{[a-z_]+\})/g)
-    if(patt) {
-      return string.replace(new RegExp(patt.join('|'), 'g'), repl)
-    }
-  }
-  return string
-}
-
 /**
  * Resolve path
  */
@@ -70,6 +48,9 @@ const resolve = {
     return file.path.resolve(__dirname, ...args)
   },
   dirname(path, ...args) {
+    if(!path) {
+      return
+    }
     return resolve.main(file.path.dirname(path), ...args)
   },
 }
@@ -93,17 +74,6 @@ function use(name) {
 
 /**
  * 
- * File system utilities
- * 
- */
-async function copy(dest) {
-  const src = resolve.curr(
-    path.basename(dest)
-  )
-  return await file.promises.cp(src, dest)
-}
-/**
- * 
  */
 async function makedir(path) {
 	try {
@@ -124,7 +94,6 @@ async function unlink(path) {
 
 exports.log = log
 exports.use = use
-exports.copy = copy
 exports.unlink = unlink
 exports.makedir = makedir
 exports.colors = colors

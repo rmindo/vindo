@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {},
+    "strict": true,
+    "allowJs": true,
+    "outDir": "./lib",
+    "jsx": "react-jsx",
+    "module": "node16",
+    "moduleResolution": "node16",
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+  },
+  "include": ["./src/**/*"]
+}

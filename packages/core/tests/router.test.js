@@ -5,12 +5,10 @@ const router = require('../lib/http/router')
 
 const map = async (url, method = 'GET') => {
   const route = await router.route({url, root: ['src','http']})
-  
+
   try {
     route.method = method
-    if(route.methods) {
-      return await router.handle(route, [{response: {writableEnded: false}}, {}, {}, route])
-    }
+    return await router.handle(route, [{response: {writableEnded: false}, request: {route}}, {}, {}, {}])
   }
   catch(e) {}
 
@@ -23,6 +21,7 @@ const routes = [
   {url: '/page', text: 'Map "{url}" to index.js.'},
   {url: '/about', text: 'Map "{url}" to about.js.'},
   {url: '/auth', text: 'Map "{url}" to /auth/index.js.'},
+  {url: '/page-1', text: 'Map "{url}" to exported function named "GET".'},
   {url: '/auth/login', text: 'Map "{url}" to exported function named "GET".'},
   {url: '/auth/login/check', text: 'Map "{url}" to exported function named "check".'},
   {url: '/auth/login/verify', text: 'Map "{url}" to function named "verify" from default.'},
@@ -37,12 +36,12 @@ const routes = [
   {url: '/api/v1/users/zjy7QcHURf3XnMcUznRdykwJbLV12RwbWz', text: 'Map "{url}" to exported function named "GET".'},
   {url: '/api/v1/users/test_code_123-cid', text: 'Map "{url}" to exported function named "GET".'},
   {url: '/api/v1/users/login/verify', text: 'Map "{url}" to function named "verify" from default.'},
-  {url: '/sample-url-slug', text: 'Map "{url}" to exported function named "GET".'},
-  {url: '/sample-url-slug/page', text: 'Map "{url}" to exported function named "page".'},
-  {url: '/sample-url-slug/sample-sub-slug', text: 'Map "{url}" to function named "GET" from default.'},
-  {url: '/sample-url-slug/sample-sub-slug/page', text: 'Map "{url}" to exported function named "page".'},
-  {url: '/sample-url-slug/sample-sub-slug/tags', text: 'Map "{url}" to function named "GET" from default.'},
-  {url: '/sample-url-slug/sample-sub-slug/tags/page', text: 'Map "{url}" to exported function named "page".'},
+  {url: '/sample-page', text: 'Map "{url}" to exported function named "GET".'},
+  {url: '/sample-page/page', text: 'Map "{url}" to exported function named "page".'},
+  {url: '/sample-new-page/sample-new-slug-url', text: 'Map "{url}" to function named "GET" from default.'},
+  {url: '/sample-new-page/sample-new-slug-url/page', text: 'Map "{url}" to exported function named "page".'},
+  {url: '/sample-new-page/sample-new-slug-url/tags', text: 'Map "{url}" to function named "GET" from default.'},
+  {url: '/sample-new-page/sample-new-slug-url/tags/page', text: 'Map "{url}" to exported function named "page".'},
   {url: '/f6d4c4e57fdca647203db00957002667', text: 'Map "{url}" to exported function named "GET".'},
   {url: '/zjy7QcHURf3XnMcUznRdykwJbLV12RwbWz', text: 'Map "{url}" to exported function named "GET".'},
   {url: '/category', text: 'Map "{url}" to exported function named "GET".'},

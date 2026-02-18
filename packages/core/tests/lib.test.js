@@ -2,6 +2,9 @@ const {context} = require('../lib/context')
 
 
 const conf = {
+  vindo: {
+    source: 'src',
+  },
   include: {
     auth: 'lib/auth'
   }

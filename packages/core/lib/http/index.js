@@ -38,34 +38,21 @@ module.exports = exports = Object.create(server, {
 })
 
 /**
- * Initial configuration
- * @public
- * 
- * @param {object} conf - Config
+ * Start the router
  */
-exports.init = function init({root}) {
-  /**
-   * Set default headers and status code
-   */
-  return function start(req, res, next) {
-    req.body = {}
-    req.root = root
-    
-    router.start(req)
+exports.start = function start(req, res) {
+  req.body = {}
+  req.cookies = {}
   
-    merge(req, request)
-    merge(res, response)
-    /**
-     * Convert hyphen separated string to camelcase name
-     */
-    for(var name in req.headers) {
-      req.headers[toCamelCase(name)] = req.headers[name]
-    }
-    /**
-     * Default status
-     */
-    res.status(200)
-    next()
+  merge(req, request)
+  merge(res, response)
+
+  router.start(req)
+  /**
+   * Convert hyphen separated string to camelcase name
+   */
+  for(var name in req.headers) {
+    req.headers[toCamelCase(name)] = req.headers[name]
   }
 }
 
@@ -78,7 +65,7 @@ exports.init = function init({root}) {
  */
 exports.serve = function serve(port, ctx = {}) {
   /**
-   * The last middleware to execute
+   * The end of the middlewares
    */
   exports.stack.push(async function end(req, res, next, ctx) {
     server.request = req

@@ -162,7 +162,7 @@ function toAsync(def, ctx) {
  * @param {object} ctx Global context
  */
 async function getLib(path, ctx) {
-  var lib = exports.getter(['src',path], ctx)
+  var lib = exports.getter([ctx.vindo.source, path], ctx)
   /**
    * Merge functions from async to sync functions
    */
@@ -217,14 +217,15 @@ exports.getter = function getter(path, ctx) {
  * @param inject Dependencies to inject
  */
 exports.context = async function context(conf, inject) {
-  const ctx = {}
+  const ctx = {
+    meta: {}
+  }
   /**
    * Built-in utilities
    */
   define(ctx, {
     env: {value: conf.env, writable: false},
     url: {value: util.url, writable: false},
-    meta: {value: conf.meta, writable: true},
     file: {value: util.file, writable: false},
     vindo: {value: conf.vindo, writable: false},
     string: {value: util.string, writable: false},

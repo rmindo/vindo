@@ -1,0 +1,39 @@
+{
+  "name": "@vindo/panel",
+  "version": "0.0.1",
+  "description": "Content Management System (CMS)",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/panel"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/panel#readme",
+  "keywords": [
+    "cms",
+    "panel"
+  ],
+  "peerDependencies": {
+    "@vindo/react": "^0.0.3",
+    "react": "*",
+    "react-dom": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.2"
+  }
+}

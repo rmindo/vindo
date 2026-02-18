@@ -46,19 +46,15 @@ async function getImports(entry, data) {
 }
 
 
-/**
- * Get all codes from components
- * @param {object} opt 
- */
-async function getComponents(opt) {
-	var files = await readdir(opt.components, {recursive: true})
-	var files = files.filter(file => {
-		return /\.(tsx|jsx)$/.test(file.name)
-	})
-	
+async function chunks(dir) {
 	var code = []
+	var files = await readdir(dir, {recursive: true})
 
 	for(var {name, parentPath} of files) {
+		if(!/\.(js|tsx|jsx)$/.test(name)) {
+			continue
+		}
+
 		var name = getname(name)
 		if(name) {
 			var file = path.join(parentPath, name)
@@ -71,6 +67,27 @@ async function getComponents(opt) {
 		}
 	}
 	return code
+}
+
+
+/**
+ * Get all imports from components directory
+ * @param {object} opt 
+ */
+async function getComponents(opt) {
+	var data = []
+	
+	if(Array.isArray(opt.includes)) {
+		for(var item of opt.includes) {
+			const dir = path.resolve(process.cwd(), 'node_modules', item)
+			if(!exists(dir)) {
+				continue
+			}
+			data = data.concat(await chunks(dir))
+		}
+	}
+
+	return data.concat(await chunks(opt.components))
 }
 
 
@@ -142,7 +159,7 @@ async function bundle(opt) {
 	}
 
 	await promises.writeFile(manifest, JSON.stringify(data), {flag: 'w'})
-	unlink(opt.chunk)
+	// unlink(opt.chunk)
 }
 
 

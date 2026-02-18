@@ -17,8 +17,8 @@ var defaultConfig = {
   env: {
     ENV_PATH: {}
   },
-  meta: {},
   include: {},
+  source: 'src',
   routesDirectory: 'http',
 }
 
@@ -62,6 +62,9 @@ exports.get = function get(name = null) {
 }
 
 
+/**
+ * Merge all configuration
+ */
 exports.config = function config(config = {}) {
   var conf = merge(defaultConfig, config)
 
@@ -81,7 +84,24 @@ exports.config = function config(config = {}) {
   /**
    * Root directory of routes
    */
-  conf.root = ['src', conf.routesDirectory]
+  conf.root = [conf.source, conf.routesDirectory]
+
+  if(conf.extends) {
+    conf = merge(conf, exports.extension(conf.extends))
+  }
 
   return conf
+}
+
+
+/**
+ * Config extension
+ */
+exports.extension = function extension(pkg) {
+  const file = path.resolve(process.cwd(), 'node_modules', pkg, 'vindo.json')
+
+  if(!util.file.exists(file)) {
+    throw ReferenceError(`Cannot find vindo.json from ${pkg}.`)    
+  }
+  return util.file.get(file)
 }

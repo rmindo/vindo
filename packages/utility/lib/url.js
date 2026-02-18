@@ -35,17 +35,22 @@ function getType(val) {
     return 'slug'
   }
 
-  const char = val.match(/^([a-zA-Z0-9-=_@]+)$/)
+  const char = val.match(/^([a-zA-Z0-9-=_]+)$/)
   if(char) {
     if(char[0]) {
       var str = char[0]
 
+      /**
+       * All characters are alphabet letters in a string
+       */
       if(str.match(/^([a-zA-Z]+)$/)) {
         return 'alpha'
       }
-
-      if(str.match(/^(?![a-z]*$)([a-zA-Z0-9]+)$/)) {
-        return 'leno'
+      /**
+       * Mixed alphanumeric in a string
+       */
+      if(str.match(/^(?![a-z-]*$)([a-zA-Z0-9]+)$/)) {
+        return 'alnum'
       }
     }
     return 'char'

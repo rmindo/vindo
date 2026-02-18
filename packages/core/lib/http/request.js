@@ -28,8 +28,8 @@ exports.get = function get(name) {
 }
 
 /**
- * Check root path e.g. /
+ * Check origin path e.g. /
  */
-exports.root = function root() {
+exports.isOrigin = function isOrigin() {
   return this.is(undefined)
 }

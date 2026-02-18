@@ -55,7 +55,7 @@ export interface Server extends Http.Server {
   use(middleware: Function): void
   run(dependencies?: Function, cb?: Function): void
 }
-export function server(): Server
+export function start(cb?: Function): Server
 
 /**
  * Http Request
@@ -69,7 +69,7 @@ export interface HttpRequest extends Http.IncomingMessage, Route {
   }
   get(name:string): string
   is(basename:string | undefined): boolean
-  root(): boolean
+  isOrigin(): boolean
 }
 
 /**

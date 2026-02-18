@@ -88,6 +88,15 @@ function isEnded(res) {
 
 
 /**
+ * Check if path is equal without the root directory
+ * @param {object} route 
+ */
+function isPathEqual(route) {
+  return route.segments.length == route.path.slice(route.root.length).length
+}
+
+
+/**
  * Invoke the function
  * 
  * @param {function} func - A function of the route
@@ -543,9 +552,11 @@ exports.handle = async function handle(route, args) {
   /**
    * Handles request with HTTP verbs
    */
-  var exist = await isHttpVerb(route, args)
-  if(exist) {
-    return exist
+  if(isPathEqual(route)) {
+    var exist = await isHttpVerb(route, args)
+    if(exist) {
+      return exist
+    }
   }
   /**
    * Check routes from default if above fails

@@ -16,9 +16,8 @@ function serve(http) {
     http.stack.push(function (req, res, next, ctx) {
         req.root = ['src', 'theme', 'ruel', 'http'];
         http.start(req, res);
-        const route = req.route;
-        if (route.segments[0] == 'panel') {
-            route.path = ctx.file.path.resolve(process.cwd(), 'node_modules/@vindo/panel/lib/app/routes.js');
+        if (req.route.segments[0] == 'panel') {
+            req.route.path = ctx.file.path.resolve(process.cwd(), 'node_modules/@vindo/panel/lib/app/routes.js');
         }
         next();
     });

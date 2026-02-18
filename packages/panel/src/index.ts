@@ -20,9 +20,8 @@ export function serve(http) {
 
     http.start(req, res)
 
-    const route = req.route
-    if(route.segments[0] == 'panel') {
-      route.path = ctx.file.path.resolve(process.cwd(), 'node_modules/@vindo/panel/lib/app/routes.js')
+    if(req.route.segments[0] == 'panel') {
+      req.route.path = ctx.file.path.resolve(process.cwd(), 'node_modules/@vindo/panel/lib/app/routes.js')
     }
     next()
   })

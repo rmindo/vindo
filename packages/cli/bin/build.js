@@ -159,7 +159,7 @@ async function bundle(opt) {
 	}
 
 	await promises.writeFile(manifest, JSON.stringify(data), {flag: 'w'})
-	// unlink(opt.chunk)
+	unlink(opt.chunk)
 }
 
 

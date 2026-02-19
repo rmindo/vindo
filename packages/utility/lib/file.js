@@ -72,15 +72,37 @@ exports.join = function join(...args) {
       return d
     },
   [])
+  
+  return path.join(process.cwd(), ...args)
+}
 
-  var dir = process.cwd()
-  /**
-   * Get current directory of the caller if the path is relative
-   */
-  if(args[0] && args[0].match(/\.$/)) {
-    dir = path.dirname(exports.getCaller())
+
+/**
+ * Replace alias with absolute path
+ * @param {array} path File path
+ */
+exports.alias = function alias(path) {
+  if(Array.isArray(path[0])) {
+    path = path[0]
   }
-  return path.join(dir, ...args)
+
+  if(!path[0]) {
+    return
+  }
+
+  var alias = path[0].match(/^@(?:(?![\/])(root|main))/)
+  if(alias) {
+    switch(alias[1]) {
+      case 'root':
+        path[0] = path[0].replace(alias[0], process.cwd())
+      break
+      case 'main':
+        path[0] = path[0].replace(alias[0], require.main?.path)
+      break
+    }
+  }
+
+  return path
 }
 
 
@@ -167,7 +189,7 @@ exports.readdir = function readdir(...args) {
  */
 exports.html = function html(...args) {
   /**
-   * Reserve data for string interpolation
+   * Use last argument for string interpolation
    */
   var data = {}
   if(args.length > 1) {
@@ -176,43 +198,15 @@ exports.html = function html(...args) {
       data = last
     }
   }
-  return string.replace(exports.read(args, '.html'), data)
-}
-
-
-/**
- * Make relative path
- * @param {*} path File path
- * @param {string} ext File extension
- * @returns 
- */
-exports.relative = function relative(path, ext) {
-  if(Array.isArray(path[0])) {
-    path = path[0]
-  }
   /**
-   * Split forward slashed into segments
+   * Add extension
    */
-  path = path.reduce(
-    (d, i) => {
-      if(i) {
-        d.push(...i.split('/'))
-      }
-      return d
-    },
-  [])
-  const name = path.at(-1)
-
-  /**
-   * Set single dot for current directory lookup
-   */
-  path[path.indexOf(name)] = ext ? name.concat(ext) : name
-
-  if(path[0] && path[0].match(/^([a-z]+)$/)) {
-    path = ['.'].concat(path)
+  var i = args.length-1
+  if(i >= 0) {
+    args[i] = args[i].concat('.html')
   }
 
-  return path
+  return string.replace(exports.read(args), data)
 }
 
 
@@ -248,17 +242,14 @@ exports.isDir = function isDir(...args) {
  * @param {string | string[]} args The path of the file
  */
 exports.read = function read(...args) {
-  var ext
-
-  if(args.length > 1) {
-    ext = args.pop()
+  if(Array.isArray(args[0])) {
+    args = args[0]
   }
-
   if(exports.isDir(...args)) {
     return
   }
 
-  const file = exports.join(...exports.relative(args, ext))
+  const file = exports.join(...exports.alias(args))
   if(exports.exists(file)) {
     return fs.readFileSync(file, 'utf8')
   }
@@ -289,35 +280,5 @@ exports.parse = function parse(...args) {
       }
     }
     return items
-  }
-}
-
-
-/**
- * Get current caller file path
- * 
- * @returns {string}
- */
-exports.getCaller = function getCaller() {
-  const ost = Error.prepareStackTrace
-
-  try {
-    var e = new Error()
-
-    Error.prepareStackTrace = function(e, st) {
-      return st
-    }
-
-    const cur = e.stack[0].getFileName()
-    while(e.stack.length) {
-      const cal = e.stack.shift().getFileName()
-      if(cur !== cal) {
-        return cal
-      }
-    }
-  }
-  catch(e) {}
-  finally {
-    Error.prepareStackTrace = ost
   }
 }

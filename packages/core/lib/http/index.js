@@ -108,6 +108,9 @@ function handler(stack, ctx) {
         if(typeof func !== 'function') {
           continue
         }
+        if(res.writableEnded || res.writableFinished) {
+          break
+        }
 
         func.call(server, req, res, next, ctx)
         if(!done) {

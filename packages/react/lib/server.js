@@ -89,7 +89,20 @@ function dom(data) {
  * @param {object} html 
  */
 function html(obj) {
-  return '<!DOCTYPE html>'.concat(ReactDom.renderToString(obj))
+  const str = ReactDom.renderToString(obj)
+  /**
+   * Capture unchanged charSet attribute
+   */
+  const charset = /(charSet)=("utf-8")/
+  /**
+   * renderToString() failed to convert JSX charSet attribute to lower case.
+   * 
+   * We'll convert the charset to lowe case manually to avoid W3C validation errors and
+   * potential parsing issues for strict crawlers, impacting SEO.
+   */
+  return '<!DOCTYPE html>'.concat(
+    str.replace(charset, (_, g1, g2) => g1.toLowerCase().concat(`=${g2}`))
+  )
 }
 
 
@@ -101,12 +114,18 @@ function html(obj) {
 function head(children, {meta}) {
   const env = process.env
   
+  /**
+   * Show script only on development
+   */
   if(env.NODE_ENV == 'dev' || env.NODE_ENV == 'develop' || env.NODE_ENV == 'development') {
     children = children.concat(
       create('script', {key: 0, src: env.DEV_SERVER}
     ))
   }
 
+  /**
+   * Inject bundle script by default. It can be disabled using meta.bundle = false
+   */
   return children.concat(
     meta.bundle && create('script', {
       key: 1,
@@ -127,6 +146,9 @@ function body(children, data) {
   if(!isArr(children)) {
     children = [children]
   }
+  /**
+   * Add meta data
+   */
   return children.map((child, key) => clone(child, {key, ...data}))
 }
 
@@ -149,7 +171,9 @@ function reducer(children) {
     if(!props) {
       return
     }
-
+    /**
+     * Component function
+     */
     if(isFunc(type)) {
       if(/^default_1/.test(type.name)) {
         throw new ReferenceError(`Component function requires a name. Currently have a default name of '${type.name}'.`)

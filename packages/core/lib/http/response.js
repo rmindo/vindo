@@ -57,7 +57,7 @@ exports.html = function html(body = null, code = 200, headers = {}) {
   }
   this.writeHead(code, {
     ...headers,
-    'Content-Type': 'text/html'
+    'Content-Type': 'text/html; charset=utf-8'
   })
   this.end(body)
 }

@@ -1,6 +1,6 @@
 {
   "name": "@vindo/core",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "description": "Core service for managing routes, context and middleware.",
   "main": "./index.js",
   "types": "./index.d.ts",

@@ -358,7 +358,7 @@ function prepare(component, {meta, store, state}) {
    */
   const {children, ...props} = component.props
   const data = {
-    meta: {name, bundle: true, ...meta},
+    meta: {name, bundle: false, ...meta},
     data: {
       props,
       children: isFunc(component.type) ? null : component

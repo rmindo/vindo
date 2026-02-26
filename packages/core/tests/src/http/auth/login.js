@@ -1,7 +1,3 @@
-
-exports.GET = function() {}
-
-
 exports.check = function() {
   return {
     GET() {}
@@ -10,6 +6,6 @@ exports.check = function() {
 
 exports.default = function() {
   return {
-    verify() {}
+    GET() {}
   }
 }

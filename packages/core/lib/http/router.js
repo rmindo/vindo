@@ -92,6 +92,9 @@ function isEnded(res) {
  * @param {object} route 
  */
 function isPathEqual(route) {
+  if(!Array.isArray(route.path)) {
+    return false
+  }
   return route.segments.length == route.path.slice(route.root.length).length
 }
 
@@ -196,7 +199,7 @@ function error(req, res, ctx) {
         return render.call(self, data, code)
       }
 
-      res.json({error: e.toString()}, code)
+      res.print(e.toString(), code)
     }
   }
 }
@@ -213,13 +216,10 @@ function getErrorHandler({path, root}, code) {
   /**
    * Check which file is available.
    */
-  const paths = [path.concat(code)]
-  if(root) {
-    paths.push(
-      root.concat(code),
-      root.concat('error')
-    )
-  }
+  const paths = [
+    root.concat(code),
+    root.concat('error')
+  ]
   for(var path of paths) {
     if(exists(path)) return get(path)
   }
@@ -348,12 +348,12 @@ function isParameter(data) {
 exports.route = function route({url, root}) {
   const data = parse(url)
 
+  data.root = root
+  data.path = root.concat(data.segments)
+
   if(data.extension) {
     return data
   }
-
-  data.root = root
-  data.path = root.concat(data.segments)
 
   /**
    * Find the file
@@ -448,9 +448,9 @@ async function isHttpVerb(route, args) {
  * 
  *    Or
  * 
- *    export default function(ctx) {
+ *    export function about(ctx) {
  *      returns {
- *        about(req, res) {}
+ *        GET(req, res) {}
  *      }
  *    }
  * 
@@ -492,8 +492,6 @@ async function isFuncName(route, args) {
  *    export default function(ctx) {
  *      return {
  *        GET(req, res) {},
- *        about(req, res) {}
- *        ....
  *      }
  *    }
  * 
@@ -508,7 +506,7 @@ async function isFromDefault(route, args) {
   /**
    * Prevent sending new headers, No function/default found, and already ended response
    */
-  if(!methods || !isFunc(methods.default) || isEnded(args[2])) {
+  if(!methods || !isFunc(methods.default) || isEnded(args[2]) || !isPathEqual(route)) {
     return false
   }
   /**

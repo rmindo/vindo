@@ -246,7 +246,19 @@ export function render({head, body}, chunk) {
   var head = ReactDom.createRoot(head)
   var body = ReactDom.createRoot(body)
 
-
+  /**
+   * Proxy handler
+   */
+  function getter(target, key) {
+    switch(key) {
+      case 'set':
+      case 'update':
+      case 'render':
+        return update
+    }
+    return target.data.state[key]
+  }
+    
   /**
    * Re-render DOM
    */
@@ -274,18 +286,10 @@ export function render({head, body}, chunk) {
      * Reference for mouse event functions
      */
     chunk.refs = {
-      meta: args.meta,
       state: new Proxy(event, {
-        get(target, key) {
-          switch(key) {
-            case 'set':
-            case 'update':
-            case 'render':
-              return update
-          }
-          return target.data.state[key]
-        }
-      })
+        get: getter
+      }),
+      meta: args.meta,
     }
 
     /**
@@ -297,7 +301,7 @@ export function render({head, body}, chunk) {
     /**
      * Set only for dynamic content coming from server
      */
-    if(args.data.children) {
+    if(args.data && args.data.children) {
       args.data.children = transform(args.data.children, chunk)[0]
     }
     body.render(chunk.body(args))
@@ -312,8 +316,12 @@ export function render({head, body}, chunk) {
       path: new URL(location.href)
     })
   }
-
-  _http.get({type: 'hydrate'}).then(data => event.render(data))
+  /**
+   * Make sure the entire page has finished loading, including all dependent resources (images, scripts, CSS files, etc.).
+   */
+  window.onload = function onload() {
+    _http.get({type: 'hydrate'}).then(data => event.render(data))
+  }
 }
 
 

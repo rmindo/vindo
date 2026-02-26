@@ -1,0 +1,26 @@
+{
+  "name": "@vindo/sass",
+  "version": "0.0.1",
+  "description": "Compile and translates your .scss or .sass files into standard .css.",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/sass"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/sass#readme",
+  "keywords": [
+    "sass",
+    "compile"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {
+    "sass": "^1.97.3"
+  }
+}

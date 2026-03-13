@@ -32,10 +32,18 @@ const server = http.createServer()
  * Default export
  */
 module.exports = exports = Object.create(server, {
-  router: {
-    value: router
-  }
+  stack: {value: []},
+  router: {value: router}
 })
+
+
+/**
+ * Set middileware
+ */
+exports.use = function use(callback) {
+  exports.stack.push(callback)
+}
+
 
 /**
  * Start the router
@@ -55,6 +63,7 @@ exports.start = function start(req, res) {
     req.headers[toCamelCase(name)] = req.headers[name]
   }
 }
+
 
 /**
  * Start the server

@@ -88,6 +88,18 @@ function isEnded(res) {
 
 
 /**
+ * Check absolute file path
+ * @param {string} path
+ */
+function isAbsolute(path) {
+  if(typeof path !== 'string') {
+    return false
+  }
+  return util.file.path.isAbsolute(path)
+}
+
+
+/**
  * Check if path is equal without the root directory
  * @param {object} route 
  */
@@ -199,6 +211,9 @@ function error(req, res, ctx) {
         return render.call(self, data, code)
       }
 
+      if(e.log) {
+        console.error(e)
+      }
       res.print(e.toString(), code)
     }
   }
@@ -506,7 +521,7 @@ async function isFromDefault(route, args) {
   /**
    * Prevent sending new headers, No function/default found, and already ended response
    */
-  if(!methods || !isFunc(methods.default) || isEnded(args[2]) || !isPathEqual(route)) {
+  if(!methods || !isFunc(methods.default) || isEnded(args[2]) || !isAbsolute(route.path) && !isPathEqual(route)) {
     return false
   }
   /**

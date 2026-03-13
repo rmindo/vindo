@@ -13,13 +13,14 @@ const util = require('@vindo/utility')
  * Default configuration
  */
 var defaultConfig = {
+  name: 'main',
   port: 9000,
   env: {
     ENV_PATH: {}
   },
   include: {},
   source: 'src',
-  routesDirectory: 'http',
+  routes: 'http',
 }
 
 /**
@@ -47,7 +48,7 @@ function merge(def, conf) {
 /**
  * Get config file
  */
-exports.get = function get(name = null) {
+exports.vindo = function vindo(name = null) {
   const file = path.resolve(process.cwd(), 'vindo.json')
 
   if(!util.file.exists(file)) {
@@ -68,7 +69,7 @@ exports.get = function get(name = null) {
 exports.config = function config(config = {}) {
   var conf = merge(defaultConfig, config)
 
-  var vindo = exports.get()
+  var vindo = exports.vindo()
   if(vindo) {
     /** 
      * Config getters
@@ -84,24 +85,7 @@ exports.config = function config(config = {}) {
   /**
    * Root directory of routes
    */
-  conf.root = [conf.source, conf.routesDirectory]
-
-  if(conf.extends) {
-    conf = merge(conf, exports.extension(conf.extends))
-  }
+  conf.root = [conf.source, conf.routes]
 
   return conf
-}
-
-
-/**
- * Config extension
- */
-exports.extension = function extension(pkg) {
-  const file = path.resolve(process.cwd(), 'node_modules', pkg, 'vindo.json')
-
-  if(!util.file.exists(file)) {
-    throw ReferenceError(`Cannot find vindo.json from ${pkg}.`)    
-  }
-  return util.file.get(file)
 }

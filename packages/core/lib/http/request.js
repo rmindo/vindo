@@ -33,3 +33,10 @@ exports.get = function get(name) {
 exports.isOrigin = function isOrigin() {
   return this.is(undefined)
 }
+
+/**
+ * Check the first name of segments
+ */
+exports.startsWith = function startsWith(name) {
+  return this.segments[0] == name
+}

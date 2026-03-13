@@ -47,6 +47,6 @@
   },
   "dependencies": {
     "@vindo/exception": "^1.0.1",
-    "@vindo/utility": "^0.0.8"
+    "@vindo/utility": "file:../utility"
   }
 }

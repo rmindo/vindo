@@ -24,13 +24,15 @@ exports.serve = function serve(path) {
   }
   
   return function(req, res, next) {
+    
     const mimeType = mime.lookup(req.extension)
-
     if(!mimeType) {
       return next()
     }
+
     res.headers({
-      'Content-Type': mimeType
+      'Content-Type': mimeType,
+      'Cache-Control': 'public, max-age=31536000, immutable'
     })
     /**
      * 

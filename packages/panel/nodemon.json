@@ -1,8 +1,0 @@
-{
-  "ext": "js,ts,jsx,tsx",
-  "exec": "tsc && node /home/ruel/Projects/Internal/Packages/script/copy.js",
-  "watch": [
-    "./src",
-    "../react/lib"
-  ]
-}

@@ -1,8 +1,25 @@
 {
-  "buildOption": {
-    "includes": [
-      "@vindo/panel/lib/app/components"
+  "port": 2026,
+  "name": "@vindo/panel",
+  "type": "package",
+  "buildOptions": {
+    "port": 2002,
+    "minify": false,
+    "watch": [
+      "./app",
+      "/Users/Ruel/Projects/Applications/Source/Javascript/Packages/@vindo/packages/panel/public/assets/scss"
     ],
-    "entry": "./src/theme/ruel/react/index.tsx"
+    "bundleName": "panel",
+    "output": "./public",
+    "compileSass": {
+      "input": "./public/assets/scss",
+      "output": "./public/assets/css"
+    },
+    "tsconfig": "./tsconfig.json",
+    "entry": "./app/react/index.tsx",
+    "execute": "tsc && node /Users/Ruel/Projects/Applications/Source/Javascript/Packages/script/copy.js && NODE_ENV=development node ./development.js"
+  },
+  "bundles": {
+    "@vindo/panel": "WyJPMjJYWVdMRyIsInBhbmVsIl0"
   }
 }

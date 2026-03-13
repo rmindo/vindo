@@ -1,0 +1,16 @@
+[
+    { "name": "Dashboard", "icon": "chart", "root": "panel" },
+    { "label": "Articles" },
+    { "name": "Posts", "icon": "document" },
+    { "name": "Pages", "icon": "paper" },
+    { "label": "General" },
+    {
+        "name": "Settings",
+        "icon": "cog",
+        "group": [
+            { "name": "General" },
+            { "name": "Users" },
+            { "name": "Editor" }
+        ]
+    }
+]

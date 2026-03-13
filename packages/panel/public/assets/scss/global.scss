@@ -1,0 +1,144 @@
+@use '../fonts/fontface.css';
+
+body {
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  overflow-x: hidden;
+  font-family: 'Quicksand', Helvetica Neue,Helvetica,Arial,sans-serif;
+
+  a {
+    color: #222;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  p {
+    margin: 0 0 20px;
+  }
+  h1 {
+    font-size: 40px;
+    margin: 0 0 30px;
+  }
+  h2 {
+    font-size: 30px;
+    margin: 0 0 25px;
+  }
+  h3 {
+    font-size: 20px;
+    margin: 0 0 15px;
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+}
+select,
+input {
+  width: 200px;
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid #ddd;
+}
+select {
+  padding: 9.25px 10px;
+}
+
+.error {
+  color: red;
+  font-size: 14px;
+  margin: 0 0 30px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  text-align: center;
+  background: #ffdada;
+  border: 1px solid #efb1b1;
+}
+.success {
+  color: darkgreen;
+  font-size: 14px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  text-align: center;
+  background: #99d893;
+  border: 1px solid #4ba34b;
+}
+
+.popup {
+  z-index: 999;
+  right: 30px;
+  bottom: 30px;
+  margin: auto;
+  font-weight: 500;
+  text-align: center;
+  position: absolute;
+  border-radius: 5px;
+  animation-duration: 0.4s;
+  animation-name: slidein;
+}
+
+.spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: rotate 2s linear infinite;
+
+  i {
+    font-weight: bold;
+    margin: 0 !important;
+  }
+  & .path {
+    stroke-linecap: round;
+    animation: dash 1.5s ease-in-out infinite;
+  }
+  
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 150;
+    stroke-dashoffset: -124;
+  }
+}
+
+@keyframes slidein {
+  from {
+    margin-right: -100px;
+  }
+
+  to {
+    margin-right: 30px;
+  }
+}
+
+#error {
+  text-align: center;
+  padding: 180px 0 !important;
+  
+  .error-404 {
+    width: 570px;
+    margin: 0 auto;
+    p {
+      font-size: 20px;
+      line-height: 35px;
+    }
+    h1 {
+      line-height: 90px;
+      font-size: 120px;
+      margin-bottom: 20px;
+    }
+  }
+}

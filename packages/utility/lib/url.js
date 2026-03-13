@@ -85,6 +85,7 @@ exports.parse = function parse(url) {
     query,
     args: [],
     segments,
+    base: segments[0],
     pathname: path,
     basename: segments.at(-1),
     extension: undefined,

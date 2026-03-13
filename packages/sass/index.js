@@ -27,19 +27,26 @@ exports.compiler = function(_opt = {}) {
   Object.assign(opt, _opt)
 
   /**
+   * Resolve css url to scss path
+   */
+  function toScss(url) {
+    return path.resolve(cwd, opt.dir, url).replace(/.css$/, '.scss')
+  }
+
+  /**
    * Middleware
    */
-  return function(req, res, next) {
-    const url = path.resolve(cwd, opt.dir).concat(req.url)
+  return function(req, res, next, {file}) {
+    const url = toScss(req.url.slice(1))
 
     if(req.extension == '.css') {
       res.headers({
         'Content-Type': 'text/css'
       })
-
-      return res.print(
-        sass.compile(url.replace(/.css$/, '.scss'), opt.sass).css
-      )
+    
+      if(file.exists(url)) {
+        return res.print(sass.compile(url, opt.sass).css)
+      }
     }
     next()
   }

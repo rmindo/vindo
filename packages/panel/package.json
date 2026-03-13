@@ -10,7 +10,8 @@
   "author": "Ruel Mindo",
   "license": "MIT",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "postinstall": "vindo add --package=@vindo/panel"
   },
   "repository": {
     "type": "git",
@@ -23,17 +24,22 @@
     "panel"
   ],
   "peerDependencies": {
-    "@vindo/react": "^0.0.3",
-    "react": "*",
-    "react-dom": "*"
+    "@vindo/core": "file:../core",
+    "@vindo/react": "file:../../../../Web/deziper.com/node_modules/@vindo/react",
+    "@vindo/static": "*",
+    "react": "file:../../../../Web/deziper.com/node_modules/react",
+    "react-dom": "file:../../../../Web/deziper.com/node_modules/react-dom"
+  },
+  "dependencies": {
+    "@lexical/react": "^0.41.0",
+    "lexical": "^0.41.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.14",
+    "@types/node": "^22.19.15",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.2"
   }
 }

@@ -1,0 +1,46 @@
+{
+  "buildOptions": {
+    "port": 2001,
+    "minify": true,
+    "watch": [
+      "./src"
+    ],
+    "output": "./public",
+    "bundleName": "main"
+  },
+  "sass": {
+    "style": "compressed"
+  },
+  "settings": {
+    "bundle": true,
+		"metafile": true,
+    "format": "esm",
+    "jsx": "automatic",
+    "logLevel": "error",
+    "outfile": "dist/bundle.js",
+    "loader": {
+      ".js": "jsx",
+      ".jsx": "jsx",
+      ".ts": "tsx",
+      ".tsx": "tsx"
+    },
+    "entryNames": "[name]-[hash]",
+    "allowOverwrite": true,
+    "jsxImportSource": "react"
+  },
+  "commands": [
+    "run",
+    "add",
+    "build",
+    "bundle"
+  ],
+  "argsOptions": {
+    "add": {"type": "string"},
+    "port": {"type": "string"},
+    "package": {"type": "string"},
+    "output": {"type": "string"},
+    "mergeTo": {"type": "string"},
+    "execute": {"type": "string"},
+    "bundleName": {"type": "string"}
+  }
+}

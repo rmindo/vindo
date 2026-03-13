@@ -2,8 +2,8 @@ const {parse} = require('node:path')
 const {createServer} = require('node:http')
 
 
-module.exports = function(cb) {
 
+function server(cb) {
   return createServer((req, res) => {
     const url = parse(req.url)
 
@@ -37,7 +37,38 @@ module.exports = function(cb) {
     }
     res.headers({'Access-Control-Allow-Origin': '*'})
 
-    
+
     cb(req, res)
   })
+}
+
+
+module.exports = function(builder, cb) {
+  var file = builder.file
+  var events = builder.events
+  var resolve = builder.resolve
+  var option = builder.config.option
+
+  /**
+   * Run development server and create bundle
+   */
+  const http = server(async function(req, res) {
+    const data = await file.read(resolve.clidir('builder/development.js'))
+
+    if(req.isStream()) {
+      events.on('change', () => {
+        res.write(`data: {changed: true}\n\n`)
+      })
+    }
+
+    if(req.is('development')) {
+      res.headers({
+        'Content-Type':
+        'application/javascript'
+      })
+      res.end(data)
+    }
+  })
+
+  http.listen(option.port, cb)
 }

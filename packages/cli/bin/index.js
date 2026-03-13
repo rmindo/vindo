@@ -1,27 +1,28 @@
 #! /usr/bin/env node
 
 
-const util = require('./util')
-const build = require('./build')
-const server = require('./server')
-const config = require('./config')
+const builder = require('./builder')
+const server = require('./builder/server')
 
 const kill = require('tree-kill')
-const {watch} = require('chokidar')
-const {exec} = require('node:child_process')
-
-
-const {log, read, events, colors, resolve} = util
+const chokidar = require('chokidar')
+const childProcess = require('node:child_process')
 
 
 var child = null
-var option = config.option
+var log = builder.log
+var build = builder.build
+var config = builder.config
+var events = builder.events
+var colors = builder.colors
+var option = builder.config.option
+
 
 /**
  * Set to global environment
  */
-process.env.DEV_SERVER = config.devScript
-process.env.DEV_SERVER_PORT = config.option.port
+process.env.DEV_PORT = option.port
+process.env.DEV_SERVER = option.devScript
 
 
 /**
@@ -32,8 +33,7 @@ async function watcher(dirs, cb) {
     if(!Array.isArray(dirs)) {
       throw TypeError('Expected a value of type `Array` but received a `String`.')
     }
-    watch(dirs, {
-      // ignored: (path, stats) => stats?.isFile() && !path.endsWith('.js'), // only watch js files
+    chokidar.watch(dirs, {
       persistent: true
     })
     .on('change', (path) => cb({path}))
@@ -47,13 +47,18 @@ async function watcher(dirs, cb) {
 /**
  * 
  */
-function execute() {
+function execute(cmd) {
   var i = 0
-  var sp = exec(option.execute, {
+
+  if(Array.isArray(cmd)) {
+    cmd = cmd.join(' && ')
+  }
+
+  var sp = childProcess.exec(cmd, {
     env: process.env,
     cwd: process.cwd(),
   })
-  log('green', `[vindo] Running ${option.execute}`)
+  log('green', `[vindo] Running ${cmd}`)
 
   /**
    * Emit change event to reload client
@@ -94,7 +99,7 @@ function execute() {
  * Restart server and rebuild
  */
 function restart(event) {
-  log('gray', `[vindo] File changed '${event.path}'`)
+  log('green', `[vindo] File changed '${event.path}'`)
   log('green', `[vindo] Rebuilding...`)
   log('green', `[vindo] Restarting server...`)
 
@@ -103,35 +108,17 @@ function restart(event) {
   if(child) {
     kill(child.pid)
   }
-  child = execute()
+  child = execute(option.execute)
 }
 
 
 /**
- * Create server
+ * Start building and execute
  */
-const http = server(async function(req, res) {
-  if(req.isStream()) {
-    events.on('change', () => {
-      res.write(`data: {changed: true}\n\n`)
-    })
-  }
-
-  if(req.is('development')) {
-    res.headers({
-      'Content-Type':
-      'application/javascript'
-    })
-    res.end(await read(resolve.curr('development.js')))
-  }
-})
-
-
-
-http.listen(option.port, function() {
-  child = execute()
-
+function start() {
   build(option)
+
+  child = execute(option.execute)
 
   if(option.watch) {
     log('yellow', '[vindo] v0.0.1')
@@ -140,4 +127,22 @@ http.listen(option.port, function() {
 
     watcher(option.watch, restart)
   }
-})
+}
+
+
+/**
+ * Command specific tasks
+ */
+switch(option.command) {
+  case 'add':
+    config.add(option)
+    break
+
+  case 'run':
+    server(builder, start)
+    break
+
+  case 'build':
+    build(option)
+    break
+}

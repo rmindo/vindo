@@ -18,8 +18,8 @@
     "react"
   ],
   "peerDependencies": {
-    "react": "*",
-    "react-dom": "*"
+    "react": "file:../../../../Web/deziper.com/node_modules/react",
+    "react-dom": "file:../../../../Web/deziper.com/node_modules/react-dom"
   },
   "exports": {
     ".": "./index.js",
@@ -28,6 +28,5 @@
     "./request": "./lib/request.js"
   },
   "author": "Ruel Mindo",
-  "license": "MIT",
-  "dependencies": {}
+  "license": "MIT"
 }

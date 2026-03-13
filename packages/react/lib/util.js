@@ -105,6 +105,6 @@ export function transform(children, data) {
       }
     }
 
-    return runtime.jsx(type, p, key)
+    return runtime[p.children?.length > 1 ? 'jsxs' : 'jsx'](type, p, key)
   })
 }

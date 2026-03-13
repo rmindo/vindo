@@ -49,9 +49,9 @@ function page(type, path) {
 function getURL() {
   var src = new URL(document.scripts.bundle.src)
 
-  var name = src.pathname.match(/^\/bundle-(.*)\.js$/)
+  var name = src.pathname.match(/^\/(.*)-(.*)\.js$/)
   if(name) {
-    return new URL(name[1], location.origin)
+    return new URL(name[1].concat('/', name[2]), location.origin)
   }
 }
 
@@ -123,5 +123,5 @@ export function request({data, path, type, ...args}, opts = {}) {
     opts.headers['Content-Type'] = 'application/json'
   }
 
-  return fetch(path, opts).then((res) => res.json())
+  return fetch(path, opts).then((res) => res.json()).catch(console.error)
 }

@@ -7,9 +7,9 @@
 'use strict'
 
 
+const fs = require('fs')
 const path = require('path')
 const React = require('react')
-const config = require('@vindo/core/config')
 const ReactDom = require('react-dom/server')
 const {isObj, isArr, isStr, isNum, isFunc, merge} = require('@vindo/react/util')
 
@@ -19,11 +19,6 @@ const {isObj, isArr, isStr, isNum, isFunc, merge} = require('@vindo/react/util')
 const clone = React.cloneElement
 const create = React.createElement
 const isValid = React.isValidElement
-
-
-var build = config.get('buildOption')
-var manif = require(path.resolve(build.output, 'manifest.json'))
-
 
 
 /**
@@ -51,37 +46,17 @@ function encode(string) {
  * @param {string} string
  */
 function decode(string) {
-  return JSON.parse(
-    Buffer.from(string, 'base64').toString('utf8')
-  )
-}
-
-/**
- * Require main component from react directory
- * @param {string} point 
- * @param {object} data
- */
-function entry(data) {
-  const app = require(path.resolve(path.dirname(build.entry)))
-  if(app) {
-    return app.default(data)
+  const data = Buffer.from(string, 'base64').toString('utf8')
+  try {
+    return JSON.parse(data)
+  }
+  catch(e) {
+    return data
   }
 }
 
-
-/**
- * React DOM
- * @param {object} data 
- */
-function dom(data) {
-  return (item, key) => {
-    if(item.type == 'head') {
-      return clone(item, {key}, head(item.props.children, data))
-    }
-    if(item.type == 'body') {
-      return clone(item, {key}, body(item.props.children, data))
-    }
-  }
+function resolve(...sub) {
+  return path.resolve(process.cwd(), ...sub)
 }
 
 /**
@@ -109,15 +84,15 @@ function html(obj) {
 /**
  * Add a bundle script to head
  * @param children
- * @param args
+ * @param bundle
  */
-function head(children, {meta}) {
+function head(children, bundle) {
   const env = process.env
   
   /**
    * Show script only on development
    */
-  if(env.NODE_ENV == 'dev' || env.NODE_ENV == 'develop' || env.NODE_ENV == 'development') {
+  if(env.NODE_ENV == 'development') {
     children = children.concat(
       create('script', {key: 0, src: env.DEV_SERVER}
     ))
@@ -126,19 +101,17 @@ function head(children, {meta}) {
   /**
    * Inject bundle script by default. It can be disabled using meta.bundle = false
    */
-  return children.concat(
-    meta.bundle && create('script', {
-      key: 1,
-      id: 'bundle',
-      type: 'module',
-      src: manif.bundle
-    })
-  )
+  if(bundle) {
+    return children.concat(
+      create('script', {key: 1, id: 'bundle', type: 'module', src: bundle})
+    )
+  }
+  return children
 }
 
 
 /**
- * Set meta data to children
+ * Set meta data to first level children in the DOM
  * @param {array} children 
  * @param {object} args
  */
@@ -149,7 +122,11 @@ function body(children, data) {
   /**
    * Add meta data
    */
-  return children.map((child, key) => clone(child, {key, ...data}))
+  return children.map((child, key) => {
+    if(child) {
+      return clone(child, {key, ...data})
+    }
+  })
 }
 
 
@@ -347,37 +324,118 @@ function HTTPState(req, events) {
 
 
 /**
+ * Require main component from react directory
+ * @param {string} entrypoint
+ * @param {object} data
+ */
+function getRoot(entrypoint, data) {
+  var file = resolve('node_modules', ...entrypoint)
+
+  if(!fs.existsSync(file)) {
+    file = path.resolve(...entrypoint.slice(-2))
+  }
+
+  return require(file).default(data)
+}
+
+
+/**
+ * React DOM
+ * @param {object} data 
+ */
+function reactDOM(bundle, data) {
+  var app = getRoot(bundle.entry, data.meta)
+
+  function children(item, key) {
+    /**
+     * Add script and bundle to the head component
+     */
+    if(item.type == 'head') {
+      return clone(item, {
+        key,
+        children: head(item.props.children, data.meta.bundle && bundle.file)
+      })
+    }
+    /**
+     * Add props to each children of the body component
+     */
+    if(item.type == 'body') {
+      return clone(item, {
+        key,
+        ...item.props,
+        children: body(item.props.children, data)
+      })
+    }
+  }
+
+  return clone(app, {lang: 'en'}, app.props.children.map(children))
+}
+
+
+/**
  * Prepare data
- * @param {object} component 
+ * @param {object} comp 
  * @param {object} context
  */
-function prepare(component, {meta, store, state}) {
-  const name = component.props.name ?? component.props.id
+function getReactDom(comp, {meta, store, state, bundle}) {
   /**
    * Metadata and component
    */
-  const {children, ...props} = component.props
+  const {children, ...props} = comp.props
   const data = {
-    meta: {name, bundle: false, ...meta},
+    meta,
+    store,
     data: {
       props,
-      children: isFunc(component.type) ? null : component
-    },
-    store
+      children: isFunc(comp.type) ? null : comp
+    }
+  }
+  /**
+   * Get HTML root component
+   */
+  return {data: merge(data, {state}), html: html(reactDOM(bundle, data))}
+}
+
+
+/**
+ * Set bundle on specific basename
+ * @param {object} vindo  
+ */
+function getBundles(vindo) {
+  var data = {}
+  for(var pkg in vindo.bundles) {
+    var [hash, name] = decode(vindo.bundles[pkg])
+    
+    data[name] = {
+      hash,
+      file: `/${name}-${hash}.js`,
+      entry: [pkg].concat(vindo.source, 'react')
+    }
+  }
+  return data
+}
+
+
+/**
+ * Use bundle on specific basename if has one
+ */
+function useBundle(req, vindo) {
+  if(!vindo.bundles) {
+    throw new ReferenceError('No bundles found in vindo config.')
   }
 
+  const bundles = getBundles(vindo)
+  const bundle = bundles[req.base]
+  if(bundle) {
+    return bundle
+  }
+  
   /**
-   * Get entry component
+   * Use main entry point if bundle not exists
    */
-  var app = entry(data.meta)
-  return {
-    name,
-    data: merge(data, {state}),
-    html: html(
-      clone(app, {
-        children: app.props.children.map(dom(data))
-      })
-    )
+  if(bundles.main) {
+    bundles.main.entry = [vindo.source].concat('react')
+    return bundles.main
   }
 }
 
@@ -394,7 +452,7 @@ exports.server = function server() {
   /**
    * Persist data
    */
-  function persist(type, {action, data}) {
+  function persist({body: {action, data}}, type) {
     if(type == 'store') {
       switch(action) {
         case 'clear':
@@ -410,9 +468,16 @@ exports.server = function server() {
   }
   
 
-  return function(req, res, next, {meta, events}) {
+  return function(req, res, next, {meta, vindo, events}) {
     const state = HTTPState(req, events)
-    const store = persist(state.type, req.body)
+    const store = persist(req, state.type)
+    const bundle = useBundle(req, vindo)
+
+    meta.url = req.url
+    meta.base = req.base
+    meta.name = req.name
+    meta.query = req.query
+
     /**
      * Emit state request event
      */
@@ -443,17 +508,18 @@ exports.server = function server() {
       if(!isValid(comp)) {
         return
       }
-      
-      var args = prepare(comp, {
+
+      var args = getReactDom(comp, {
         meta,
         store,
+        bundle,
         state: state.data,
       })
       /**
        * Initial content
        */
       if(state.type == 'initial') {
-        data[manif.hash] = args.data
+        data[bundle.hash] = args.data
       }
       /**
        * Update content
@@ -464,9 +530,9 @@ exports.server = function server() {
       
       return args
     })
-
-    if(req.is(manif.hash)) {
-      return dispatch(data[manif.hash])
+    
+    if(bundle && req.is(bundle.hash)) {
+      return dispatch(data[bundle.hash])
     }
     
     next({state, store})

@@ -5,21 +5,41 @@ declare module '@vindo/react' {
 declare module '@vindo/react/request'
 declare module '@vindo/react/client' {
   type DataType = {
-    [key:string]: string | number | boolean
+    [key:string]: string | number | boolean | object | DataType
+  }
+  type HttpType = {
+    path?: string
+    data?: DataType
+  }
+  type ViewType = {
+    name: string
+    component: React.FC
   }
   type HeaderType = {
     [key:string]: string
   }
+  type LinkPropsType = {
+    href: string
+    text?: string
+    disabled?: boolean
+    children: React.ReactNode
+  }
+  type LinkType = React.FC<LinkPropsType> & {
+    redirect: (href: string, text?: string) => void
+  }
+
   export const http: {
-    set(args:{data?: DataType, path?: string}): Promise<object>
+    set(args:HttpType): Promise<object>
     get(...args:any): Promise<object>
     post(...args:any): Promise<object>
   }
-  export function useStore(name?:string): any
-  export function useState(state?:{[key:string]: any}): any
-  export function useContext(): any
-  export function Link(props:any): any
-  export function View(props:any): any
-  export function Content(props:any): any
-  export function Provider(props:any): any
+  export const Link: LinkType
+
+  export function useStore(name?:string): DataType
+  export function useState(state?:{[key:string]: DataType}): DataType
+  export function useContext(name?:string | null): any
+  export function redirect(href:string, text?:string): void
+  export function View(props:ViewType): JSX.Element
+  export function Content(props:DataType): JSX.Element
+  export function Provider(props:DataType): JSX.Element
 }

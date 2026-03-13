@@ -35,16 +35,29 @@ function update({path, type, ...data}, opts = {}) {
   request(args, opts).then((data) => event.render(data, type))
 }
 
+
+/**
+ * Redirect without reloading the page
+ */
+export function redirect(href, text = null) {
+  update({
+    type: 'route',
+    path: new URL(href, location.origin)
+  })
+  history.pushState({}, text, href)
+}
+
+
 /**
  * Use state
  */
 export function useState(initialState = {}) {
+  const ref = React.useRef({})
+  const [state, setState] = React.useState(initialState)
+  
   if(!isObj(initialState)) {
     throw Error('Custom state hook only allow object as parameter.')
   }
-
-  const ref = React.useRef({})
-  const [state, setState] = React.useState(initialState)
   
   merge(ref.current, state)
   
@@ -53,10 +66,10 @@ export function useState(initialState = {}) {
       event.updating = false
 
       /**
-       * Merge the value of its argument if the function (set) have more than 1 state as arguments
+       * This allow multiple state arguments to be set
        */
       if(arguments.length > 1) {
-        merge(state, ...arguments)
+        merge(...arguments)
       }
 
       if(isObj(state)) {
@@ -106,7 +119,7 @@ export function useState(initialState = {}) {
        * Merge the value of its argument if the function (set) have more than 1 state as arguments
        */
       if(arguments.length > 1) {
-        merge(data, ...arguments)
+        merge(...arguments)
       }
       event.update(data)
     },
@@ -163,77 +176,10 @@ export function useContext(name = null) {
     case 'store':
       return store
     case 'content':
-      return {data, name: meta.name}
+      return data
     default:
       return {meta, state}
   }
-}
-
-
-/**
- * Wrapper
- */
-export function Provider({children, ...value}) {
-  return React.createElement(_context, {value}, children)
-}
-
-/**
- * Link
- */
-export function Link({href, text, disabled, children}) {
-  if(!href) {
-    throw new ReferenceError(`Props 'href' is missing.`)
-  }
-
-  const onClick = (e) => {
-    if(disabled || location.pathname == href) {
-      return
-    }
-    e.preventDefault()
-    
-    update({
-      type: 'route',
-      path: new URL(href, location.origin)
-    })
-    history.pushState({}, text, href)
-  }
-
-  if(!children) {
-    children = text
-  }
-  return React.createElement('a', {href, onClick}, children)
-}
-
-
-/**
- * Component Holder
- */
-export function View() {}
-
-
-/**
- * Find current route
- */
-export function Content(props) {
-  const {data, name} = useContext('content')
-  /**
-   * View content coming from backend component (src/http)
-   */
-  if(React.isValidElement(data.children)) {
-    return data.children
-  }
-
-  /**
-   * View content coming from react directory (src/react)
-   */
-  return React.Children.map(props.children, (child) => {
-    if(!child.props.name) {
-      throw new ReferenceError(`Props 'name' is required for View component.`)
-    }
-    if(name == child.props.name) {
-      return child.props.component(data.props)
-    }
-  })
 }
 
 
@@ -278,12 +224,9 @@ export function render({head, body}, chunk) {
      * Set data
      */
     event.data = args
-    /**
-     * Updating content
-     */
     event.updating = true
     /**
-     * Reference for mouse event functions
+     * State and metadata reference for mouse event functions
      */
     chunk.refs = {
       state: new Proxy(event, {
@@ -291,7 +234,6 @@ export function render({head, body}, chunk) {
       }),
       meta: args.meta,
     }
-
     /**
      * For route request only
      */
@@ -308,7 +250,7 @@ export function render({head, body}, chunk) {
   }
 
   /**
-   * Update when back/forward button is pressed
+   * Update when back/forward button of browser is pressed
    */
   window.onpopstate = function onpopstate() {
     update({
@@ -325,4 +267,69 @@ export function render({head, body}, chunk) {
 }
 
 
-export default {render}
+/**
+ * Component Holder
+ */
+export function View() {}
+
+
+/**
+ * Wrapper
+ */
+export function Provider({children, ...value}) {
+  return React.createElement(_context, {value, name: 'tae'}, children)
+}
+
+/**
+ * Link
+ */
+export function Link({href, text, disabled, children, ...props}) {
+  if(!href) {
+    throw new ReferenceError(`No href property found or no value provided on property href.`)
+  }
+
+  const onClick = (e) => {
+    if(disabled || location.pathname == href) {
+      return
+    }
+    e.preventDefault()
+    redirect(href, text)
+  }
+
+  if(!children) {
+    children = text
+  }
+  return React.createElement('a', {href, onClick, ...props}, children)
+}
+
+
+/**
+ * Find current route
+ */
+export function Content(props) {
+  const data = useContext('content')
+  /**
+   * From backend: View content from backend (src/http)
+   */
+  if(React.isValidElement(data.children)) {
+    return data.children
+  }
+
+  /**
+   * From frontend: View content (<View name"page-name" ...>) from react directory (src/react)
+   */
+  return React.Children.map(props.children, (child) => {
+    if(!child.props.name) {
+      throw new ReferenceError(`Props 'name' is required for View component.`)
+    }
+    if(data.props.name == child.props.name) {
+      return child.props.component(data.props)
+    }
+  })
+}
+
+
+Link.back = function back(step = -1) {
+  window.history.go(step)
+}
+Link.redirect = redirect

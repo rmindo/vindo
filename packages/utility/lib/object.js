@@ -65,9 +65,7 @@ exports.has = function has(needle, haystack) {
 
   var list = Object.keys(haystack)
   if(Array.isArray(needle)) {
-    if(needle.filter((val) => list.includes(val)).length == needle.length) {
-      return true
-    }
+    return needle.filter((val) => list.includes(val)).length > 0
   }
 
   return list.includes(needle)

@@ -65,6 +65,22 @@ h1 {
   border: 0;
   outline: none;
 }
+.editor-inner {
+  padding: 25px;
+  overflow-y: auto;
+  position: relative;
+  background: #fff;
+}
+
+.editor-input {
+  outline: 0;
+  resize: none;
+  tab-size: 1;
+  font-size: 15px;
+  min-height: 550px;
+  position: relative;
+  caret-color: rgb(5, 5, 5);
+}
 .editor-input .editor-paragraph:first-child {
   border: 0;
   width: 100%;
@@ -76,24 +92,6 @@ h1 {
   margin-bottom: 20px;
   font-family: inherit;
   
-}
-.editor-inner {
-  padding: 25px;
-  overflow-y: auto;
-  position: relative;
-  background: #fff;
-  margin-bottom: 25px;
-}
-
-.editor-input {
-  outline: 0;
-  resize: none;
-  tab-size: 1;
-  height: 520px;
-  font-size: 15px;
-  position: relative;
-  caret-color: #444;
-  caret-color: rgb(5, 5, 5);
 }
 
 .editor-placeholder {

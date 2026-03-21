@@ -603,7 +603,6 @@ form .remember .checkbox {
 }
 #content header .top {
   display: flex;
-  margin-bottom: 30px;
   justify-content: space-between;
 }
 #content header .top .action {

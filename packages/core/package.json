@@ -36,17 +36,20 @@
   "license": "MIT",
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "default": "./lib/index.js"
     },
     "./config": {
+      "types": "./index.d.ts",
       "default": "./lib/config.js"
     },
     "./context": {
+      "types": "./index.d.ts",
       "default": "./lib/context.js"
     }
   },
   "dependencies": {
     "@vindo/exception": "^1.0.1",
-    "@vindo/utility": "file:../utility"
+    "@vindo/utility": "^0.0.8"
   }
 }

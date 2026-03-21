@@ -91,7 +91,7 @@ exports.start = function start(cb = null) {
    * Run the server
    */
   http.run = function run(cb = null) {
-    cont.context(conf, cb).then(ctx => http.serve(conf.port, ctx))
+    cont.getContext(conf, cb).then(ctx => http.serve(conf.port, ctx))
   }
 
   return http

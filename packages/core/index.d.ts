@@ -8,106 +8,100 @@ import type {Exception as ExceptionNS} from '@vindo/exception'
  * Dynamic type
  */
 type DynamicType = {
-  [key: string]: number | string | boolean | object | DynamicType
-}
-type DynamicAnyType = {
   [key: string]: any
-}
-type DynamicStringType = {
-  [key: string]: string
 }
 
 type UtilityType = typeof UtilityNS
 type ExceptionType = typeof ExceptionNS
 
 
-interface Route {
-  back: boolean
-  name: string
-  path: string[]
-  method: string
-  args: DynamicAnyType
-  query: DynamicAnyType
-  params: DynamicAnyType
-  exported: boolean
-  segments: string[]
-  pathname: string
-  basename: string
-  extension: string | undefined
-}
-
-
-/**
- * Configuration
-*/
-export interface Configuration {
-  port?: number
-  meta?: DynamicType
-  exert?: DynamicType
-  env?: DynamicStringType
-  include?: DynamicStringType
-}
-
-/**
- * Server
- */
-export interface Server extends Http.Server {
-  use(middleware: Function): void
-  run(dependencies?: Function, cb?: Function): void
-}
-export function start(cb?: Function): Server
-
-/**
- * Http Request
- */
-export interface HttpRequest extends Http.IncomingMessage, Route {
-  body: DynamicAnyType
-  route: Route
-  method: string
-  cookies: {
-    [key:string]: string
-  }
-  get(name:string): string
-  is(basename:string | undefined): boolean
-  isOrigin(): boolean
-}
-
-/**
- * Http Response
- */
-export interface HttpResponse extends Http.ServerResponse {
-  status(code: number): void
-  cookie(data: object): void
-  headers(headers: object): void
-  redirect(url: string): void
-  json(body: object, code?: number, headers?: object): void
-  html(body: string | null, code?: number, headers?: object): void
-  print(body: string | null, code?: number, headers?: object): void
-  eventStream(headers?: object): {
-    write(data: object | string): void
-  }
-}
-
 /**
  * Context
  */
 export interface Context extends UtilityType {
-  lib: DynamicAnyType
-  env: DynamicStringType
+  env: DynamicType
+  meta: DynamicType
+  vindo: DynamicType
 }
 
 /**
- * Http Server
+ * Core type definition
  */
-export interface HttpServer extends Http.Server {
-  context: Context
-  request: HttpRequest
-  response: HttpResponse
-  exception: ExceptionNS.OptionArgs
+declare module '@vindo/core' {
+
+  interface Route {
+    name: string
+    path: string[]
+    method: string
+    args: DynamicType
+    query: DynamicType
+    params: DynamicType
+    segments: string[]
+    pathname: string
+    basename: string
+    extension: string | undefined
+  }
+
+
+  /**
+   * Server
+   */
+  export interface Server extends Http.Server {
+    use(middleware: Function): void
+    run(dependencies?: Function, cb?: Function): void
+  }
+  export function start(cb?: Function): Server
+
+  /**
+   * Http Request
+   */
+  export interface HttpRequest extends Http.IncomingMessage, Route {
+    body: DynamicType
+    route: Route
+    method: string
+    cookies: {
+      [key:string]: string
+    }
+    get(name:string): string
+    is(basename:string | undefined): boolean
+    isOrigin(): boolean
+  }
+
+  /**
+   * Http Response
+   */
+  export interface HttpResponse extends Http.ServerResponse {
+    status(code: number): void
+    cookie(data: object): void
+    headers(headers: object): void
+    redirect(url: string): void
+    json(body: object, code?: number, headers?: object): void
+    html(body: string | null, code?: number, headers?: object): void
+    print(body: string | null, code?: number, headers?: object): void
+    eventStream(headers?: object): {
+      write(data: object | string): void
+    }
+  }
+  /**
+   * Http Server
+   */
+  export interface HttpServer extends Http.Server {
+    context: Context
+    request: HttpRequest
+    response: HttpResponse
+    exception: ExceptionNS.OptionArgs
+  }
+
+  export const utility: UtilityType
+  export const exception: ExceptionType
 }
 
-export const utility: UtilityType
-export const exception: ExceptionType
 
-export type Utility = UtilityNS
-export type Exception = ExceptionNS
+/**
+ * Context type definition
+ */
+declare module '@vindo/core/context' {
+  export function getctx(): Context
+  export function getter(path:string, ctx:Context): DynamicType
+  export function context(conf:DynamicType, inject:DynamicType): DynamicType
+}

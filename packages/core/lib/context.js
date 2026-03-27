@@ -22,278 +22,137 @@ module.exports = exports = {
 /**
  * Shorthand
  */
-const set = util.object.set
-const cut = util.object.filter
 const merge = util.object.merge
+const filter = util.object.filter
 const define = util.object.define
-const resolve = util.file.path.resolve
 
+
+var exc = {}
 
 
 /**
- * Get library
- * @param path
- * @param ctx
+ * 
+ * @param {object} ctx 
+ * @param {array} args 
+ * @param {number} length
  */
-function get(path, ctx) {
-  const excl = ['default']
+function fill(ctx, args, length) {
+  var i = 0
+  var z = length-1
 
-  try {
-    var lib = util.file.get(resolve(...path))
-    if(!lib) {
-      return {}
-    }
-
-    /**
-     * Add context to every function of the library
-     */
-    if(typeof lib == 'object') {
-      setContext(lib, ctx)
-    }
-    ctx.self = lib
-
-    /**
-     * Exported function on commonjs
-     * e.g
-     * module.exports = function()
-     */
-    if(typeof lib == 'function') {
-      if(isAsync(lib)) {
-        return toAsync(lib, ctx)
-      }
-      return lib(ctx)
-    }
-    
-    /**
-     * Libraries with no default function exported
-     */
-    const def = lib.default ?? lib.__init__
-    if(!def) {
-      return lib
-    }
-    /**
-     * Libraries with object exported
-     */
-    if(typeof def == 'object') {
-      return merge(lib, def, excl)
-    }
-
-    /**
-     * Libraries with default funcation exported
-     */
-    if(typeof def == 'function') {
-      if(isAsync(def)) {
-        return merge(lib, toAsync(def, ctx), excl)
-      }
-      else {
-        var fdef = def(ctx)
-        if(!fdef) {
-          return cut(lib, excl)
-        }
-        return merge(lib, fdef, excl)
-      }
-    }
+  var data = Array(length)
+  while(i < z) {
+    data.fill(args[i], i)
+    i++
   }
-  catch(e) {
-    if(!e.message.match(/Cannot\sfind\smodule/g)) {
-      throw e
-    }
-    return {}
-  }
+  data.fill(ctx, z)
+
+  return data
 }
 
 
 /**
- * Inject context as last optional argument
- * to every exported function except for default function
  * 
- * @param {object} lib Library object
- * @param {object} ctx Context
+ * @param {function} func 
  */
-function setContext(lib, ctx) {
-  /**
-   * function to execute
-   */
-  function exec() {
-    var a = args
-    var f = fn.toString()
-    var f = f.split(/\n/)[0]
-    var f = f.match(/^function.*\(([a-zA-Z_,.{}\s=]+)\)/)
-    var f = f[1] ? f[1].split(/,\s/) : []
-    
-    
-    if(f.length == a.length) {
-      return fn(...a)
-    }
-    var data = Array(f.length)
-    
-    var i = 0
-    while(i < f.length) {
-      if(i < a.length) {
-        data.fill(a[i], i)
-      }
-      else if(i == (f.length-1)) {
-        data.fill({...ctx, self: lib}, i)
-      }
-      else {
-        data.fill(undefined, i)
-      }
-      i++
-    }
-    return fn(...data)
-  }
+function getLength(func) {
+  var length = 0
+
+  var func = func.toString()
+  var func = func.split(/\n/)[0]
+  var func = func.match(/^function.*\(([a-zA-Z0-9_,.\s]+)\)/)
   
-  for(var i in lib) {
-    var fn = lib[i]
-    if(typeof fn !== 'function' || fn.name.match(/default_/)) {
-      continue
-    }
-    lib[i] = toFunc(fn.name, {args: ['...args'], refs: {fn, lib, ctx}, code: `(${exec})()`})
+  if(func) {
+    length = func[1].split(/,\s/).length
   }
-  return lib
+  return length
 }
 
 
 /**
- * Check if function is async
  * 
- * TODO:
- *  Need to improve
- * @param {function} fun Function to check
+ * @param {string} name 
+ * @param {object} lib 
+ * @param {object} ctx
  */
-function isAsync(fun) {
-  var lns = fun.toString().split(/\n/).slice(0,4)
-
-  /**
-   * Both commonjs and es6
-   */
-  var async = lns.filter((v, k) => {
-    var t = v.trim()
-    if(t.match(/^async\s/)) {
-      return t
-    }
-
-    if(t.match(/^return\s__awaiter/g) || k == 0 && t.match(/^function/) && t.match(/return\s__awaiter/)) {
-      return t
-    }
-  })
-  if(async.length == 1) {
-    return true
-  }
-  return false
-}
-
-
-/**
- * Create a function declaration
- * 
- * @param {string} name Name of the function
- * @param {string} code The script to run
- * @param {array} args Arguments of the function to make
- * @param {object} refs Reference of script
- */
-function toFunc(name, {code, args = [], refs}) {
-  var arr = ['return', 'function', name]
-
-  if(args) {
-    if(typeof args == 'string') {
-      arr.push(`(${args})`)
-    }
-    if(Array.isArray(args)) {
-      arr.push(
-        `(${args.length ? args.join(',') : ''})`
-      )
-    }
-  }
-  if(typeof code == 'string') {
-    arr.push(
-      `{return ${code}}`
-    )
-  }
-  return new Function(...Object.keys(refs), arr.join(' '))(...Object.values(refs))
-}
-
-
-/**
- * Recreate the async function as declared function with a new name
- * @param {function} func The default function
- * @param {object} ctx Context
- */
-function toAsync(def, ctx) {
-  const name = def.name == 'default_1' || def.name == '' ? 'async' : def.name;
-  
-  return {
-    [name]: toFunc(name, {
-      args: ['arg'],
-      refs: {def, ctx},
-      code: 'def(Object.assign(ctx, arg))'
-    })
-  }
-}
-
-
-/**
- * Get library
- * @param {array} path Array segment of path
- * @param {object} ctx Global context
- */
-async function getLib(path, ctx) {
-  var lib = exports.getter([ctx.vindo.source, path], ctx)
-  /**
-   * Merge functions from async to sync functions
-   */
-  if(typeof lib.async == 'function') {
-    return merge(lib, await lib.async(), ['async'])
-  }
-
-  return lib
-}
-
-
-/**
- * Chain library getter
- * e.g
- * ctx.mylib.recursive.path.of.the.function()
- * 
- * @param path
- * @param ctx
- */
-exports.getter = function getter(path, ctx) {
-  const lib = get(path, ctx) ?? {}
+function getter(name, lib, ctx) {
 
   return new Proxy(lib, {
-    get(target, name) {
-      /**
-       * Find a function inside the default function
-       */
-      if(target[name]) {
-        return target[name]
-      }
-      /**
-       * Look for existing library in the context
-       */
-      if(ctx[name]) {
-        return ctx[name]
-      }
-      /**
-       * Exclude async
-       */
-      if(name == 'then' || name == 'async') {
+    get(target, key) {
+      var func = target[key]
+
+      if(typeof func !== 'function') {
         return
       }
-      return exports.getter(path.concat(name), ctx)
+
+      return function(...args) {
+        if(exc[name]) {
+          if(exc[name].includes(key)) {
+            return func.call(target, ...args)
+          }
+        }
+        
+        var length = getLength(func)
+        if(length == args.length) {
+          return func.call(target, ...args)
+        }
+        
+        return func.call(target, ...fill(ctx, args, length))
+      }
     }
   })
+}
+
+
+/**
+ * Get libraries
+ */
+function getLibs(files, ctx) {
+  var defs = {}
+
+  /**
+   * Get files from lib directory
+   */
+  for(var file of files) {
+    if(/^\./.test(file.name)) {
+      continue
+    }
+
+    var name = file.name.split(/\./)[0]
+    if(name == 'index') {
+      name = ctx.file.path.basename(file.parentPath)
+    }
+
+    const lib = ctx.file.get([file.parentPath, file.name])
+    if(lib) {
+      if(lib.default) {
+        defs[name] = lib.default
+        /**
+         * In case the default have a value of object
+         */
+        if(typeof lib.default == 'object') {
+          merge(lib, lib.default)
+        }
+      }
+      /**
+       * Add context to every function except the default function
+       */
+      ctx[name] = getter(name, filter(lib, ['default']), ctx)
+    }
+  }
+
+  return [ctx, defs]
 }
 
 
 /**
  * Context
  * @param config Configuration
- * @param inject Dependencies to inject
+ * @param dependencies Dependencies to inject
  */
-exports.getContext = async function getContext(conf, inject) {
+exports.getContext = async function getContext(conf, dependencies) {
   var ctx = exports.context
+
   /**
    * Built-in utilities
    */
@@ -307,28 +166,46 @@ exports.getContext = async function getContext(conf, inject) {
     events: {value: util.events, writable: false},
     exception: {value: exception, writable: false},
   })
+
   /**
    * Add external libraries
    */
-  if(inject) {
-    merge(ctx, await inject(ctx))
+  if(dependencies) {
+    merge(ctx, await dependencies(ctx))
   }
+
   /**
-   * Add custom libraries
+   * All libraries from lib directory
+   */
+  var files = util.file.readdir([ctx.vindo.source, 'lib'])
+
+  /**
+   * Include libraries that is added manually in the config file
    */
   for(var key in conf.include) {
-    ctx[key] = await getLib(conf.include[key], ctx)
+    const path = util.file.path.resolve(conf.include[key])
+    files.push({
+      name: key,
+      parentPath: util.file.path.dirname(path)
+    })
   }
-  var lib = await getLib('lib', ctx)
+  
   /**
-   * Exclude, Its no longer needed
+   * Instantiate all default function
    */
-  cut(ctx, ['self'])
-  /**
-   * Use property name 'lib' as a base
-   * path for accessing sub libraries in the directory
-   */
-  set(ctx, 'lib', {writable: false, value: lib})
+  var [ctx, defs] = getLibs(files, ctx)
+  for(var i in defs) {
+    var def = defs[i]
+    if(typeof def !== 'function') {
+      continue
+    }
+
+    def = await def(ctx)
+    if(def) {
+      exc[i] = Object.keys(def) 
+      ctx[i] = merge(ctx[i], def)
+    }
+  }
 
   return ctx
 }

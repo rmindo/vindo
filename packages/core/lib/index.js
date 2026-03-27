@@ -8,8 +8,8 @@
 
 
 const http = require('./http')
-const cont = require('./context')
 const config = require('./config')
+const context = require('./context')
 const utility = require('@vindo/utility')
 const exception = require('@vindo/exception')
 
@@ -91,7 +91,7 @@ exports.start = function start(cb = null) {
    * Run the server
    */
   http.run = function run(cb = null) {
-    cont.getContext(conf, cb).then(ctx => http.serve(conf.port, ctx))
+    context.getContext(conf, cb).then(ctx => http.serve(conf.port, ctx))
   }
 
   return http

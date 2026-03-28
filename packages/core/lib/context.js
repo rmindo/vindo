@@ -205,17 +205,10 @@ exports.getContext = async function getContext(conf, dependencies) {
   }
 
   /**
-   * Instantiate all default function
+   * Get libraries
    */
   var [ctx, defs] = exports.getLibs(files, ctx)
-  for(var i in defs) {
-    var def = await defs[i](ctx)
-    if(def) {
-      exc[i] = keys(def)
-      ctx[i] = merge(ctx[i], def)
-    }
-  }
-
+  
   /**
    * Rename library
    */
@@ -223,6 +216,17 @@ exports.getContext = async function getContext(conf, dependencies) {
   for(var i in names) {
     ctx[names[i]] = ctx[i]
     ctx = filter(ctx, [i])
+  }
+
+  /**
+   * Instantiate all default function
+   */
+  for(var i in defs) {
+    var def = await defs[i](ctx)
+    if(def) {
+      exc[i] = keys(def)
+      ctx[i] = merge(ctx[i], def)
+    }
   }
 
   return ctx

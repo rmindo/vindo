@@ -86,7 +86,6 @@ declare module '@vindo/core' {
    * Http Server
    */
   export interface HttpServer extends Http.Server {
-    context: Context
     request: HttpRequest
     response: HttpResponse
     exception: ExceptionNS.OptionArgs
@@ -101,7 +100,7 @@ declare module '@vindo/core' {
  * Context type definition
  */
 declare module '@vindo/core/context' {
-  export function getctx(): Context
-  export function getter(path:string, ctx:Context): DynamicType
-  export function context(conf:DynamicType, inject:DynamicType): DynamicType
+  export const context: Context
+  export function getLibs(path:string, ctx:Context): DynamicType
+  export function getContext(conf:DynamicType, inject:DynamicType): DynamicType
 }

@@ -12,7 +12,7 @@ const util = require('@vindo/utility')
 /**
  * Default configuration
  */
-var defaultConfig = {
+const defaultConfig = {
   name: 'main',
   port: 9000,
   env: {
@@ -81,11 +81,6 @@ exports.config = function config(config = {}) {
     })
     conf = merge(conf, vindo)
   }
-  /**
-   * Add default access "lib" to the vindo.include at the bottom
-   * to ensure lib can access the libraries initiated before this property
-   */
-  conf.include.lib = 'lib'
   /**
    * Root directory of routes
    */

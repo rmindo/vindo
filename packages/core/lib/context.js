@@ -22,12 +22,18 @@ module.exports = exports = {
 /**
  * Shorthand
  */
+const keys = Object.keys
+const get = util.file.get
 const merge = util.object.merge
 const filter = util.object.filter
 const define = util.object.define
+const readdir = util.file.readdir
+const dirname = util.file.path.dirname
+const resolve = util.file.path.resolve
+const basename = util.file.path.basename
 
 
-var exc = {}
+const exc = {}
 
 
 /**
@@ -79,7 +85,7 @@ function getter(name, lib, ctx) {
 
   return new Proxy(lib, {
     get(target, key) {
-      var func = target[key]
+      const func = target[key]
 
       if(typeof func !== 'function') {
         return
@@ -92,7 +98,7 @@ function getter(name, lib, ctx) {
           }
         }
         
-        var length = getLength(func)
+        const length = getLength(func)
         if(length == args.length) {
           return func.call(target, ...args)
         }
@@ -106,6 +112,8 @@ function getter(name, lib, ctx) {
 
 /**
  * Get libraries
+ * @param {array} files 
+ * @param {object} ctx
  */
 function getLibs(files, ctx) {
   var defs = {}
@@ -120,13 +128,19 @@ function getLibs(files, ctx) {
 
     var name = file.name.split(/\./)[0]
     if(name == 'index') {
-      name = ctx.file.path.basename(file.parentPath)
+      name = basename(file.parentPath)
     }
 
-    const lib = ctx.file.get([file.parentPath, file.name])
-    if(lib) {
+    try {
+      const lib = get([file.parentPath, file.name])
+      if(!lib) {
+        continue
+      }
+
       if(lib.default) {
-        defs[name] = lib.default
+        if(typeof lib.default == 'function') {
+          defs[name] = lib.default
+        }
         /**
          * In case the default have a value of object
          */
@@ -139,6 +153,7 @@ function getLibs(files, ctx) {
        */
       ctx[name] = getter(name, filter(lib, ['default']), ctx)
     }
+    catch(e) {}
   }
 
   return [ctx, defs]
@@ -177,16 +192,15 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * All libraries from lib directory
    */
-  var files = util.file.readdir([ctx.vindo.source, 'lib'])
+  var files = readdir([ctx.vindo.source, 'lib'], {recursive: true})
 
   /**
    * Include libraries that is added manually in the config file
    */
   for(var key in conf.include) {
-    const path = util.file.path.resolve(conf.include[key])
     files.push({
       name: key,
-      parentPath: util.file.path.dirname(path)
+      parentPath: dirname(resolve(conf.include[key]))
     })
   }
   
@@ -195,14 +209,9 @@ exports.getContext = async function getContext(conf, dependencies) {
    */
   var [ctx, defs] = getLibs(files, ctx)
   for(var i in defs) {
-    var def = defs[i]
-    if(typeof def !== 'function') {
-      continue
-    }
-
-    def = await def(ctx)
+    var def = await defs[i](ctx)
     if(def) {
-      exc[i] = Object.keys(def) 
+      exc[i] = keys(def)
       ctx[i] = merge(ctx[i], def)
     }
   }

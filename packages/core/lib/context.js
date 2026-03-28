@@ -115,7 +115,7 @@ function getter(name, lib, ctx) {
  * @param {array} files 
  * @param {object} ctx
  */
-function getLibs(files, ctx) {
+exports.getLibs = function getLibs(files, ctx) {
   var defs = {}
 
   /**
@@ -197,23 +197,32 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Include libraries that is added manually in the config file
    */
-  for(var key in conf.include) {
+  for(var key in conf.context.include) {
     files.push({
       name: key,
-      parentPath: dirname(resolve(conf.include[key]))
+      parentPath: dirname(resolve(conf.context.include[key]))
     })
   }
-  
+
   /**
    * Instantiate all default function
    */
-  var [ctx, defs] = getLibs(files, ctx)
+  var [ctx, defs] = exports.getLibs(files, ctx)
   for(var i in defs) {
     var def = await defs[i](ctx)
     if(def) {
       exc[i] = keys(def)
       ctx[i] = merge(ctx[i], def)
     }
+  }
+
+  /**
+   * Rename library
+   */
+  var names = conf.context.names
+  for(var i in names) {
+    ctx[names[i]] = ctx[i]
+    ctx = filter(ctx, [i])
   }
 
   return ctx

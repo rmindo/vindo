@@ -6,8 +6,10 @@
 
 'use strict'
 
+
 const path = require('path')
 const util = require('@vindo/utility')
+
 
 /**
  * Default configuration
@@ -18,7 +20,10 @@ const defaultConfig = {
   env: {
     ENV_PATH: {}
   },
-  include: {},
+  context: {
+    names: {},
+    include: {}
+  },
   source: 'src',
   routes: 'http',
 }

@@ -215,8 +215,8 @@ exports.getContext = async function getContext(conf, dependencies) {
   var names = conf.context.names
   for(var i in names) {
     ctx[names[i]] = ctx[i]
-    ctx = filter(ctx, [i])
   }
+  ctx = filter(ctx, keys(names))
 
   /**
    * Instantiate all default function

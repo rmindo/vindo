@@ -31,6 +31,7 @@ const readdir = util.file.readdir
 const dirname = util.file.path.dirname
 const resolve = util.file.path.resolve
 const basename = util.file.path.basename
+const toCamelCase = util.string.toCamelCase
 
 
 const exc = {}
@@ -85,25 +86,25 @@ function getter(name, lib, ctx) {
 
   return new Proxy(lib, {
     get(target, key) {
-      const func = target[key]
+      const val = target[key]
 
-      if(typeof func !== 'function') {
-        return
+      if(typeof val !== 'function') {
+        return val
       }
 
       return function(...args) {
         if(exc[name]) {
           if(exc[name].includes(key)) {
-            return func.call(target, ...args)
+            return val.call(target, ...args)
           }
         }
         
-        const length = getLength(func)
+        const length = getLength(val)
         if(length == args.length) {
-          return func.call(target, ...args)
+          return val.call(target, ...args)
         }
         
-        return func.call(target, ...fill(ctx, args, length))
+        return val.call(target, ...fill(ctx, args, length))
       }
     }
   })
@@ -115,7 +116,7 @@ function getter(name, lib, ctx) {
  * @param {array} files 
  * @param {object} ctx
  */
-exports.getLibs = function getLibs(files, ctx) {
+exports.getLibs = async function getLibs(files, ctx) {
   var defs = {}
 
   /**
@@ -137,6 +138,10 @@ exports.getLibs = function getLibs(files, ctx) {
         continue
       }
 
+      if(/-/g.test(name)) {
+        name = toCamelCase(name)
+      }
+
       if(lib.default) {
         if(typeof lib.default == 'function') {
           defs[name] = lib.default
@@ -156,7 +161,19 @@ exports.getLibs = function getLibs(files, ctx) {
     catch(e) {}
   }
 
-  return [ctx, defs]
+
+  /**
+   * Instantiate all default function and merge
+   */
+  for(var i in defs) {
+    var def = await defs[i](ctx)
+    if(def) {
+      exc[i] = keys(def)
+      ctx[i] = merge(ctx[i], def)
+    }
+  }
+
+  return ctx
 }
 
 
@@ -207,27 +224,15 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Get libraries
    */
-  var [ctx, defs] = exports.getLibs(files, ctx)
+  var ctx = await exports.getLibs(files, ctx)
   
   /**
-   * Rename library
+   * Rename libraries
    */
   var names = conf.context.names
   for(var i in names) {
     ctx[names[i]] = ctx[i]
   }
-  ctx = filter(ctx, keys(names))
 
-  /**
-   * Instantiate all default function
-   */
-  for(var i in defs) {
-    var def = await defs[i](ctx)
-    if(def) {
-      exc[i] = keys(def)
-      ctx[i] = merge(ctx[i], def)
-    }
-  }
-
-  return ctx
+  return filter(ctx, keys(names))
 }

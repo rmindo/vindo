@@ -23,6 +23,12 @@
     "cms",
     "panel"
   ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
   "peerDependencies": {
     "@vindo/core": "file:../core",
     "@vindo/react": "file:../../../../Web/deziper.com/node_modules/@vindo/react",

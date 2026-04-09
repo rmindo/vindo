@@ -22,10 +22,22 @@
     "react-dom": "file:../../../../Web/deziper.com/node_modules/react-dom"
   },
   "exports": {
-    ".": "./index.js",
-    "./util": "./lib/util.js",
-    "./client": "./lib/client.js",
-    "./request": "./lib/request.js"
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./util": {
+      "types": "./index.d.ts",
+      "default": "./lib/util.js"
+    },
+    "./client": {
+      "types": "./index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./request": {
+      "types": "./index.d.ts",
+      "default": "./lib/request.js"
+    }
   },
   "author": "Ruel Mindo",
   "license": "MIT"

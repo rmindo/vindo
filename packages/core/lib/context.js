@@ -111,12 +111,14 @@ function getter(name, lib, ctx) {
 }
 
 
+
 /**
  * Get libraries
  * @param {array} files 
  * @param {object} ctx
+ * @param {object} conf
  */
-exports.getLibs = async function getLibs(files, ctx) {
+exports.getLibs = async function getLibs(files, ctx, conf) {
   var defs = {}
 
   /**
@@ -142,6 +144,14 @@ exports.getLibs = async function getLibs(files, ctx) {
         name = toCamelCase(name)
       }
 
+      /**
+       * Rename library
+       */
+      const names = conf.context.names
+      if(names[name]) {
+        name = names[name]
+      }
+
       if(lib.default) {
         if(typeof lib.default == 'function') {
           defs[name] = lib.default
@@ -153,9 +163,6 @@ exports.getLibs = async function getLibs(files, ctx) {
           merge(lib, lib.default)
         }
       }
-      /**
-       * Add context to every function except the default function
-       */
       ctx[name] = getter(name, filter(lib, ['default']), ctx)
     }
     catch(e) {}
@@ -207,15 +214,15 @@ exports.getContext = async function getContext(conf, dependencies) {
   }
 
   /**
-   * All libraries from lib directory
+   * Read all libraries from lib directory
    */
-  var files = readdir([ctx.vindo.source, 'lib'], {recursive: true})
+  var paths = readdir([ctx.vindo.source, 'lib'], {recursive: true})
 
   /**
    * Include libraries that is added manually in the config file
    */
   for(var key in conf.context.include) {
-    files.push({
+    paths.push({
       name: key,
       parentPath: dirname(resolve(conf.context.include[key]))
     })
@@ -224,15 +231,5 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Get libraries
    */
-  var ctx = await exports.getLibs(files, ctx)
-  
-  /**
-   * Rename libraries
-   */
-  var names = conf.context.names
-  for(var i in names) {
-    ctx[names[i]] = ctx[i]
-  }
-
-  return filter(ctx, keys(names))
+  return await exports.getLibs(paths, ctx, conf)
 }

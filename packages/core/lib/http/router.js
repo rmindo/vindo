@@ -186,7 +186,12 @@ function error(req, res, ctx) {
           merge(e, {...exce.statuses[code], data: {message: msg[0]}, log: true})
         }
       }
-      
+      /**
+       * Optional: Log error in the console
+       */
+      if(e.log) {
+        console.error(e)
+      }
       /**
        * Get handler from current directory or root
        */
@@ -194,9 +199,6 @@ function error(req, res, ctx) {
       if(fn) {
         ctx.error = e
         
-        if(e.log) {
-          console.error(e)
-        }
         if(fn.default) {
           fn = fn.default
         }
@@ -209,10 +211,6 @@ function error(req, res, ctx) {
          * Handle template render
          */
         return render.call(self, data, code)
-      }
-
-      if(e.log) {
-        console.error(e)
       }
       res.print(e.toString(), code)
     }

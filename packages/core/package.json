@@ -1,6 +1,6 @@
 {
   "name": "@vindo/core",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Core service for managing routes, context and middleware.",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -48,8 +48,9 @@
       "default": "./lib/context.js"
     }
   },
-  "dependencies": {
-    "@vindo/exception": "^1.0.1",
-    "@vindo/utility": "^0.0.8"
+  "dependencies": {},
+  "peerDependencies": {
+    "@vindo/exception": "*",
+    "@vindo/utility": "*"
   }
 }

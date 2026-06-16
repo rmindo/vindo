@@ -118,7 +118,7 @@ function getter(name, lib, ctx) {
  * @param {object} ctx
  * @param {object} conf
  */
-exports.getLibs = async function getLibs(files, ctx, conf) {
+exports.getLibs = async function getLibs(files = [], ctx, conf) {
   var defs = {}
 
   /**
@@ -216,13 +216,12 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Read all libraries from lib directory
    */
-  var paths = readdir([ctx.vindo.source, 'lib'], {recursive: true})
-
+  var files = readdir([ctx.vindo.source, 'lib'], {recursive: true}) ?? []
   /**
    * Include libraries that is added manually in the config file
    */
   for(var key in conf.context.include) {
-    paths.push({
+    files.push({
       name: key,
       parentPath: dirname(resolve(conf.context.include[key]))
     })
@@ -231,5 +230,5 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Get libraries
    */
-  return await exports.getLibs(paths, ctx, conf)
+  return await exports.getLibs(files, ctx, conf)
 }

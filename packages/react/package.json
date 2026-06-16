@@ -1,6 +1,6 @@
 {
   "name": "@vindo/react",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "React SSR for @vindo/core framework.",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -18,8 +18,8 @@
     "react"
   ],
   "peerDependencies": {
-    "react": "file:../../../../Web/deziper.com/node_modules/react",
-    "react-dom": "file:../../../../Web/deziper.com/node_modules/react-dom"
+    "react": "*",
+    "react-dom": "*"
   },
   "exports": {
     ".": {

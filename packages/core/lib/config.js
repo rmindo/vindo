@@ -59,8 +59,8 @@ exports.vindo = function vindo(name = null) {
   if(!util.file.exists(file)) {
     throw ReferenceError(`vindo.config file does not exists.`)    
   }
-  const config = util.file.get(file)
 
+  const config = util.file.get(file)
   if(config[name]) {
     return config[name]
   }

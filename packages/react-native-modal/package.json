@@ -1,0 +1,41 @@
+{
+  "name": "@vindo/react-native-modal",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmindo/vindo.git",
+    "directory": "packages/react-native-modal"
+  },
+  "homepage": "https://github.com/rmindo/vindo/tree/main/packages/react-native-modal#readme",
+  "keywords": [
+    "react",
+    "store",
+    "modal",
+    "redux"
+  ],
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "@vindo/store": "*"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./stack": {
+      "types": "./index.d.ts",
+      "default": "./lib/stack.js"
+    }
+  },
+  "dependencies": {}
+}

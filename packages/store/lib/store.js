@@ -11,21 +11,24 @@
 import state from './state'
 
 
-/**
- * Store methods
- */
-export default function({data, dispatch}) {
 
-  return new Proxy({
+/**
+ * The object to proxy
+ * 
+ * @param {object} data 
+ * @param {function} dispatch 
+ */
+function store(data, dispatch) {
+  return {
     state,
     /**
      * Set global state
      */
-    set(arg) {
+    async set(arg) {
       if(typeof arg == 'function') {
-        arg = arg(data)
+        arg = await arg(data)
       }
-      dispatch(arg)
+      return await dispatch(arg)
     },
     /**
      * Get data
@@ -50,17 +53,29 @@ export default function({data, dispatch}) {
     /**
      * Dispatch action
      */
-    dispatch(arg) {
+    async dispatch(arg) {
       if(typeof arg == 'function') {
-        arg = arg(data)
+        arg = await arg(data)
       }
       if(arg.type) {
-        arg.type = arg.type.split(/\//)
+        const [reducer, name] = arg.type.split(/\//)
+        if(name) {
+          arg.reducer = data[reducer][name]
+        }
       }
-      dispatch(arg)
+      return await dispatch(arg)
     }
-  },
-  {
+  }
+}
+
+
+/**
+ * Store proxy
+ */
+export default function({data, dispatch}) {
+  const target = store(data, dispatch)
+
+  const storeProxy = new Proxy(target, {
     get(target, key) {
       if(target[key]) {
         return target[key]
@@ -68,5 +83,6 @@ export default function({data, dispatch}) {
       return data[key]
     }
   })
+  return Object.freeze(storeProxy)
 }
 

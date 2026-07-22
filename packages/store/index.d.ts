@@ -16,14 +16,14 @@ declare module '@vindo/store' {
     storage?: {
       key: string
       engine: any
-      persist?: string[]
+      persist: string[]
     },
     reducers?: {
       [key: string]: Function | ReducerType
     }
   }
   export function pure(component:React.FC<any>)
-  export function useStore(conf?:ConfigType)
+  export function useContext()
   export function configure(conf:ConfigType)
   export function Provider(props: StoreType & React.PropsWithChildren)
 }

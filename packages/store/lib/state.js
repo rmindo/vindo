@@ -15,7 +15,7 @@ import React from 'react'
 /**
  * Use state
  */
-export default function(initialState = {}, otherState = {}) {
+export default function state(initialState = {}, otherState = {}) {
   const {current} = React.useRef({})
   const [state, setState] = React.useState(initialState)
   

@@ -13,13 +13,7 @@ import React from 'react'
 
 import store from './store'
 import event from './event'
-
-
-/**
- * Shorthand
- */
-const parse = JSON.parse
-const stringify = JSON.stringify
+import storage from './storage'
 
 
 /**
@@ -37,12 +31,13 @@ function isFunc(arg) {
   return typeof arg == 'function'
 }
 
+
 /**
  * Merge object with empty object as default
  * @param {object} origin 
  * @param  {array} obj
  */
-function merge(origin, ...obj) {
+function assign(origin, ...obj) {
   return Object.assign(
     {},
     Object.assign(origin, ...obj)
@@ -58,24 +53,18 @@ function merge(origin, ...obj) {
  * @returns 
  */
 function reducer(initial, value) {
-  return merge(initial, value)
+  return assign(initial, value)
 }
 
 
-
+/**
+ * Initialize default state from reducers
+ * @param {object} reducers 
+ */
 function initDefaultState(reducers) {
   Object.values(reducers).forEach(({initialState}) => {
     if(initialState) {
-      merge(context._currentValue, initialState)
-    }
-  })
-}
-
-
-async function initStoredState(storage) {
-  storage.get('root').then((root) => {
-    if(root) {
-      merge(context._currentValue, root)
+      assign(context._currentValue, initialState)
     }
   })
 }
@@ -90,48 +79,17 @@ async function initStoredState(storage) {
 export function pure(component) {
   return React.memo((props) => {
     return component(
-      merge({...props}, React.useContext(context))
+      assign({...props}, React.useContext(context))
     )
   })
 }
 
 
 /**
- * Use store from context
- * @returns {object}
+ * Global context
  */
-export function useStore() {
-  const {store} = React.useContext(context)
-  return store
-}
-
-
-function getStorage({key, engine, persist}) {
-  return {
-    key,
-    async set(name, data) {
-      this.get(name).then((root) => {
-        if(!root) {
-          root = {}
-        }
-        for(var i in data) {
-          if(persist.includes(i)) {
-            root[i] = data[i]
-          }
-        }
-        engine.setItem(name, stringify(root))
-      })
-    },
-    async get(name) {
-      try {
-        return engine.getItem(name).then(data => parse(data))
-      }
-      catch(e) {}
-    },
-    async remove(name) {
-      await engine.removeItem(name)
-    }
-  }
+export function useContext() {
+  return Object.freeze({...context._currentValue})
 }
 
 
@@ -141,15 +99,24 @@ function getStorage({key, engine, persist}) {
  * @param {object} conf
  * @returns {object}
  */
-export function configure({storage, reducers}) {
-  var storage = getStorage(storage)
-
-  initStoredState(storage)
-  initDefaultState(reducers)
+export function configure(conf) {
+  const _storage = storage(conf.storage)
+  /**
+   * Add persisted data to the context
+   */
+  _storage.data((root) => {
+    if(root) {
+      assign(context._currentValue, root)
+    }
+  })
+  /**
+   * Default state of reducers
+   */
+  initDefaultState(conf.reducers)
 
   return {
-    storage,
-    reducers: merge({}, reducers),
+    storage: _storage,
+    reducers: assign({}, conf.reducers),
   }
 }
 
@@ -160,11 +127,10 @@ export function configure({storage, reducers}) {
  * 
  * @param {object} name  - Reducer's name
  * @param {object} reducer  - Reducers and actions to execute
- * @param {object} store - All context added in the store
- * @param {function} dispatcher
+ * @param {object} state - All context added in the store
  * @returns {object}
  */
-function proxyReducer(name, store, reducer, dispatcher) {
+function proxyReducer(name, state, reducer) {
 
   return new Proxy(reducer, {
     get(target, key) {
@@ -176,8 +142,10 @@ function proxyReducer(name, store, reducer, dispatcher) {
 
       if(isFunc(item)) {
         return async function(arg) {
-          const data = await item(arg, store)
-          dispatcher(data)
+          const data = await item(arg, state)
+          if(data) {
+            state.store.set(data)
+          }
           return data
         }
       }
@@ -189,50 +157,26 @@ function proxyReducer(name, store, reducer, dispatcher) {
 
 
 /**
- * Set reducer to global state
+ * Add reducers to global state
  * 
- * @param {object} store - All context added in the store
+ * @param {object} state - All context added in the store
  * @param {object} reducers - Reducers and actions to execute
- * @param {function} dispatcher 
  * @returns {object}
  */
-function setReducers(store, reducers, dispatcher) {
+function addReducers(state, reducers) {
   const data = {}
   
   for(var i in reducers) {
     const reducer = reducers[i]
 
     if(isFunc(reducer)) {
-      data[i] = reducer(store)
+      data[i] = reducer(state)
     }
     else {
-      data[i] = proxyReducer(i, store, reducer, dispatcher)
+      data[i] = proxyReducer(i, state, reducer)
     }
   }
-  return merge(store, data)
-}
-
-
-/**
- * Execute action from reducers
- * 
- * @param {object} data - Reducer's type and action name
- * @param {object} store - All context added in the store
- * @param {object} reducers 
- * @returns 
- */
-async function setState(data, state, reducers) {
-  const reducer = reducers[data.type[0]]
-  if(!reducer) {
-    return
-  }
-
-  const action = reducer[data.type[1]]
-  if(!action) {
-    return
-  }
-
-  return await action(data.data, state)
+  return assign(state, data)
 }
 
 
@@ -248,25 +192,27 @@ export function Provider({config, children}) {
 
 
   React.useEffect(() => {
-    setReducers(state, reducers, dispatch)
+    addReducers(state, reducers)
   }, [])
 
-  
-  /**
-   * Dispatch action
-   */
-  async function dispatch(data) {
-    if(Array.isArray(data.type)) {
-      data = await setState(data, state, reducers)
-    }
-    if(storage) {
-      storage.set(storage.key, data)
-    }
-    dispatcher(data)
-  }
 
   state.event = event
-  state.store = store({data: state, storage, dispatch})
+  state.store = store({
+    data: state,
+    async dispatch(data) {
+      if(isFunc(data.reducer)) {
+        data = await data.reducer(data?.data)
+      }
+
+      if(data) {
+        dispatcher(data)
+        if(storage) {
+          storage.set(storage.key, data)
+        }
+        return data
+      }
+    }
+  })
 
   return React.createElement(context, {value: state}, children)
 }

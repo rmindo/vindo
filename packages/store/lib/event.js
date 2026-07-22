@@ -13,7 +13,7 @@ const events = {}
 /**
  * Default export
  */
-export default {
+export default Object.freeze({
   /**
    * Add event
    */
@@ -34,4 +34,4 @@ export default {
    * Remove event
    */
   remove: (name) => delete events[name]
-}
+})

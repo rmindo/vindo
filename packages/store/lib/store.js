@@ -12,6 +12,15 @@ import state from './state'
 
 
 /**
+ * Shorthand of typeof function
+ * @param {function} arg 
+ * @returns 
+ */
+function isFunc(arg) {
+  return typeof arg == 'function'
+}
+
+/**
  * Remove non object value of a reducer
  * @param {object} arg 
  * @param {object} data 
@@ -52,17 +61,21 @@ function store(data, dispatch) {
      * Replace value
      */
     replace(arg) {
+      if(arg) {
+        arg = clear(arg, data)
+      }
       dispatch(arg)
     },
     /**
      * Set global state
      */
     async set(arg) {
-      if(typeof arg == 'function') {
+      if(isFunc(arg)) {
         arg = await arg(data)
       }
 
       if(arg) {
+        arg = clear(arg, data)
         arg = merge(arg, data)
       }
       return await dispatch(arg)
@@ -96,7 +109,7 @@ function store(data, dispatch) {
      * Dispatch action
      */
     async dispatch(arg) {
-      if(typeof arg == 'function') {
+      if(isFunc(arg)) {
         arg = await arg(data)
       }
       /**

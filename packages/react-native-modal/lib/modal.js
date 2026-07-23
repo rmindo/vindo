@@ -17,7 +17,7 @@ const entries = Object.fromEntries
  * Modal properties
  */
 export default function({event, store}) {
-  const funcs = {}
+  const modal = {}
   const initialValue = {
     stack: {},
     isOpen: false,
@@ -50,7 +50,7 @@ export default function({event, store}) {
   /**
    * Get current modal
    */
-  funcs.get = function get(name) {
+  modal.get = function get(name) {
     return store.modal.stack[name]
   }
 
@@ -58,7 +58,7 @@ export default function({event, store}) {
   /**
    * Open and add modal to stack
    */
-  funcs.open = function open(data) {
+  modal.open = function open(data) {
     store.modal.isOpen = true
     store.modal.isClose = false
 
@@ -73,7 +73,7 @@ export default function({event, store}) {
   /**
    * Close top level modal
    */
-  funcs.close = function close(data = {}) {
+  modal.close = function close(data = {}) {
     event.emit('modal.close', data)
   }
 
@@ -81,10 +81,10 @@ export default function({event, store}) {
   /**
    * Modal option
    */
-  funcs.option = function option(data = {}) {
+  modal.option = function option(data = {}) {
     event.emit('modal.option', data)
   }
 
-  return assign(initialValue, store.modal, funcs)
+  return assign(initialValue, store.modal, modal)
 }
 

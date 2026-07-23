@@ -11,6 +11,33 @@
 import state from './state'
 
 
+/**
+ * Remove non object value of a reducer
+ * @param {object} arg 
+ * @param {object} data 
+ */
+function clear(arg, data) {
+  for(var i in arg) {
+    if(!arg[i] && data[i][Symbol.for('type')] == 'reducer') {
+      delete arg[i]
+    }
+  }
+  return arg
+}
+
+/**
+ * Merge old and new state
+ * @param {object} arg
+ * @param {object} data
+ */
+function merge(arg, data) {
+  for(var i in arg) {
+    if(data[i]) {
+      arg[i] = Object.assign(data[i], arg[i])
+    }
+  }
+  return arg
+}
 
 /**
  * The object to proxy
@@ -22,11 +49,21 @@ function store(data, dispatch) {
   return {
     state,
     /**
+     * Replace value
+     */
+    replace(arg) {
+      dispatch(arg)
+    },
+    /**
      * Set global state
      */
     async set(arg) {
       if(typeof arg == 'function') {
         arg = await arg(data)
+      }
+
+      if(arg) {
+        arg = merge(arg, data)
       }
       return await dispatch(arg)
     },
@@ -46,7 +83,12 @@ function store(data, dispatch) {
      * Remove data
      */
     remove(name) {
+      const type = Symbol.for('reducer')
+
       if(data[name]) {
+        if(data[name][type] == 'reducer') {
+          throw new Error('You cannot remove a reducer.')
+        }
         dispatch({[name]: null})
       }
     },
@@ -57,10 +99,21 @@ function store(data, dispatch) {
       if(typeof arg == 'function') {
         arg = await arg(data)
       }
+      /**
+       * Remove value of null or boolean for reducers
+       */
+      arg = clear(arg, data)
+      arg = merge(arg, data)
+      /**
+       * Reducer's type
+       */
       if(arg.type) {
         const [reducer, name] = arg.type.split(/\//)
         if(name) {
-          arg.reducer = data[reducer][name]
+          /**
+           * Use symbol as key to avoid key collision
+           */
+          arg[Symbol.for('reducer')] = data[reducer][name]
         }
       }
       return await dispatch(arg)

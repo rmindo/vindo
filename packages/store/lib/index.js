@@ -131,7 +131,6 @@ export function configure(conf) {
  * @returns {object}
  */
 function proxyReducer(name, state, reducer) {
-
   return new Proxy(reducer, {
     get(target, key) {
       const item = target[key]
@@ -165,17 +164,19 @@ function proxyReducer(name, state, reducer) {
  */
 function addReducers(state, reducers) {
   const data = {}
+  const type = Symbol.for('type')
   
   for(var i in reducers) {
     const reducer = reducers[i]
-
     if(isFunc(reducer)) {
       data[i] = reducer(state)
     }
     else {
       data[i] = proxyReducer(i, state, reducer)
     }
+    data[i][type] = 'reducer'
   }
+
   return assign(state, data)
 }
 
@@ -199,13 +200,24 @@ export function Provider({config, children}) {
   state.event = event
   state.store = store({
     data: state,
+    /**
+     * Dispatch reducer or new state
+     */
     async dispatch(data) {
-      if(isFunc(data.reducer)) {
-        data = await data.reducer(data?.data)
+      const key = Symbol.for('reducer')
+      /**
+       * Get the reducer with symbol as key
+       * to avoid key collision from user input.
+       */
+      if(isFunc(data[key])) {
+        data = await data[key](data?.data)
       }
 
       if(data) {
         dispatcher(data)
+        /**
+         * Store only if the state is whitelisted
+         */
         if(storage) {
           storage.set(storage.key, data)
         }

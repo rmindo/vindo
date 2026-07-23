@@ -8,46 +8,45 @@
 
 
 
-export default function(storage) {
-  const key = storage?.key
-  const engine = storage?.engine
-  const persist = storage?.persist
-
-
-  function data(cb) {
-    get(key)?.then(cb)
+export default function(storage = {}) {
+  if(!storage.key) {
+    storage.key = 'local:store'
   }
 
-  function remove(name) {
-    if(engine) {
-      engine.removeItem(name)
+  storage.data = function data(cb) {
+    storage.get(storage.key)?.then(cb)
+  }
+
+  storage.remove = function remove(name) {
+    if(storage.engine) {
+      storage.engine.removeItem(name)
     }
   }
 
-  function get(name) {
-    if(engine) {
-      return engine.getItem(name).then(data => JSON.parse(data))
+  storage.get = function get(name) {
+    if(storage.engine) {
+      return storage.engine.getItem(name).then(data => JSON.parse(data))
     }
   }
 
-  function set(name, data) {
-    get(name)?.then((root) => {
-      if(key !== name) {
-        root = data
+  storage.set = function set(name, data) {
+    storage.get(name)?.then((store) => {
+      if(storage.key !== name) {
+        store = data
       }
       else {
-        if(!root) {
-          root = {}
+        if(!store) {
+          store = {}
         }
         for(var i in data) {
-          if(persist.includes(i)) {
-            root[i] = data[i]
+          if(storage.persist.includes(i)) {
+            store[i] = data[i]
           }
         }
       }
-      engine.setItem(name, JSON.stringify(root))
+      storage.engine.setItem(name, JSON.stringify(store))
     })
   }
 
-  return {key, get, set, data, remove}
+  return storage
 }

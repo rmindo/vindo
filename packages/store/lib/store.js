@@ -113,7 +113,7 @@ function store(data, dispatch) {
         arg = await arg(data)
       }
       /**
-       * Remove value of null or boolean for reducers
+       * Merge state except the reducers
        */
       arg = clear(arg, data)
       arg = merge(arg, data)

@@ -135,21 +135,16 @@ function proxyReducer(name, state, reducer) {
     get(target, key) {
       const item = target[key]
 
-      if(!target[key]) {
-        return
-      }
-
-      if(isFunc(item)) {
-        return async function(arg) {
-          const data = await item(arg, state)
-          if(data) {
-            state.store.set(data)
-          }
-          return data
-        }
-      }
+      if(!item) return
+      if(!isFunc(item)) return item
       
-      return item
+      return async function(arg) {
+        const data = await item(arg, state)
+        if(data) {
+          state.store.set(data)
+        }
+        return data
+      }
     }
   })
 }
@@ -216,7 +211,7 @@ export function Provider({config, children}) {
       if(data) {
         dispatcher(data)
         /**
-         * Store only if the state is whitelisted
+         * Store whitelisted state
          */
         if(storage) {
           storage.set(storage.key, data)

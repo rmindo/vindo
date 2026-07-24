@@ -14,24 +14,17 @@ import state from './state'
 /**
  * Shorthand of typeof function
  * @param {function} arg 
- * @returns 
  */
 function isFunc(arg) {
   return typeof arg == 'function'
 }
 
 /**
- * Remove non object value of a reducer
+ * Check reducer
  * @param {object} arg 
- * @param {object} data 
  */
-function clear(arg, data) {
-  for(var i in arg) {
-    if(!arg[i] && data[i][Symbol.for('type')] == 'reducer') {
-      delete arg[i]
-    }
-  }
-  return arg
+function isReducer(arg) {
+  return arg && arg[Symbol.for('type')] == 'reducer'
 }
 
 /**
@@ -42,6 +35,9 @@ function clear(arg, data) {
 function merge(arg, data) {
   for(var i in arg) {
     if(data[i]) {
+      if(isReducer(data[i])) {
+        delete arg[i]
+      }
       arg[i] = Object.assign(data[i], arg[i])
     }
   }
@@ -62,7 +58,10 @@ function store(data, dispatch) {
      */
     replace(arg) {
       if(arg) {
-        arg = clear(arg, data)
+        /**
+         * Exclude reducer
+         */
+        for(var i in arg) if(isReducer(data[i])) delete arg[i]
       }
       dispatch(arg)
     },
@@ -73,9 +72,10 @@ function store(data, dispatch) {
       if(isFunc(arg)) {
         arg = await arg(data)
       }
-
+      /**
+       * Merge old and new state
+       */
       if(arg) {
-        arg = clear(arg, data)
         arg = merge(arg, data)
       }
       return await dispatch(arg)
@@ -113,10 +113,11 @@ function store(data, dispatch) {
         arg = await arg(data)
       }
       /**
-       * Merge state except the reducers
+       * Merge old and new state
        */
-      arg = clear(arg, data)
-      arg = merge(arg, data)
+      if(arg) {
+        arg = merge(arg, data)
+      }
       /**
        * Reducer's type
        */

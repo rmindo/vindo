@@ -1,7 +1,7 @@
 {
   "name": "@vindo/store",
   "version": "0.0.1",
-  "description": "",
+  "description": "A lightweight, state management library for React applications. It provides a simple way to manage global application state with minimal boilerplate.",
   "main": "./index.js",
   "types": "./index.d.ts",
   "publishConfig": {
@@ -17,7 +17,8 @@
   "keywords": [
     "react",
     "store",
-    "redux"
+    "state",
+    "reducer"
   ],
   "author": "Ruel Mindo",
   "license": "MIT",

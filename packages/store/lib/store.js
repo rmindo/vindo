@@ -12,19 +12,39 @@ import state from './state'
 
 
 /**
+ * Shorthand of typeof string
+ * @param {function} arg 
+ */
+export function isStr(arg) {
+  return typeof arg == 'string'
+}
+/**
  * Shorthand of typeof function
  * @param {function} arg 
  */
-function isFunc(arg) {
+export function isFunc(arg) {
   return typeof arg == 'function'
 }
 
 /**
- * Check reducer
- * @param {object} arg 
+ * Shorthand of proxy
+ * @param {object} target 
+ * @param {object} handler
  */
-function isReducer(arg) {
-  return arg && arg[Symbol.for('type')] == 'reducer'
+export function proxy(target, handler) {
+  return new Proxy(target, handler)
+}
+
+/**
+ * Merge object with empty object as default
+ * @param {object} origin 
+ * @param  {array} obj
+ */
+export function assign(origin, ...obj) {
+  return Object.assign(
+    {},
+    Object.assign(origin, ...obj)
+  )
 }
 
 /**
@@ -32,13 +52,13 @@ function isReducer(arg) {
  * @param {object} arg
  * @param {object} data
  */
-function merge(arg, data) {
+export function merge(arg, data) {
   for(var i in arg) {
     if(data[i]) {
-      if(isReducer(data[i])) {
+      if(data[i].__reducer) {
         delete arg[i]
       }
-      arg[i] = Object.assign(data[i], arg[i])
+      arg[i] = assign(data[i], arg[i])
     }
   }
   return arg
@@ -53,18 +73,6 @@ function merge(arg, data) {
 function store(data, dispatch) {
   return {
     state,
-    /**
-     * Replace value
-     */
-    replace(arg) {
-      if(arg) {
-        /**
-         * Exclude reducer
-         */
-        for(var i in arg) if(isReducer(data[i])) delete arg[i]
-      }
-      dispatch(arg)
-    },
     /**
      * Set global state
      */
@@ -96,19 +104,29 @@ function store(data, dispatch) {
      * Remove data
      */
     remove(name) {
-      const type = Symbol.for('reducer')
-
       if(data[name]) {
-        if(data[name][type] == 'reducer') {
+        if(data[name].__reducer) {
           throw new Error('You cannot remove a reducer.')
         }
         dispatch({[name]: null})
       }
     },
     /**
+     * Replace value
+     */
+    replace(arg) {
+      if(arg) {
+        /**
+         * Exclude reducer
+         */
+        for(var i in arg) if(data[i].__reducer) delete arg[i]
+      }
+      dispatch(arg)
+    },
+    /**
      * Dispatch action
      */
-    async dispatch(arg) {
+    async dispatch(arg, param) {
       if(isFunc(arg)) {
         arg = await arg(data)
       }
@@ -118,18 +136,21 @@ function store(data, dispatch) {
       if(arg) {
         arg = merge(arg, data)
       }
-      /**
-       * Reducer's type
-       */
-      if(arg.type) {
-        const [reducer, name] = arg.type.split(/\//)
-        if(name) {
-          /**
-           * Use symbol as key to avoid key collision
-           */
-          arg[Symbol.for('reducer')] = data[reducer][name]
+
+      if(isStr(arg)) {
+        arg = {
+          data: param,
+          type: arg.split(/\//)
+        }
+        if(arg.type.length == 1) {
+          arg = {[arg.type[0]]: arg.data}
         }
       }
+
+      if(isStr(arg.type)) {
+        arg.type = arg.type.split(/\//)
+      }
+
       return await dispatch(arg)
     }
   }
@@ -142,7 +163,7 @@ function store(data, dispatch) {
 export default function({data, dispatch}) {
   const target = store(data, dispatch)
 
-  const storeProxy = new Proxy(target, {
+  const storeProxy = proxy(target, {
     get(target, key) {
       if(target[key]) {
         return target[key]

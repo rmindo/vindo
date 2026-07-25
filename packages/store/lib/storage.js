@@ -14,7 +14,9 @@ export default function(storage = {}) {
   }
 
   storage.data = function data(cb) {
-    storage.get(storage.key)?.then(cb)
+    if(cb) {
+      storage.get(storage.key)?.then(cb)
+    }
   }
 
   storage.remove = function remove(name) {
@@ -30,6 +32,10 @@ export default function(storage = {}) {
   }
 
   storage.set = function set(name, data) {
+    if(!storage.engine || !storage.persist) {
+      return
+    }
+
     storage.get(name)?.then((store) => {
       if(storage.key !== name) {
         store = data

@@ -14,9 +14,9 @@ declare module '@vindo/store' {
   }
   type ConfigType = {
     storage?: {
-      key: string
+      key?: string
       engine: any
-      persist: string[]
+      persist?: string[]
     },
     reducers?: {
       [key: string]: Function | ReducerType

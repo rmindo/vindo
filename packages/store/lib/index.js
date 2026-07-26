@@ -45,19 +45,6 @@ export function useContext() {
 
 
 /**
- * Initialize default state from reducers
- * @param {object} reducers 
- */
-function initState(reducers) {
-  for(var i in reducers) {
-    if(reducers[i].initialState) {
-      assign(context._currentValue, reducers[i].initialState)
-    }
-  }
-}
-
-
-/**
  * Default configuration
  * 
  * @param {object} conf
@@ -78,6 +65,19 @@ export function configure(conf) {
   })
 
   return conf
+}
+
+
+/**
+ * Initialize default state from reducers
+ * @param {object} reducers 
+ */
+function initState(reducers) {
+  for(var i in reducers) {
+    if(reducers[i].initialState) {
+      assign(context._currentValue, reducers[i].initialState)
+    }
+  }
 }
 
 

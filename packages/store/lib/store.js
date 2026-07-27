@@ -19,18 +19,18 @@ export function isStr(arg) {
   return typeof arg == 'string'
 }
 /**
- * Shorthand of typeof object
- * @param {function} arg 
- */
-export function isObj(arg) {
-  return typeof arg == 'object'
-}
-/**
  * Shorthand of typeof function
  * @param {function} arg 
  */
 export function isFunc(arg) {
   return typeof arg == 'function'
+}
+/**
+ * Shorthand of typeof object
+ * @param {function} arg 
+ */
+export function isObj(arg) {
+  return typeof arg === 'object' && arg.constructor === Object
 }
 
 /**
@@ -61,11 +61,13 @@ export function assign(origin, ...obj) {
  */
 export function merge(data, arg) {
   for(var i in arg) {
-    if(isObj(arg[i])) {
-      if(arg[i] && data[i].__reducer) {
+    if(data[i]) {
+      if(data[i].__reducer) {
         delete arg[i]
       }
-      arg[i] = assign(data[i], arg[i])
+      if(isObj(arg[i])) {
+        arg[i] = assign(data[i], arg[i])
+      }
     }
   }
   return arg

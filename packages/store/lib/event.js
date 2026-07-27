@@ -26,7 +26,7 @@ export default Object.freeze({
    */
   emit(name, ...data) {
     if(events[name]) {
-      events[name].event.call({}, ...data)
+      events[name].event(...data)
     }
   },
 

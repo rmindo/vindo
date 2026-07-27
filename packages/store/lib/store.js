@@ -19,6 +19,13 @@ export function isStr(arg) {
   return typeof arg == 'string'
 }
 /**
+ * Shorthand of typeof object
+ * @param {function} arg 
+ */
+export function isObj(arg) {
+  return typeof arg == 'object'
+}
+/**
  * Shorthand of typeof function
  * @param {function} arg 
  */
@@ -48,14 +55,14 @@ export function assign(origin, ...obj) {
 }
 
 /**
- * Make a shallow merge of old and new state
+ * Make a shallow merge of old and new state object
  * @param {object} arg
  * @param {object} data
  */
-export function merge(arg, data) {
+export function merge(data, arg) {
   for(var i in arg) {
-    if(data[i]) {
-      if(data[i].__reducer) {
+    if(isObj(arg[i])) {
+      if(arg[i] && data[i].__reducer) {
         delete arg[i]
       }
       arg[i] = assign(data[i], arg[i])
@@ -84,7 +91,7 @@ function store(data, dispatch) {
        * Merge old and new state
        */
       if(arg) {
-        arg = merge(arg, data)
+        arg = merge(data, arg)
       }
       return await dispatch(arg)
     },
@@ -130,7 +137,7 @@ function store(data, dispatch) {
       if(isFunc(arg)) {
         arg = await arg(data)
       }
-      arg = merge(arg, data)
+      arg = merge(data, arg)
 
       if(isStr(arg)) {
         arg = {

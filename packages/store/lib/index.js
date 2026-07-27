@@ -121,7 +121,7 @@ async function invokeReducer(data, state, reducers) {
   if(isFunc(reducer)) {
     data = await reducer(data.data, state)
   }
-  return data
+  return merge(state, data)
 }
 
 

@@ -48,7 +48,7 @@ export function assign(origin, ...obj) {
 }
 
 /**
- * Merge old and new state
+ * Make a shallow merge of old and new state
  * @param {object} arg
  * @param {object} data
  */
@@ -130,12 +130,7 @@ function store(data, dispatch) {
       if(isFunc(arg)) {
         arg = await arg(data)
       }
-      /**
-       * Merge old and new state
-       */
-      if(arg) {
-        arg = merge(arg, data)
-      }
+      arg = merge(arg, data)
 
       if(isStr(arg)) {
         arg = {

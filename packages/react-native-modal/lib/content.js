@@ -120,6 +120,7 @@ function touchableClose(state, children, onPress) {
       onPress,
       activeOpacity: 1,
       style: {
+        position: 'relative',
         width: screen.width,
         height: screen.height,
         paddingTop: state.autoHeight ? screen.height - state.contentHeight : state.offsetTop,
@@ -178,49 +179,30 @@ function animatedOverlay(animate, overlay, children) {
  * Modal content
  */
 export default pure(({data, store, isOpen, event, items}) => {
-  const state = useState({offsetTop: 20, contentHeight: 0}, data)
-
+  const state = store.state({offsetTop: 20, contentHeight: 0}, data)
 
   const animate = useAnimation({
     fade: {value: isOpen ? 0 : 1},
     slide: {value: isOpen ? screen.height : 0},
   })
   
+  /**
+   * Set listen to events
+   */
+  event.on('modal.option', state.set)
+  event.on('modal.closing', () => {
+    animate.fade.start(0, 1000)
+    animate.slide.start(screen.height, 1000)
+  })
 
+  /**
+   * Start the animation when its open
+   */
   React.useEffect(() => {
-    /**
-     * Close when pressing back button on android
-     */
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      event.emit('modal.close')
-    })
-
-    return () => subscription.remove()
-  }, [])
-
-
-  React.useEffect(() => {
-    /**
-     * Start the animation when open
-     */
     if(isOpen) {
       animate.fade.start(1, 800)
       animate.slide.start(0, 500) 
     }
-
-    /**
-     * Set modal option
-     */
-    event.on('modal.option', state.set)
-
-    /**
-     * Execute animation when modal.close() is emitted
-     */
-    event.on('modal.closing', () => {
-      animate.fade.start(0, 1000)
-      animate.slide.start(screen.height, 1000)
-    })
-
   }, [animate.slide.value])
   
 

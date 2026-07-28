@@ -33,8 +33,6 @@ from 'react-native'
  */
 const screen = Dimensions.get('screen')
 
-
-
 /**
  * Custom animation
  * 
@@ -80,18 +78,22 @@ function contentView(state, children) {
     return null
   }
 
-  return React.createElement(View,
-    {style: [{
-        borderRadius: 20,
-        width: screen.width,
-        overflow: 'hidden',
-        position: 'absolute',
-        alignSelf: 'center',
-        backgroundColor: '#fff',
-      },
-      state.containerStyle
-    ]},
-    React.createElement(children, {data})
+  return withoutFeedback(
+    React.createElement(View,
+      {style: [{
+          bottom: 0,
+          borderRadius: 20,
+          width: screen.width,
+          overflow: 'hidden',
+          position: 'absolute',
+          alignSelf: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#fff',
+        },
+        state.containerStyle
+      ]},
+      React.createElement(children, {data})
+    )
   )
 }
 
@@ -109,41 +111,26 @@ function withoutFeedback(children) {
 /**
  * Close when touching the overlay
  * 
- * @param {object} state 
- * @param {object} children 
- * @param {function} onPress
+ * @param {function} animate
+ * @param {object} onPress
+ * @param {object} content
  */
-function touchableClose(state, children, onPress) {
+function touchableClose(animate, onPress, content) {
   return React.createElement(
     TouchableOpacity,
     {
       onPress,
       activeOpacity: 1,
       style: {
-        position: 'relative',
         width: screen.width,
         height: screen.height,
-        paddingTop: state.autoHeight ? screen.height - state.contentHeight : state.offsetTop,
+        transform: [
+          {translateY: animate.slide.value}
+        ],
       }
     },
-    children
+    content
   )
-}
-
-
-/**
- * Animate the content
- * 
- * @param {object} animate 
- * @param {object} children 
- */
-function animatedContent(animate, children) {
-  const style = {
-    transform: [
-      {translateY: animate.slide.value}
-    ]
-  }
-  return React.createElement(Animated.View, {style, children})
 }
 
 
@@ -179,7 +166,7 @@ function animatedOverlay(animate, overlay, children) {
  * Modal content
  */
 export default pure(({data, store, isOpen, event, items}) => {
-  const state = store.state({offsetTop: 20, contentHeight: 0}, data)
+  const state = store.state(data)
 
   const animate = useAnimation({
     fade: {value: isOpen ? 0 : 1},
@@ -206,21 +193,15 @@ export default pure(({data, store, isOpen, event, items}) => {
   }, [animate.slide.value])
   
 
-  /**
-   * No feed when touching the content
-   */
-  const content = withoutFeedback(
-    animatedContent(
-      animate,
-      contentView(state, items[state.name])
-    ),
-  )
-
   return animatedOverlay(
     animate,
     state.overlay,
-    touchableClose(state, content, () => {
-      event.emit('modal.close')
-    })
+    touchableClose(
+      animate,
+      function() {
+        event.emit('modal.close')
+      },
+      contentView(state, items[state.name])
+    )
   )
 })

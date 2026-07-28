@@ -34,15 +34,6 @@ export function isObj(arg) {
 }
 
 /**
- * Shorthand of proxy
- * @param {object} target 
- * @param {object} handler
- */
-export function proxy(target, handler) {
-  return new Proxy(target, handler)
-}
-
-/**
  * Merge object with empty object as default
  * @param {object} origin 
  * @param  {array} obj
@@ -167,7 +158,7 @@ function store(data, dispatch) {
 export default function({data, dispatch}) {
   const target = store(data, dispatch)
 
-  const storeProxy = proxy(target, {
+  const storeProxy = new Proxy(target, {
     get(target, key) {
       if(target[key]) {
         return target[key]

@@ -26,6 +26,10 @@ export default function({event, store}) {
 
 
   event.on('modal.close', (data) => {
+    if(typeof data == 'function') {
+      data = data(store)
+    }
+
     store.modal.isOpen = false
     store.modal.isClose = true
 
@@ -59,6 +63,10 @@ export default function({event, store}) {
    * Open and add modal to stack
    */
   modal.open = function open(data) {
+    if(typeof data == 'function') {
+      data = data(store)
+    }
+
     store.modal.isOpen = true
     store.modal.isClose = false
 

@@ -103,13 +103,20 @@ function store(data, dispatch) {
     /**
      * Remove data
      */
-    remove(name) {
-      if(data[name]) {
-        if(data[name].__reducer) {
-          throw new Error('You cannot remove a reducer.')
-        }
-        dispatch({[name]: null})
+    remove(keys) {
+      if(isStr(keys)) {
+        keys = [keys]
       }
+      return dispatch(
+        Object.fromEntries(keys.map(key => {
+          if(data[key]) {
+            if(data[key].__reducer) {
+              throw new Error('You cannot remove a reducer.')
+            }
+          }
+          return [key, null]
+        }))
+      )
     },
     /**
      * Replace value

@@ -39,7 +39,6 @@ export default function({event, store}) {
     store.modal.stack = entries(
       keys(store.modal.stack).slice(0, -1).map(key => [key, store.modal.stack[key]])
     )
-
     /**
      * Dispatch with updated stack
      */
@@ -62,16 +61,19 @@ export default function({event, store}) {
   /**
    * Open and add modal to stack
    */
-  modal.open = function open(data) {
-    if(typeof data == 'function') {
-      data = data(store)
+  modal.open = function open(arg) {
+    if(typeof arg == 'function') {
+      arg = arg(store)
     }
 
     store.modal.isOpen = true
     store.modal.isClose = false
 
-    if(!store.modal.stack[data.name]) {
-      store.modal.stack[data.name] = data
+    if(!arg.data) {
+      arg.data = {}
+    }
+    if(!store.modal.stack[arg.name]) {
+      store.modal.stack[arg.name] = arg
     }
 
     store.dispatch({modal: store.modal})

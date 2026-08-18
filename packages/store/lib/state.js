@@ -11,20 +11,21 @@
 import React from 'react'
 
 
+const merge = Object.assign
 
 /**
  * Use state
  */
 export default function state(initialState = {}, otherState = {}) {
   const {current} = React.useRef({})
-  const [state, setState] = React.useState(initialState)
+  const [state, setState] = React.useState({...initialState, ...otherState})
   
 
   if(typeof initialState !== 'object') {
     throw Error('Expected parameter of type object.')
   }
   
-  Object.assign(current, state, otherState)
+  merge(current, state)
   
   return new Proxy({
     /**
@@ -32,6 +33,14 @@ export default function state(initialState = {}, otherState = {}) {
      */
     data() {
       return current
+    },
+    /**
+     * Get single data
+     */
+    get(name = null) {
+      if(current[name]) {
+        return current[name]
+      }
     },
     /**
      * Set state

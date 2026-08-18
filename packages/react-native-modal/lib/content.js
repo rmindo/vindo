@@ -165,8 +165,8 @@ function animatedOverlay(animate, overlay, children) {
 /**
  * Modal content
  */
-export default pure(({data, store, isOpen, event, items}) => {
-  const state = store.state(data)
+export default pure(({store, isOpen, event, items, current}) => {
+  const state = store.state(current)
 
   const animate = useAnimation({
     fade: {value: isOpen ? 0 : 1},

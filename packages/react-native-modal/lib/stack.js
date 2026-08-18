@@ -44,12 +44,12 @@ export const StackContainer = pure(({store, event, children}) => {
   /**
    * Handles multiple layers of modals
    */
-  return stack.map((data, key) => {
+  return stack.map((current, key) => {
     return React.createElement(
       content,
       {
         key,
-        data,
+        current,
         items: children.reduce(reducer, {}),
         isOpen: key == (stack.length - 1) ? store.modal.isOpen : false,
       }

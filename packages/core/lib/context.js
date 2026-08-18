@@ -58,20 +58,36 @@ function fill(ctx, args, length) {
 }
 
 
+function isAsync(func) {
+}
+
+
 /**
  * 
  * @param {function} func 
  */
 function getLength(func) {
   var length = 0
-
-  var func = func.toString()
-  var func = func.split(/\n/)[0]
-  var func = func.match(/^function.*\(([a-zA-Z0-9_,.\s]+)\)/)
   
-  if(func) {
-    length = func[1].split(/,\s/).length
+  var func = func.toString()
+  var func = func.split(/\n/)
+
+  /**
+   * During development with typescript, the async function
+   * will be wrapped with a __awaiter function and it is placed in the second index.
+  */
+  if(func[1]) {
+    func = func[1].match(/__awaiter/) ? func[1] : func[0]
   }
+
+  var func = func.match(/function.*\((.*)\)/)[1]
+  var func = func.match(/(?:[^,{}]+|\{[^{}]*\})+/g)
+
+
+  if(func) {
+    length = func.map(arg => arg.trim()).filter(Boolean).length
+  }
+
   return length
 }
 
@@ -167,7 +183,6 @@ exports.getLibs = async function getLibs(files = [], ctx, conf) {
     }
     catch(e) {}
   }
-
 
   /**
    * Instantiate all default function and merge

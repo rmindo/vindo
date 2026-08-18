@@ -1,6 +1,6 @@
 {
   "name": "@vindo/react-native-modal",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A lightweight, globally controlled modal for React Native that lets you open and manage modals from anywhere in your application—without passing props or refs.",
   "main": "./index.js",
   "types": "./index.d.ts",

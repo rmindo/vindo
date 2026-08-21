@@ -57,7 +57,7 @@ function env(conf) {
    * This allow to switch environment into production and vice versa
    * using the NODE_ENV from process.env
    */
-  const envFile = file.parse(object.get(conf.env.ENV_PATH, process.env.NODE_ENV))
+  const envFile = file.parse('@root', object.get(conf.env.ENV_PATH, process.env.NODE_ENV))
   if(envFile) {
     object.merge(process.env, envFile)
   }

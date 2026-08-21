@@ -24,7 +24,6 @@ const defaultConfig = {
     names: {},
     include: {}
   },
-  source: 'src',
   routes: 'http',
 }
 
@@ -89,7 +88,7 @@ exports.config = function config(config = {}) {
   /**
    * Root directory of routes
    */
-  conf.root = [conf.source, conf.routes]
+  conf.root = [conf.routes]
 
   return conf
 }

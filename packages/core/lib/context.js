@@ -58,10 +58,6 @@ function fill(ctx, args, length) {
 }
 
 
-function isAsync(func) {
-}
-
-
 /**
  * 
  * @param {function} func 
@@ -231,7 +227,7 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Read all libraries from lib directory
    */
-  var files = readdir([ctx.vindo.source, 'lib'], {recursive: true}) ?? []
+  var files = readdir('lib', {recursive: true}) ?? []
   /**
    * Include libraries that is added manually in the config file
    */

@@ -18,6 +18,7 @@ import state from './state'
 export function isStr(arg) {
   return typeof arg == 'string'
 }
+
 /**
  * Shorthand of typeof function
  * @param {function} arg 
@@ -25,6 +26,7 @@ export function isStr(arg) {
 export function isFunc(arg) {
   return typeof arg == 'function'
 }
+
 /**
  * Shorthand of typeof object
  * @param {function} arg 

@@ -26,7 +26,7 @@ export function Stack() {}
 /**
  * Modal container
  */
-export const StackContainer = pure(({store, event, children}) => {
+export const StackContainer = pure(({store, children}) => {
 
   if(!store.modal) {
     return null
@@ -36,7 +36,7 @@ export const StackContainer = pure(({store, event, children}) => {
   /**
    * Stact reducer
    */
-  function reducer(items, {props}, index) {
+  function reducer(items, {props}) {
     items[props.name] = props.component
     return items
   }

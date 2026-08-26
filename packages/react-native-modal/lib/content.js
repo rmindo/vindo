@@ -10,18 +10,15 @@
 
 import React from 'react'
 import {pure} from '@vindo/store'
-import useState from '@vindo/store/state'
 
 /**
  * React Native Components
  */
  import {
-  Text,
   View,
   Easing,
   Animated,
   Dimensions,
-  BackHandler,
   TouchableOpacity,
   TouchableWithoutFeedback,
 }

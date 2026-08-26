@@ -55,6 +55,9 @@ function decode(string) {
   }
 }
 
+/**
+ * Resolve working directory
+ */
 function resolve(...sub) {
   return path.resolve(process.cwd(), ...sub)
 }
@@ -329,10 +332,10 @@ function HTTPState(req, events) {
  * @param {object} data
  */
 function getRoot(entrypoint, data) {
-  var file = resolve('node_modules', ...entrypoint)
+  var file = resolve('node_modules', entrypoint)
 
   if(!fs.existsSync(file)) {
-    file = path.resolve(...entrypoint.slice(-2))
+    file = path.resolve(entrypoint)
   }
 
   return require(file).default(data)
@@ -409,7 +412,7 @@ function getBundles(vindo) {
     data[name] = {
       hash,
       file: `/${name}-${hash}.js`,
-      entry: [pkg].concat(vindo.source, 'react')
+      entry: [pkg].concat('src', 'react')
     }
   }
   return data
@@ -434,7 +437,7 @@ function useBundle(req, vindo) {
    * Use main entry point if bundle not exists
    */
   if(bundles.main) {
-    bundles.main.entry = [vindo.source].concat('react')
+    bundles.main.entry = 'src/react'
     return bundles.main
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@vindo/utility",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Common utilities for object, string, event, URL, and file.",
   "main": "./index.js",
   "types": "./index.d.ts",

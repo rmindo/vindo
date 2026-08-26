@@ -38,7 +38,7 @@ exports.ext = function ext(name) {
  * @param {string | string[]} args The path of the file
  */
 exports.get = function get(...args) {
-  return require(exports.join(...exports.alias(args)))
+  return require(exports.join(...args))
 }
 
 
@@ -83,7 +83,7 @@ exports.join = function join(...args) {
     dir = path.dirname(exports.getCaller())
   }
 
-  return path.join(dir, ...args)
+  return path.join(dir, ...exports.alias(args))
 }
 
 
@@ -179,11 +179,11 @@ exports.read = function read(...args) {
   if(Array.isArray(args[0])) {
     args = args[0]
   }
-  if(exports.isDir(...args)) {
+  const file = exports.join(args)
+
+  if(exports.isDir(file)) {
     return
   }
-
-  const file = exports.join(...exports.alias(args))
   if(exports.exists(file)) {
     return fs.readFileSync(file, 'utf8')
   }

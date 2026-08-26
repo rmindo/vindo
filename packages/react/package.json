@@ -1,6 +1,6 @@
 {
   "name": "@vindo/react",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "React SSR for @vindo/core framework.",
   "main": "./index.js",
   "types": "./index.d.ts",

@@ -48,6 +48,8 @@ exports.get = function get(...args) {
  * @param {string | string[]} args The path of the file
  */
 exports.join = function join(...args) {
+  var dir = require.main.path
+  
   if(Array.isArray(args[0])) {
     args = args[0]
   }
@@ -55,35 +57,37 @@ exports.join = function join(...args) {
   /**
    * Return if path is absolute
    */
-  {
-    var abs = args.join(process.platform == 'win32' ? '\\' : '/')
-    if(path.isAbsolute(abs)) {
-      return abs
-    }
+  var abs = args.join(process.platform == 'win32' ? '\\' : '/')
+  if(path.isAbsolute(abs)) {
+    return abs
   }
 
   /**
    * Make sure the path "dir/file" is separated into segments.
    */
-  var args = args.reduce(
+  var args =  exports.alias(args.reduce(
     (d, i) => {
       if(i) {
         d.push(...i.split('/'))
       }
       return d
     },
-  [])
-
-  var dir = require.main.path
+  []))
 
   /**
-   * Get current directory of the caller if the path is relative
+   * If first arg of the path is relative, then current directory of the caller
    */
   if(args[0] && args[0].match(/\.$/)) {
     dir = path.dirname(exports.getCaller())
   }
-
-  return path.join(dir, ...exports.alias(args))
+  /**
+   * If first arg of the path is absolute, then skip the main path
+   */
+  if(args[0] && path.isAbsolute(args[0])) {
+    return path.join(...args)
+  }
+  
+  return path.join(dir, ...args)
 }
 
 
@@ -97,7 +101,7 @@ exports.alias = function alias(path) {
   }
 
   if(!path[0]) {
-    return
+    return path
   }
 
   var alias = path[0].match(/^@(?:(?![\/])(root|main))/)
@@ -171,22 +175,38 @@ exports.isDir = function isDir(...args) {
 
 
 /**
+ * Write file synchronously
+ * 
+ * @param {string | string[]} file The path of the file
+ * @param {string | buffer} data The data to write to a file
+ * @param {object} opts The file options
+ */
+exports.write = function write(file, data, opts) {
+  const path = exports.join(file)
+  if(path) {
+    fs.writeFileSync(path, data, opts)
+  }
+}
+
+
+/**
  * Read file synchronously
  * 
  * @param {string | string[]} args The path of the file
  */
 exports.read = function read(...args) {
-  if(Array.isArray(args[0])) {
-    args = args[0]
-  }
-  const file = exports.join(args)
+  var opts = {encoding: 'utf8'}
 
-  if(exports.isDir(file)) {
+  const lastArg = args.at(-1)
+  if(lastArg && lastArg.constructor === Object) {
+    opts = lastArg
+  }
+
+  const file = exports.join(args)
+  if(!exports.exists(file) || exports.isDir(file)) {
     return
   }
-  if(exports.exists(file)) {
-    return fs.readFileSync(file, 'utf8')
-  }
+  return fs.readFileSync(file, opts)
 }
 
 

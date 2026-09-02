@@ -25,7 +25,8 @@ export namespace Utility {
     ext(name: string): string;
     get(...args: string | string[]): object;
     html(...args: string | string[] | object): string;
-    read(...args: string | string[]): string;
+    read(...args: string | string[] | object): string;
+    write(...args: string | string[] | object): string;
     stats(...args: string | string[]): object;
     isDir(...args: string | string[]): boolean;
     join(...args: string | string[]): string;

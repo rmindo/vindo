@@ -59,15 +59,15 @@ function fill(ctx, args, length) {
 
 
 /**
- * 
- * @param {function} func 
+ * Get the length of arguments of a function
+ * @param {function} arg 
  */
-function getLength(func) {
+function getLength(arg) {
   var length = 0
   
-  var func = func.toString()
+  var func = arg.toString()
   var func = func.split(/\n/)
-
+  
   /**
    * During development with typescript, the async function
    * will be wrapped with a __awaiter function and it is placed in the second index.
@@ -82,6 +82,9 @@ function getLength(func) {
 
   if(func) {
     length = func.map(arg => arg.trim()).filter(Boolean).length
+  }
+  if(length == 0) {
+    return arg.length
   }
 
   return length

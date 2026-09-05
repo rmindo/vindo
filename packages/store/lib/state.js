@@ -11,8 +11,6 @@
 import React from 'react'
 
 
-const merge = Object.assign
-
 /**
  * Use state
  */
@@ -25,7 +23,7 @@ export default function state(initialState = {}, otherState = {}) {
     throw Error('Expected parameter of type object.')
   }
   
-  merge(current, state)
+  Object.assign(current, state)
   
   return new Proxy({
     /**
@@ -33,14 +31,6 @@ export default function state(initialState = {}, otherState = {}) {
      */
     data() {
       return current
-    },
-    /**
-     * Get single data
-     */
-    get(name = null) {
-      if(current[name]) {
-        return current[name]
-      }
     },
     /**
      * Set state

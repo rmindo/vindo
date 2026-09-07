@@ -12,7 +12,7 @@ declare module '@vindo/react/client' {
     data?: DataType
   }
   type ViewType = {
-    name: string
+    path: string
     component: React.FC
   }
   type HeaderType = {
@@ -35,11 +35,11 @@ declare module '@vindo/react/client' {
   }
   export const Link: LinkType
 
-  export function useStore(name?:string): DataType
+  export function useStore(name?:string): any
   export function useState(state?:DataType): any
   export function useContext(name?:string | null): any
   export function redirect(href:string, text?:string): void
-  export function View(props:ViewType): React.JSX.Element
-  export function Content(props:DataType): React.JSX.Element
-  export function Provider(props:DataType): React.JSX.Element
+  export function View(props:ViewType): JSX.Element
+  export function Content(props:DataType): JSX.Element
+  export function Provider(props:DataType): JSX.Element
 }

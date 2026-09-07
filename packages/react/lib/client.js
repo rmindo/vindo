@@ -51,15 +51,15 @@ export function redirect(href, text = null) {
 /**
  * Use state
  */
-export function useState(initialState = {}) {
-  const ref = React.useRef({})
-  const [state, setState] = React.useState(initialState)
+export function useState(initialState = {}, otherState = {}) {
+  const current = {}
+  const [state, setState] = React.useState({...initialState, ...otherState})
   
   if(!isObj(initialState)) {
     throw Error('Custom state hook only allow object as parameter.')
   }
   
-  merge(ref.current, state)
+  merge(current, state)
   
   return new Proxy({
     async set(state = {}) {
@@ -77,7 +77,7 @@ export function useState(initialState = {}) {
       }
 
       if(isFunc(state)) {
-        const dataState = state(ref.current)
+        const dataState = state(current)
 
         if(dataState) {
           if(dataState instanceof Promise) {
@@ -130,39 +130,11 @@ export function useState(initialState = {}) {
         return target[key]
       }
       if(event.updating) {
-        merge(ref.current, event.data.state)
+        merge(current, event.data.state)
       }
-      return ref.current[key]
+      return current[key]
     }
   })
-}
-
-/**
- * Context
- */
-export function useStore() {
-  const store = useContext('store')
-  
-  function dispatch(data) {
-    const args = {
-      data,
-      type: 'store',
-    }
-    request(args, {method: 'POST'}).then((data) => event.render(data))
-  }
-  
-  const proto = {
-    clear() {
-      dispatch({action: 'clear'})
-    },
-    remove(name) {
-      dispatch({action: 'remove', data: name})
-    },
-    dispatch(data) {
-      dispatch({action: 'add', data})
-    }
-  }
-  return merge(Object.create(proto), store)
 }
 
 
@@ -170,15 +142,14 @@ export function useStore() {
  * Context
  */
 export function useContext(name = null) {
-  const {meta, data, state, store} = React.useContext(_context)
+  const context = React.useContext(_context)
 
   switch(name) {
-    case 'store':
-      return store
-    case 'content':
-      return data
+    case 'data': context.data
+    case 'meta': context.meta
+    case 'state': context.state
     default:
-      return {meta, state}
+      return context
   }
 }
 
@@ -277,7 +248,7 @@ export function View() {}
  * Wrapper
  */
 export function Provider({children, ...value}) {
-  return React.createElement(_context, {value, name: 'tae'}, children)
+  return React.createElement(_context, {value}, children)
 }
 
 /**
@@ -289,10 +260,11 @@ export function Link({href, text, disabled, children, ...props}) {
   }
 
   const onClick = (e) => {
-    if(disabled || location.pathname == href) {
+    e.preventDefault()
+
+    if(disabled) {
       return
     }
-    e.preventDefault()
     redirect(href, text)
   }
 
@@ -302,12 +274,19 @@ export function Link({href, text, disabled, children, ...props}) {
   return React.createElement('a', {href, onClick, ...props}, children)
 }
 
+Link.back = function back(step = -1) {
+  window.history.go(step)
+}
+
+Link.redirect = redirect
+
 
 /**
  * Find current route
  */
 export function Content(props) {
-  const data = useContext('content')
+  const {meta, data} = useContext()
+
   /**
    * From backend: View content from backend (src/http)
    */
@@ -316,20 +295,15 @@ export function Content(props) {
   }
 
   /**
-   * From frontend: View content (<View name"page-name" ...>) from react directory (src/react)
+   * From frontend: View content (<View path="/page-name" ...>) from react directory (src/react)
    */
-  return React.Children.map(props.children, (child) => {
-    if(!child.props.name) {
+  return React.Children.map(props.children, ({props}) => {
+    if(!props.path) {
       throw new ReferenceError(`Props 'name' is required for View component.`)
     }
-    if(data.props.name == child.props.name) {
-      return child.props.component(data.props)
+
+    if(meta.path == props.path) {
+      return React.createElement(props.component, data.props)
     }
   })
 }
-
-
-Link.back = function back(step = -1) {
-  window.history.go(step)
-}
-Link.redirect = redirect

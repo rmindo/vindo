@@ -11,14 +11,13 @@ const fs = require('fs')
 const path = require('path')
 const React = require('react')
 const ReactDom = require('react-dom/server')
-const {isObj, isArr, isStr, isNum, isFunc, merge} = require('@vindo/react/util')
+const {isArr, isFunc, merge, reducer} = require('@vindo/react/util')
 
 /**
  * Shorthand
  */
 const clone = React.cloneElement
 const create = React.createElement
-const isValid = React.isValidElement
 
 
 /**
@@ -130,76 +129,6 @@ function body(children, data) {
       return clone(child, {key, ...data})
     }
   })
-}
-
-
-/**
- * Reduce object to necessary props
- * @param {array|object} children 
- */
-function reducer(children) {
-  if(!children) {
-    return []
-  }
-  if(!isArr(children)) {
-    children = [children]
-  }
-
-	return children.map(({type, props}) => {
-    var p = {}
-
-    if(!props) {
-      return
-    }
-    /**
-     * Component function
-     */
-    if(isFunc(type)) {
-      if(/^default_1/.test(type.name)) {
-        throw new ReferenceError(`Component function requires a name. Currently have a default name of '${type.name}'.`)
-      }
-      type = [type.name]
-    }
-
-    for(var i in props) {
-      var v = props[i]
-
-      if(isStr(v) || isNum(v)) {
-        p[i] = v
-      }
-      if(isArr(v)) {
-        p.children = v.map((v) => {
-          if(isObj(v)) {
-            return reducer(v)[0]
-          }
-          return v
-        })
-      }
-      if(isObj(v)) {
-        if(i == 'style') {
-          p.style = v
-        }
-        if(i == 'children') {
-          p.children = reducer(v)
-        }
-      }
-      if(isFunc(v)) {
-        var f = v.toString()
-        var m = [
-          ...f.matchAll(/\((.*)\)(\s{|\s=>\s{|{)((.|\n)*)\}/g)
-        ][0]
-        p[i] = {
-          name: i,
-          mouseevent: true,
-          code: m[3].trim(),
-          args: m[1].split(',').filter(v => v),
-          refs: ['state','meta']
-        }
-      }
-    }
-
-    return {type, props: p}
-	})
 }
 
 
@@ -343,6 +272,48 @@ function getRoot(entrypoint, data) {
 
 
 /**
+ * Set bundle on specific basename
+ * @param {object} vindo  
+ */
+function getBundles(vindo) {
+  var data = {}
+  for(var pkg in vindo.bundles) {
+    var [hash, name] = decode(vindo.bundles[pkg])
+    
+    data[name] = {
+      hash,
+      file: `/${name}-${hash}.js`,
+      entry: [pkg].concat('src', 'react')
+    }
+  }
+  return data
+}
+
+
+/**
+ * Use bundle on specific basename if has one
+ */
+function useBundle(req, vindo) {
+  if(!vindo.bundles) {
+    throw new ReferenceError('No bundles found in vindo config.')
+  }
+
+  const bundles = getBundles(vindo)
+  const bundle = bundles[req.base]
+  if(bundle) {
+    return bundle
+  }
+  /**
+   * Use main entry point if bundle not exists
+   */
+  if(bundles.main) {
+    bundles.main.entry = 'src/react'
+    return bundles.main
+  }
+}
+
+
+/**
  * React DOM
  * @param {object} data 
  */
@@ -377,69 +348,32 @@ function reactDOM(bundle, data) {
 
 /**
  * Prepare data
- * @param {object} comp 
+ * @param {object} component 
  * @param {object} context
  */
-function getReactDom(comp, {meta, store, state, bundle}) {
+function getDom(component, {meta, store, state, bundle}) {
+  const props = {...component?.props}
+
+  if(props) {
+    delete props.children
+  }
   /**
    * Metadata and component
    */
-  const {children, ...props} = comp.props
   const data = {
     meta,
     store,
-    data: {
-      props,
-      children: isFunc(comp.type) ? null : comp
-    }
+    data: {props}
+  }
+  const dom = reactDOM(bundle, data)
+
+  if(component) {
+    data.data.children = isFunc(component.type) ? null : component
   }
   /**
    * Get HTML root component
    */
-  return {data: merge(data, {state}), html: html(reactDOM(bundle, data))}
-}
-
-
-/**
- * Set bundle on specific basename
- * @param {object} vindo  
- */
-function getBundles(vindo) {
-  var data = {}
-  for(var pkg in vindo.bundles) {
-    var [hash, name] = decode(vindo.bundles[pkg])
-    
-    data[name] = {
-      hash,
-      file: `/${name}-${hash}.js`,
-      entry: [pkg].concat('src', 'react')
-    }
-  }
-  return data
-}
-
-
-/**
- * Use bundle on specific basename if has one
- */
-function useBundle(req, vindo) {
-  if(!vindo.bundles) {
-    throw new ReferenceError('No bundles found in vindo config.')
-  }
-
-  const bundles = getBundles(vindo)
-  const bundle = bundles[req.base]
-  if(bundle) {
-    return bundle
-  }
-  
-  /**
-   * Use main entry point if bundle not exists
-   */
-  if(bundles.main) {
-    bundles.main.entry = 'src/react'
-    return bundles.main
-  }
+  return {data: merge(data, {state}), html: html(dom)}
 }
 
 
@@ -448,43 +382,46 @@ function useBundle(req, vindo) {
  */
 exports.server = function server() {
   var data = {}
-  // TODO: Move to more reliable storage
-  var store = {}
-
-
-  /**
-   * Persist data
-   */
-  function persist({body: {action, data}}, type) {
-    if(type == 'store') {
-      switch(action) {
-        case 'clear':
-          return {}
-        case 'remove':
-          delete store[data]
-        default:
-          // TODO: Limit adding data
-          return merge(store, data)
-      }
-    }
-    return store
-  }
   
 
-  return function(req, res, next, {meta, vindo, events}) {
+  return async function(req, res, next, {meta, vindo, events}) {
     const state = HTTPState(req, events)
-    const store = persist(req, state.type)
     const bundle = useBundle(req, vindo)
+    
+    const protocol = req.socket.encrypted ? 'https:' : 'http:'
+    const host = req.headers.host
+    const origin = protocol.concat('//', host)
+    const href = origin.concat(req.url)
+
+
+    const pathname = req.url.split('?')[0]
 
     meta.url = req.url
+    meta.path = pathname
     meta.base = req.base
     meta.name = req.name
     meta.query = req.query
 
+    global.window = {}
+    global.location = {
+      host,
+      href,
+      origin,
+      protocol,
+      pathname
+    }
+    global.document = {
+      scripts: {
+        bundle: {
+          src: origin.concat(bundle.file)
+        }
+      }
+    }
+
     /**
-     * Emit state request event
+     * Emit fetch event
      */
-    async function emit(name) {
+    async function getEvent(name) {
       return await events.emit(mkId(name, state.page), state.data)
     }
 
@@ -493,13 +430,8 @@ exports.server = function server() {
      */
     async function dispatch(obj = {}) {
       data = {}
-
-      if(state.type == 'fetch') {
-        return res.json(await emit(req.method))
-      }
-
       if(obj.data) {
-        return res.json(reduce(obj))
+        obj = reduce(obj)
       }
       res.json(obj)
     }
@@ -507,14 +439,9 @@ exports.server = function server() {
     /**
      * Render on first request
      */
-    events.on('__render', function(comp) {
-      if(!isValid(comp)) {
-        return
-      }
-
-      var args = getReactDom(comp, {
+    events.on('__render', function(component) {
+      const args = getDom(component, {
         meta,
-        store,
         bundle,
         state: state.data,
       })
@@ -527,17 +454,21 @@ exports.server = function server() {
       /**
        * Update content
        */
-      if(state.type == 'route' || state.type == 'update' || state.type == 'store') {
+      if(state.type == 'route' || state.type == 'update') {
         return dispatch(args.data)
       }
       
       return args
     })
     
-    if(bundle && req.is(bundle.hash)) {
+    if(state.type == 'fetch') {
+      return dispatch(await getEvent(req.method))
+    }
+
+    if(state.type == 'hydrate') {
       return dispatch(data[bundle.hash])
     }
     
-    next({state, store})
+    next({state})
   }
 }

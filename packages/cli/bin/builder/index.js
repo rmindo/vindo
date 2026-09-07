@@ -57,7 +57,7 @@ async function getChunk(dir) {
  */
 async function getImports(entry, data) {
 	var imp = []
-	var matches = data.matchAll(/import\s(.*)\sfrom.*('|"|\/)([a-zA-Z_-]+)('|")/g)
+	var matches = data.matchAll(/import\s(.*)\sfrom.*('|"|\/)([a-zA-Z0-9_-]+)('|")/g)
 
 	for(var item of matches) {
 		if(/(\.\/|)components\//.test(item[0])) {

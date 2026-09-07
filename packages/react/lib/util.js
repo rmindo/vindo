@@ -49,6 +49,76 @@ export function toFunc(name, {code, args = [], refs}) {
 
 
 /**
+ * Reduce object to necessary props
+ * @param {array|object} children 
+ */
+export function reducer(children) {
+  if(!children) {
+    return []
+  }
+  if(!isArr(children)) {
+    children = [children]
+  }
+
+  return children.map(({type, props}) => {
+    var p = {}
+
+    if(!props) {
+      return
+    }
+    /**
+     * Component function
+     */
+    if(isFunc(type)) {
+      if(/^default_1/.test(type.name)) {
+        throw new ReferenceError(`Component function requires a name. Currently have a default name of '${type.name}'.`)
+      }
+      type = [type.name]
+    }
+
+    for(var i in props) {
+      var v = props[i]
+
+      if(isStr(v) || isNum(v)) {
+        p[i] = v
+      }
+      if(isArr(v)) {
+        p.children = v.map((v) => {
+          if(isObj(v)) {
+            return reducer(v)[0]
+          }
+          return v
+        })
+      }
+      if(isObj(v)) {
+        if(i == 'style') {
+          p.style = v
+        }
+        if(i == 'children') {
+          p.children = reducer(v)
+        }
+      }
+      if(isFunc(v)) {
+        var f = v.toString()
+        var m = [
+          ...f.matchAll(/\((.*)\)(\s{|\s=>\s{|{)((.|\n)*)\}/g)
+        ][0]
+        p[i] = {
+          name: i,
+          mouseevent: true,
+          code: m[3].trim(),
+          args: m[1].split(',').filter(v => v),
+          refs: ['state','meta']
+        }
+      }
+    }
+
+    return {type, props: p}
+  })
+}
+
+
+/**
  * Transform back to react object
  */
 export function transform(children, data) {
@@ -67,7 +137,6 @@ export function transform(children, data) {
     }
     if(isArr(type)) {
       const key = type[0]
-
       type = data[key]
       if(!type) {
         throw TypeError(`Cannot read property '${key}'.`)
@@ -105,6 +174,6 @@ export function transform(children, data) {
       }
     }
 
-    return runtime[p.children?.length > 1 ? 'jsxs' : 'jsx'](type, p, key)
+    return runtime[Array.isArray(p.children) ? 'jsxs' : 'jsx'](type, p, key)
   })
 }

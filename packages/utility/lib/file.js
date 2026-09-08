@@ -228,6 +228,9 @@ exports.parse = function parse(...args) {
     const data = content.split('\n')
 
     for(var value of data) {
+      if(/^#/.test(value)) {
+        continue
+      }
       var item = value.match(/([0-9A-Z_\s]+)=(.*)/)
       if(item) {
         items[item[1].replace(/\s/g, '')] = item[2].replace(/\s/g, '')

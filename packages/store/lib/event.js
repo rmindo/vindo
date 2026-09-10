@@ -14,6 +14,7 @@ const events = {}
  * Default export
  */
 export default Object.freeze({
+  __reducer: true,
   /**
    * Add event
    */

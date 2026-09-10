@@ -13,7 +13,7 @@ import React from 'react'
 
 import event from './event'
 import storage from './storage'
-import store, {merge, assign, isFunc} from './store'
+import store, {merge, assign, isObj, isFunc} from './store'
 
 
 /**
@@ -53,16 +53,15 @@ export function configure(conf) {
   /**
    * Initialize default state of reducers
    */
-  initState(conf.reducers)
+  initReducers(conf.reducers)
   /**
    * Add persisted data to the context
    */
   conf.storage = storage(conf.storage)
   conf.storage.data((store) => {
-    if(store) {
-      assign(context._currentValue, store)
-    }
+    assign(context._currentValue, store)
   })
+  assign(context._currentValue, {event, storage: conf.storage})
 
   return conf
 }
@@ -72,38 +71,49 @@ export function configure(conf) {
  * Initialize default state from reducers
  * @param {object} reducers 
  */
-function initState(reducers) {
-  for(var i in reducers) {
-    if(reducers[i].initialState) {
-      assign(context._currentValue, reducers[i].initialState)
-    }
-  }
-}
-
-
-/**
- * Add reducers to global state
- * 
- * @param {object} state - All context added in the store
- * @param {object} reducers - Reducers and actions to execute
- */
-function initReducers(state, reducers) {
+function initReducers(reducers) {
   const data = {}
-
+  
   for(var i in reducers) {
-    const item = reducers[i]
+    const reducer = reducers[i]
 
-    if(isFunc(item)) {
-      const reducer = item(state)
-
-      if(!reducer) {
-        continue
-      }
+    if(!isObj(reducer)) {
       data[i] = reducer
-      data[i].__reducer = true
+    }
+    
+    
+    if(isObj(reducer)) {
+      if(reducer.__initialState) {
+        assign(reducer, reducer.__initialState)
+      }
+
+      const hasReducers = Object.values(reducer).filter(v => isFunc(v))      
+      if(hasReducers.length) {
+        reducer.__reducer = true
+      
+        data[i] = new Proxy(reducer, {
+          set(target, key, value) {
+            target[key] = value
+            return true
+          },
+          get(target, key) {
+            if(typeof target[key] == 'function') {
+              return function(...args) {
+                return target[key](...args, context._currentValue)
+              }
+            }
+            return target[key]
+          }
+        })
+      }
+
+      if(hasReducers.length == 0) {
+        data[i] = reducer
+      }
     }
   }
-  assign(state, data)
+
+  assign(context._currentValue, data)
 }
 
 
@@ -111,17 +121,22 @@ function initReducers(state, reducers) {
  * Invoke reducer
  * @param {object} data 
  */
-async function invokeReducer(data, state, reducers) {
-  const [key, method] = data.type
-  if(!method) {
+async function invokeReducer(data, state) {
+  const [name, key] = data.type
+  if(!key) {
     return data
   }
+  const _reducer = state[name][key]
 
-  const reducer = reducers[key][method]
-  if(isFunc(reducer)) {
-    data = await reducer(data.data, state)
+
+  if(!isFunc(_reducer)) {
+    return assign(state[name], {[key]: data.data})
   }
-  return merge(state, data)
+
+  const newState = await _reducer(data.data, state)
+  if(newState) {
+    return merge(state, {[name]: newState})
+  }
 }
 
 
@@ -131,19 +146,6 @@ async function invokeReducer(data, state, reducers) {
 export function Provider({config, children}) {
   const [state, dispatcher] = React.useReducer(assign, context._currentValue)
 
-
-  const storage = config?.storage
-  const reducers = config?.reducers
-
-
-  React.useEffect(() => {
-    state.event = event
-    /**
-     * Load reducers
-     */
-    initReducers(state, reducers)
-  }, [])
-
   
   state.store = store({
     data: state,
@@ -151,23 +153,18 @@ export function Provider({config, children}) {
      * Dispatch reducer or new state
      */
     async dispatch(data) {
+      if(!data) {
+        return
+      }
       /**
        * Invoke if its a reducer function
        */
-      if(data.type) {
-        data = await invokeReducer(data, state, reducers)
+      if(data.__invokeReducer) {
+        data = await invokeReducer(data, state, config?.reducers)
       }
+      dispatcher(data)
 
-      if(data) {
-        dispatcher(data)
-        /**
-         * Store whitelisted state
-         */
-        if(storage) {
-          storage.set(storage.key, data)
-        }
-        return data
-      }
+      return data
     }
   })
 

@@ -145,9 +145,9 @@ export function useContext(name = null) {
   const context = React.useContext(_context)
 
   switch(name) {
-    case 'data': context.data
-    case 'meta': context.meta
-    case 'state': context.state
+    case 'data': return context.data
+    case 'meta': return context.meta
+    case 'state': return context.state
     default:
       return context
   }

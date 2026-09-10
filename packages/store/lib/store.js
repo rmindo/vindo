@@ -8,7 +8,7 @@
 
 
 
-import state from './state'
+import useState from './state'
 
 
 /**
@@ -72,33 +72,34 @@ export function merge(data, arg) {
  * @param {object} data 
  * @param {function} dispatch 
  */
-function store(data, dispatch) {
+function store(state, dispatch) {
   return {
-    state,
+    __reducer: true,
+    state: useState,
     /**
      * Set global state
      */
-    async set(arg) {
-      if(isFunc(arg)) {
-        arg = await arg(data)
+    async set(data) {
+      if(isFunc(data)) {
+        data = await data(state)
       }
       /**
        * Merge old and new state
        */
-      if(arg) {
-        arg = merge(data, arg)
+      if(data) {
+        data = merge(state, data)
       }
-      return await dispatch(arg)
+      return await dispatch(data)
     },
     /**
      * Get data
      */
     get(name, fallback) {
       if(!name) {
-        return data
+        return state
       }
-      if(data[name]) {
-        return data[name]
+      if(state[name]) {
+        return state[name]
       }
       return fallback
     },
@@ -111,8 +112,8 @@ function store(data, dispatch) {
       }
       return dispatch(
         Object.fromEntries(keys.map(key => {
-          if(data[key]) {
-            if(data[key].__reducer) {
+          if(state[key]) {
+            if(state[key].__reducer) {
               throw new Error('You cannot remove a reducer.')
             }
           }
@@ -128,34 +129,48 @@ function store(data, dispatch) {
         /**
          * Exclude reducer
          */
-        for(var i in arg) if(data[i].__reducer) delete arg[i]
+        for(var i in arg) if(state[i].__reducer) delete arg[i]
       }
       dispatch(arg)
     },
     /**
+     * Persist data
+     */
+    async persist(data) {
+      if(!isObj(data)) {
+        return
+      }
+
+      if(state.storage) {
+        state.storage.set(state.storage.key, data)
+      }
+      return await dispatch(data)
+    },
+    /**
      * Dispatch action
      */
-    async dispatch(arg, param) {
-      if(isFunc(arg)) {
-        arg = await arg(data)
+    async dispatch(data, param) {
+      if(isFunc(data)) {
+        data = await data(state)
       }
-      arg = merge(data, arg)
+      data = merge(state, data)
 
-      if(isStr(arg)) {
-        arg = {
+      if(isStr(data)) {
+        data = {
           data: param,
-          type: arg.split(/\//)
+          type: data.split(/\//)
         }
-        if(arg.type.length == 1) {
-          arg = {[arg.type[0]]: arg.data}
+        if(data.type.length == 1) {
+          data = {[data.type[0]]: data.data}
         }
       }
 
-      if(isStr(arg.type)) {
-        arg.type = arg.type.split(/\//)
+      if(isStr(data.type)) {
+        data.__invokeReducer = true
+        data.type = data.type.split(/\//)
       }
 
-      return await dispatch(arg)
+      return await dispatch(data)
     }
   }
 }

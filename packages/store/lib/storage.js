@@ -14,6 +14,10 @@ export default function(storage = {}) {
   }
 
   
+  /**
+   * Get data
+   * @param {function} cb 
+   */
   storage.data = function data(cb) {
     if(cb) {
       storage.get(storage.key)?.then(cb)
@@ -21,13 +25,21 @@ export default function(storage = {}) {
   }
 
 
+  /**
+   * Remove data
+   * @param {string} name 
+   */
   storage.remove = function remove(name) {
     if(storage.engine) {
-      return storage.engine.removeItem(name)
+      storage.engine.removeItem(name)
     }
   }
 
 
+  /**
+   * Get data
+   * @param {string} name 
+   */
   storage.get = function get(name) {
     if(!storage.engine) {
       return
@@ -45,6 +57,11 @@ export default function(storage = {}) {
   }
 
 
+  /**
+   * Add data
+   * @param {string} name 
+   * @param {object} data
+   */
   storage.set = function set(name, data) {
     if(!storage.engine) {
       return

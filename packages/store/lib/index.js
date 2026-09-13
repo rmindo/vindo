@@ -13,13 +13,14 @@ import React from 'react'
 
 import event from './event'
 import storage from './storage'
-import store, {merge, assign, isObj, isFunc} from './store'
+import {store, merge, assign, isObj, isFunc, createContext} from './store'
 
 
 /**
  * Context holder
  */
-const context = React.createContext({})
+const keys = {}
+const context = createContext()
 
 
 /**
@@ -29,18 +30,74 @@ const context = React.createContext({})
  */
 export function pure(component) {
   return React.memo(({...props}) => {
-    return component(
-      assign(props, React.useContext(context))
-    )
+    return component(context.add(props))
   })
+}
+
+
+/**
+ * Create id for object
+ * @param {object} obj
+ */
+function objectID(obj) {
+  const str = JSON.stringify(obj)
+
+  let hash = 0
+  for(let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash).toString()
+}
+
+
+/**
+ * Create hash out of object
+ * @param {object} data
+ */
+function addID(data) {
+  if(!isObj(data)) {
+    throw new TypeError('The expected argument must be an object.')
+  }
+  const id = objectID(data)
+
+  for(var key in data) {
+    if(!keys[key]) {
+      keys[key] = []
+    }
+    if(!keys[key].includes(id)) keys[key].push(id)
+  }
+  return id
+}
+
+
+/**
+ * Subscribe to changes
+ * @param {object} def Default value of global state
+ */
+export function subscribe(def) {
+  const key = addID(def)
+  
+  return function(component) {
+    context.add(def)
+
+    return React.memo(({...props}) => {
+      const state = context.store.state(def)
+      
+      context.event.on(key, (data) => {
+        state.set(data)
+      })
+      return React.createElement(component, context.add(props, state.data()))
+    })
+  }
 }
 
 
 /**
  * Global context
  */
-export function useContext() {
-  return Object.freeze({...context._currentValue})
+export function getContext() {
+  return Object.freeze({...context.data})
 }
 
 
@@ -59,9 +116,9 @@ export function configure(conf) {
    */
   conf.storage = storage(conf.storage)
   conf.storage.data((store) => {
-    assign(context._currentValue, store)
+    context.add(store)
   })
-  assign(context._currentValue, {event, storage: conf.storage})
+  context.add({event, storage: conf.storage})
 
   return conf
 }
@@ -81,7 +138,6 @@ function initReducers(reducers) {
       data[i] = reducer
     }
     
-    
     if(isObj(reducer)) {
       if(reducer.__initialState) {
         assign(reducer, reducer.__initialState)
@@ -99,7 +155,7 @@ function initReducers(reducers) {
           get(target, key) {
             if(typeof target[key] == 'function') {
               return function(...args) {
-                return target[key](...args, context._currentValue)
+                return target[key](...args, context.data)
               }
             }
             return target[key]
@@ -113,7 +169,7 @@ function initReducers(reducers) {
     }
   }
 
-  assign(context._currentValue, data)
+  context.add(data)
 }
 
 
@@ -133,7 +189,7 @@ async function invokeReducer(data, state) {
     return assign(state[name], {[key]: data.data})
   }
 
-  const newState = await _reducer(data.data, state)
+  const newState = await _reducer(...[data.data, state].filter(Boolean))
   if(newState) {
     return merge(state, {[name]: newState})
   }
@@ -144,7 +200,7 @@ async function invokeReducer(data, state) {
  * Context Provider
  */
 export function Provider({config, children}) {
-  const [state, dispatcher] = React.useReducer(assign, context._currentValue)
+  const [state, dispatcher] = React.useReducer(assign, context.data)
 
   
   state.store = store({
@@ -156,6 +212,7 @@ export function Provider({config, children}) {
       if(!data) {
         return
       }
+
       /**
        * Invoke if its a reducer function
        */
@@ -164,9 +221,17 @@ export function Provider({config, children}) {
       }
       dispatcher(data)
 
+      Object.keys(data).forEach(v => {
+        if(keys[v]) {
+          keys[v].forEach(e => {
+            state.event.emit(e, data)
+          })
+        }
+      })
+
       return data
     }
   })
 
-  return React.createElement(context, {value: state}, children)
+  return React.createElement(context.element, {value: state}, children)
 }

@@ -7,7 +7,7 @@
 'use strict'
 
 
-
+import React from 'react'
 import useState from './state'
 
 
@@ -72,7 +72,7 @@ export function merge(data, arg) {
  * @param {object} data 
  * @param {function} dispatch 
  */
-function store(state, dispatch) {
+function useStore(state, dispatch) {
   return {
     __reducer: true,
     state: useState,
@@ -179,8 +179,8 @@ function store(state, dispatch) {
 /**
  * Store proxy
  */
-export default function({data, dispatch}) {
-  const target = store(data, dispatch)
+export function store({data, dispatch}) {
+  const target = useStore(data, dispatch)
 
   const storeProxy = new Proxy(target, {
     get(target, key) {
@@ -193,3 +193,42 @@ export default function({data, dispatch}) {
   return Object.freeze(storeProxy)
 }
 
+
+/**
+ * Wrap the native context of react with a custom context
+ * @param {object} data
+ */
+export function createContext(data = {}) {
+  const context = React.createContext(data)
+
+  const target = {
+    get(key) {
+      return context._currentValue[key]
+    },
+    add(...object) {
+      return assign(context._currentValue, ...object)
+    }
+  }
+
+  return new Proxy(target, {
+    get(target, key) {
+      if(target[key]) {
+        return target[key]
+      }
+
+      switch(key) {
+        case 'data': return context._currentValue
+        case 'element': return context
+        default:
+          return context._currentValue[key]
+      }
+    },
+    set(target, key, value) {
+      if(key == 'data') {
+        throw new TypeError(`Cannot assign to read-only property '${key}'`)
+      }
+      target[key] = value
+      return true
+    }
+  })
+}

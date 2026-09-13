@@ -7,7 +7,7 @@
 
 declare module '@vindo/store' {
   type ReducerType = {
-    [key: string]: Function | object | boolean | string | ReducerType
+    [key: string]: Function | object | boolean | string | number | ReducerType
   }
   type StoreType = {
     config?: ConfigType
@@ -21,7 +21,8 @@ declare module '@vindo/store' {
     reducers?: ReducerType
   }
   export function pure(component:React.FC<any>)
-  export function useContext()
+  export function getContext()
+  export function subscribe(def?:any)
   export function configure(conf:ConfigType)
   export function Provider(props: StoreType & React.PropsWithChildren)
 }

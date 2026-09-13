@@ -233,5 +233,5 @@ export function Provider({config, children}) {
     }
   })
 
-  return React.createElement(context.element, {value: state}, children)
+  return React.createElement(context.context, {value: state}, children)
 }

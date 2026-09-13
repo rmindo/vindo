@@ -218,7 +218,7 @@ export function createContext(data = {}) {
 
       switch(key) {
         case 'data': return context._currentValue
-        case 'element': return context
+        case 'context': return context
         default:
           return context._currentValue[key]
       }

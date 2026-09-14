@@ -28,10 +28,29 @@ const context = createContext()
  * 
  * @param {function} component
  */
-export function pure(component) {
+export function pure(fn) {
   return React.memo(({...props}) => {
-    return component(context.add(props))
+    return fn(
+      assign(props, context.data)
+    )
   })
+}
+
+
+/**
+ * Global context
+ */
+export function getContext() {
+  return Object.freeze({...context.data})
+}
+
+
+/**
+ * Check reducers 
+ * @param {object} data
+ */
+function hasReducers(data) {
+  return Object.values(data).filter(v => isFunc(v)).length
 }
 
 
@@ -39,7 +58,7 @@ export function pure(component) {
  * Create id for object
  * @param {object} obj
  */
-function objectID(obj) {
+function createID(obj) {
   const str = JSON.stringify(obj)
 
   let hash = 0
@@ -52,20 +71,20 @@ function objectID(obj) {
 
 
 /**
- * Create hash out of object
+ * Add subscriber to the watchlist
  * @param {object} data
  */
-function addID(data) {
+function addSubscriber(data) {
   if(!isObj(data)) {
     throw new TypeError('The expected argument must be an object.')
   }
-  const id = objectID(data)
+  const id = createID(data)
 
-  for(var key in data) {
-    if(!keys[key]) {
-      keys[key] = []
+  for(var i in data) {
+    if(!keys[i]) {
+      keys[i] = []
     }
-    if(!keys[key].includes(id)) keys[key].push(id)
+    if(!keys[i].includes(id)) keys[i].push(id)
   }
   return id
 }
@@ -76,10 +95,9 @@ function addID(data) {
  * @param {object} def Default value of global state
  */
 export function subscribe(def) {
-  const key = addID(def)
+  const key = addSubscriber(def)
   
   return function(component) {
-    context.add(def)
 
     return React.memo(({...props}) => {
       const state = context.store.state(def)
@@ -90,14 +108,6 @@ export function subscribe(def) {
       return React.createElement(component, context.add(props, state.data()))
     })
   }
-}
-
-
-/**
- * Global context
- */
-export function getContext() {
-  return Object.freeze({...context.data})
 }
 
 
@@ -115,6 +125,9 @@ export function configure(conf) {
    * Add persisted data to the context
    */
   conf.storage = storage(conf.storage)
+  /**
+   * Add the persisted data to the context
+   */
   conf.storage.data((store) => {
     context.add(store)
   })
@@ -142,9 +155,9 @@ function initReducers(reducers) {
       if(reducer.__initialState) {
         assign(reducer, reducer.__initialState)
       }
-
-      const hasReducers = Object.values(reducer).filter(v => isFunc(v))      
-      if(hasReducers.length) {
+   
+      const has = hasReducers(reducer)
+      if(has) {
         reducer.__reducer = true
       
         data[i] = new Proxy(reducer, {
@@ -163,7 +176,7 @@ function initReducers(reducers) {
         })
       }
 
-      if(hasReducers.length == 0) {
+      if(has == 0) {
         data[i] = reducer
       }
     }
@@ -221,11 +234,12 @@ export function Provider({config, children}) {
       }
       dispatcher(data)
 
+      /**
+       * Emit update event for subscribers
+       */
       Object.keys(data).forEach(v => {
         if(keys[v]) {
-          keys[v].forEach(e => {
-            state.event.emit(e, data)
-          })
+          keys[v].forEach(e => state.event.emit(e, data))
         }
       })
 
@@ -233,5 +247,5 @@ export function Provider({config, children}) {
     }
   })
 
-  return React.createElement(context.context, {value: state}, children)
+  return React.createElement(React.Fragment, {children})
 }

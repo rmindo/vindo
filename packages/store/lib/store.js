@@ -7,7 +7,6 @@
 'use strict'
 
 
-import React from 'react'
 import useState from './state'
 
 
@@ -65,6 +64,25 @@ export function merge(data, arg) {
   }
   return arg
 }
+
+
+/**
+ * Store proxy
+ */
+export function store({data, dispatch}) {
+  const target = useStore(data, dispatch)
+
+  const storeProxy = new Proxy(target, {
+    get(target, key) {
+      if(target[key]) {
+        return target[key]
+      }
+      return data[key]
+    }
+  })
+  return Object.freeze(storeProxy)
+}
+
 
 /**
  * The object to proxy
@@ -177,36 +195,16 @@ function useStore(state, dispatch) {
 
 
 /**
- * Store proxy
- */
-export function store({data, dispatch}) {
-  const target = useStore(data, dispatch)
-
-  const storeProxy = new Proxy(target, {
-    get(target, key) {
-      if(target[key]) {
-        return target[key]
-      }
-      return data[key]
-    }
-  })
-  return Object.freeze(storeProxy)
-}
-
-
-/**
  * Wrap the native context of react with a custom context
  * @param {object} data
  */
 export function createContext(data = {}) {
-  const context = React.createContext(data)
-
   const target = {
     get(key) {
-      return context._currentValue[key]
+      return data[key]
     },
     add(...object) {
-      return assign(context._currentValue, ...object)
+      return assign(data, ...object)
     }
   }
 
@@ -217,10 +215,9 @@ export function createContext(data = {}) {
       }
 
       switch(key) {
-        case 'data': return context._currentValue
-        case 'context': return context
+        case 'data': return data
         default:
-          return context._currentValue[key]
+          return data[key]
       }
     },
     set(target, key, value) {

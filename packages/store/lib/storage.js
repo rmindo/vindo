@@ -20,7 +20,7 @@ export default function(storage = {}) {
    */
   storage.data = function data(cb) {
     if(cb) {
-      storage.get(storage.key)?.then(cb)
+      return storage.get(storage.key)?.then(cb)
     }
   }
 

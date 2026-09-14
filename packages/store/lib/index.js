@@ -28,12 +28,8 @@ const context = createContext()
  * 
  * @param {function} component
  */
-export function pure(fn) {
-  return React.memo(({...props}) => {
-    return fn(
-      assign(props, context.data)
-    )
-  })
+export function pure(component) {
+  return React.memo(({...props}) => component({...props, ...context.data}))
 }
 
 
@@ -49,8 +45,29 @@ export function getContext() {
  * Check reducers 
  * @param {object} data
  */
-function hasReducers(data) {
+function checkReducers(data) {
   return Object.values(data).filter(v => isFunc(v)).length
+}
+
+
+/**
+ * Default configuration
+ * 
+ * @param {object} conf
+ */
+export async function configure(conf) {
+  /**
+   * Initialize default state of reducers
+   */
+  initReducers(conf.reducers)
+  /**
+   * Add persisted data to the context
+   */
+  conf.storage = storage(conf.storage)
+  /**
+   * Add the persisted data to the context
+   */
+  conf.storage.data(context.add)
 }
 
 
@@ -84,8 +101,12 @@ function addSubscriber(data) {
     if(!keys[i]) {
       keys[i] = []
     }
+    if(!context.has(i)) {
+      context.add({[i]: data[i]})
+    }
     if(!keys[i].includes(id)) keys[i].push(id)
   }
+
   return id
 }
 
@@ -112,32 +133,6 @@ export function subscribe(def) {
 
 
 /**
- * Default configuration
- * 
- * @param {object} conf
- */
-export function configure(conf) {
-  /**
-   * Initialize default state of reducers
-   */
-  initReducers(conf.reducers)
-  /**
-   * Add persisted data to the context
-   */
-  conf.storage = storage(conf.storage)
-  /**
-   * Add the persisted data to the context
-   */
-  conf.storage.data((store) => {
-    context.add(store)
-  })
-  context.add({event, storage: conf.storage})
-
-  return conf
-}
-
-
-/**
  * Initialize default state from reducers
  * @param {object} reducers 
  */
@@ -146,39 +141,40 @@ function initReducers(reducers) {
   
   for(var i in reducers) {
     const reducer = reducers[i]
+    const isReducer = checkReducers(reducer)
 
-    if(!isObj(reducer)) {
+
+    if(!isObj(reducer) || isReducer == 0) {
       data[i] = reducer
+      console.log(createID(reducer))
     }
     
+
     if(isObj(reducer)) {
+      reducer.__reducer = true
+
+      if(!isReducer) {
+        continue
+      }
+
       if(reducer.__initialState) {
         assign(reducer, reducer.__initialState)
       }
-   
-      const has = hasReducers(reducer)
-      if(has) {
-        reducer.__reducer = true
-      
-        data[i] = new Proxy(reducer, {
-          set(target, key, value) {
-            target[key] = value
-            return true
-          },
-          get(target, key) {
-            if(typeof target[key] == 'function') {
-              return function(...args) {
-                return target[key](...args, context.data)
-              }
-            }
-            return target[key]
-          }
-        })
-      }
 
-      if(has == 0) {
-        data[i] = reducer
-      }
+      data[i] = new Proxy(reducer, {
+        set(target, key, value) {
+          target[key] = value
+          return true
+        },
+        get(target, key) {
+          if(typeof target[key] == 'function') {
+            return function(...args) {
+              return target[key](...args, context.data)
+            }
+          }
+          return target[key]
+        }
+      })
     }
   }
 
@@ -213,38 +209,38 @@ async function invokeReducer(data, state) {
  * Context Provider
  */
 export function Provider({config, children}) {
-  const [state, dispatcher] = React.useReducer(assign, context.data)
-
-  
-  state.store = store({
-    data: state,
-    /**
-     * Dispatch reducer or new state
-     */
-    async dispatch(data) {
-      if(!data) {
-        return
-      }
-
+  context.add({
+    event,
+    store: store({
+      data: context.data,
       /**
-       * Invoke if its a reducer function
+       * Dispatch reducer or new state
        */
-      if(data.__invokeReducer) {
-        data = await invokeReducer(data, state, config?.reducers)
-      }
-      dispatcher(data)
-
-      /**
-       * Emit update event for subscribers
-       */
-      Object.keys(data).forEach(v => {
-        if(keys[v]) {
-          keys[v].forEach(e => state.event.emit(e, data))
+      async dispatch(data) {
+        if(!data) {
+          return
         }
-      })
 
-      return data
-    }
+        /**
+         * Invoke if its a reducer function
+         */
+        if(data.__invokeReducer) {
+          data = await invokeReducer(data, context.data, config?.reducers)
+        }
+        context.add(data)
+
+        /**
+         * Emit update event for subscribers
+         */
+        Object.keys(data).forEach(v => {
+          if(keys[v]) {
+            keys[v].forEach(e => event.emit(e, data))
+          }
+        })
+
+        return data
+      }
+    })
   })
 
   return React.createElement(React.Fragment, {children})

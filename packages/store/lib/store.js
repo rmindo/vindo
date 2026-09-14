@@ -199,9 +199,13 @@ function useStore(state, dispatch) {
  * @param {object} data
  */
 export function createContext(data = {}) {
+
   const target = {
     get(key) {
       return data[key]
+    },
+    has(key) {
+      return key in data
     },
     add(...object) {
       return assign(data, ...object)

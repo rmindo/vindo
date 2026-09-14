@@ -8,31 +8,32 @@
 
 
 
-const events = {}
-
 /**
  * Default export
  */
 export default Object.freeze({
-  __reducer: true,
+  events: {},
   /**
    * Add event
    */
-  on(name, cb) {
-    events[name] = {type: 'on', event: cb}
+  on(name, listener) {
+    if(!this.events[name]) {
+      this.events[name] = new Set()
+    }
+    this.events[name].add(listener)
   },
 
   /**
    * Execute the event
    */
   emit(name, ...data) {
-    if(events[name]) {
-      events[name].event(...data)
+    if(this.events[name]) {
+      this.events[name].forEach(listener => listener(...data))
     }
   },
 
   /**
    * Remove event
    */
-  remove: (name) => delete events[name]
+  remove: (name) => delete this.events[name]
 })

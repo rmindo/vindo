@@ -151,7 +151,6 @@ export function subscribe(def) {
       event.on(hash, (data) => {
         state.set(data)
       })
-
       return React.createElement(component, assign(props, context.data, state.data()))
     })
   }
@@ -163,7 +162,6 @@ export function subscribe(def) {
  * @param {object} reducers 
  */
 function initReducers(reducers) {
-  const data = {}
   
   for(var i in reducers) {
     const reducer = reducers[i]
@@ -178,34 +176,41 @@ function initReducers(reducers) {
         [i]: true,
         target: true
       })
-      data[i] = reducer
+      context.add({[i]: reducer})
     }
 
     if(isReducer) {
-      reducer.__reducer = true
-
       if(reducer.__initialState) {
         assign(reducer, reducer.__initialState)
       }
 
-      data[i] = new Proxy(reducer, {
-        set(target, key, value) {
-          target[key] = value
-          return true
-        },
-        get(target, key) {
-          if(typeof target[key] == 'function') {
-            return function(...args) {
-              return target[key](...args, context.data)
-            }
-          }
-          return target[key]
-        }
-      })
+      context.add({[i]: proxyReducer(reducer)})
     }
   }
+}
 
-  context.add(data)
+
+/**
+ * Create proxy for reducer to recreate function
+ * @param {object} reducer 
+ */
+function proxyReducer(reducer) {
+  reducer.__reducer = true
+
+  return new Proxy(reducer, {
+    set(target, key, value) {
+      target[key] = value
+      return true
+    },
+    get(target, key) {
+      if(isFunc(target[key])) {
+        return function(...args) {
+          return target[key](...args, context.data)
+        }
+      }
+      return target[key]
+    }
+  })
 }
 
 

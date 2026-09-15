@@ -207,8 +207,11 @@ export function createContext(data = {}) {
     has(key) {
       return key in data
     },
-    add(...object) {
-      return assign(data, ...object)
+    add(...obj) {
+      if(isFunc(obj[0])) {
+        obj = obj[0](data)
+      }
+      return assign(data, ...obj)
     }
   }
 

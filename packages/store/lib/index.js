@@ -19,18 +19,8 @@ import {store, merge, assign, isObj, isFunc, createContext} from './store'
 /**
  * Context holder
  */
-const keys = {}
-const context = createContext()
-
-
-/**
- * HOC pure component
- * 
- * @param {function} component
- */
-export function pure(component) {
-  return React.memo(({...props}) => component({...props, ...context.data}))
-}
+const watchers = {}
+const context = createContext({event})
 
 
 /**
@@ -42,11 +32,68 @@ export function getContext() {
 
 
 /**
+ * Convert object to hash
+ * @param {object} obj 
+ */
+function toHash(obj) {
+  return to16CharHash(JSON.stringify(obj))
+}
+
+
+/**
  * Check reducers 
  * @param {object} data
  */
 function checkReducers(data) {
   return Object.values(data).filter(v => isFunc(v)).length
+}
+
+
+/**
+ * Create 16 character hash
+ * @param {object} obj
+ */
+function to16CharHash(str) {
+  var h1 = 0xdeadbeef
+  var h2 = 0x41c6ce57
+
+  for(var i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i)
+    h1 = Math.imul(h1 ^ ch, 2654435761)
+    h2 = Math.imul(h2 ^ ch, 1597334677)
+  }
+
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+
+  const hex1 = (h1 >>> 0).toString(16).padStart(8, '0')
+  const hex2 = (h2 >>> 0).toString(16).padStart(8, '0')
+
+  return hex1 + hex2
+}
+
+
+/**
+ * Add subscriber to the watchlist
+ * @param {object} data
+ */
+function watch(data) {
+  if(!isObj(data)) {
+    throw new TypeError('The expected argument must be an object.')
+  }
+  const hash = toHash(data)
+
+  for(var i in data) {
+    if(!watchers[i]) {
+      watchers[i] = {
+        keys: [],
+        target: !!data.target
+      }
+    }
+    if(!watchers[i].keys.includes(hash)) watchers[i].keys.push(hash)
+  }
+
+  return hash
 }
 
 
@@ -63,70 +110,49 @@ export async function configure(conf) {
   /**
    * Add persisted data to the context
    */
-  conf.storage = storage(conf.storage)
-  /**
-   * Add the persisted data to the context
-   */
-  conf.storage.data(context.add)
+  storage(conf.storage).data(context.add)
 }
 
 
 /**
- * Create id for object
- * @param {object} obj
+ * HOC pure component with memo
+ * 
+ * @param {function} component
  */
-function createID(obj) {
-  const str = JSON.stringify(obj)
+export function pure(component) {
 
-  let hash = 0
-  for(let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash).toString()
-}
+  return React.memo(({...props}) => {
+    const state = context.store.state({})
 
-
-/**
- * Add subscriber to the watchlist
- * @param {object} data
- */
-function addSubscriber(data) {
-  if(!isObj(data)) {
-    throw new TypeError('The expected argument must be an object.')
-  }
-  const id = createID(data)
-
-  for(var i in data) {
-    if(!keys[i]) {
-      keys[i] = []
-    }
-    if(!context.has(i)) {
-      context.add({[i]: data[i]})
-    }
-    if(!keys[i].includes(id)) keys[i].push(id)
-  }
-
-  return id
+    Object.values(watchers).forEach(({keys, target}) => {
+      if(target) {
+        keys.forEach(hash => {
+          event.on(hash, state.set)
+        })
+      }
+    })
+    return React.createElement(component, assign(props, context.data, state.data()))
+  })
 }
 
 
 /**
  * Subscribe to changes
- * @param {object} def Default value of global state
+ * @param {object} def Default value of a state
  */
 export function subscribe(def) {
-  const key = addSubscriber(def)
-  
+
   return function(component) {
+    const hash = watch(def)
 
     return React.memo(({...props}) => {
       const state = context.store.state(def)
-      
-      context.event.on(key, (data) => {
+
+      event.on(hash, (data) => {
         state.set(data)
       })
-      return React.createElement(component, context.add(props, state.data()))
+
+      return React.createElement(component, assign(props, context.data, state.data()))
     })
   }
 }
@@ -141,21 +167,22 @@ function initReducers(reducers) {
   
   for(var i in reducers) {
     const reducer = reducers[i]
-    const isReducer = checkReducers(reducer)
 
-
-    if(!isObj(reducer) || isReducer == 0) {
-      data[i] = reducer
-      console.log(createID(reducer))
+    if(!isObj(reducer)) {
+      continue
     }
     
+    const isReducer = checkReducers(reducer)
+    if(isReducer == 0) {
+      watch({
+        [i]: true,
+        target: true
+      })
+      data[i] = reducer
+    }
 
-    if(isObj(reducer)) {
+    if(isReducer) {
       reducer.__reducer = true
-
-      if(!isReducer) {
-        continue
-      }
 
       if(reducer.__initialState) {
         assign(reducer, reducer.__initialState)
@@ -210,7 +237,6 @@ async function invokeReducer(data, state) {
  */
 export function Provider({config, children}) {
   context.add({
-    event,
     store: store({
       data: context.data,
       /**
@@ -232,9 +258,9 @@ export function Provider({config, children}) {
         /**
          * Emit update event for subscribers
          */
-        Object.keys(data).forEach(v => {
-          if(keys[v]) {
-            keys[v].forEach(e => event.emit(e, data))
+        Object.keys(data).forEach(key => {
+          if(watchers[key]) {
+            watchers[key].keys.forEach(hash => event.emit(hash, data))
           }
         })
 
@@ -242,6 +268,6 @@ export function Provider({config, children}) {
       }
     })
   })
-
+  
   return React.createElement(React.Fragment, {children})
 }

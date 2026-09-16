@@ -12,7 +12,7 @@ import React from 'react'
 
 
 import event from './event'
-import storage from './storage'
+import persistStorage from './storage'
 import {store, merge, assign, isObj, isFunc, createContext} from './store'
 
 
@@ -37,15 +37,6 @@ export function getContext() {
  */
 function toHash(obj) {
   return to16CharHash(JSON.stringify(obj))
-}
-
-
-/**
- * Check reducers 
- * @param {object} data
- */
-function checkReducers(data) {
-  return Object.values(data).filter(v => isFunc(v)).length
 }
 
 
@@ -108,9 +99,17 @@ export async function configure(conf) {
    */
   initReducers(conf.reducers)
   /**
+   * Initialize states to watch for changes
+   */
+  addToWatchlist(conf.watchlist)
+  /**
    * Add persisted data to the context
    */
-  storage(conf.storage).data(context.add)
+  const storage = persistStorage(conf.storage)
+  storage.data((data) => {
+    context.add(data)
+  })
+  context.add({storage})
 }
 
 
@@ -124,11 +123,9 @@ export function pure(component) {
   return React.memo(({...props}) => {
     const state = context.store.state({})
 
-    Object.values(watchers).forEach(({keys, target}) => {
-      if(target) {
-        keys.forEach(hash => {
-          event.on(hash, state.set)
-        })
+    Object.values(watchers).forEach(item => {
+      if(item.target) {
+        item.keys.forEach(hash => event.on(hash, state.set))
       }
     })
     return React.createElement(component, assign(props, context.data, state.data()))
@@ -137,20 +134,48 @@ export function pure(component) {
 
 
 /**
- * Subscribe to changes
- * @param {object} def Default value of a state
+ * Remove default if its already exists in the context
  */
-export function subscribe(def) {
+function excludeFromDefault({...data}) {
+  Object.keys(data).forEach(key => {
+    if(context.has(key)) {
+      delete data[key]
+    }
+  })
+  return data
+}
+      
+
+/**
+ * Subscribe to changes
+ * @param {object} initialState Default value of a state
+ */
+export function subscribe(initialState) {
+  if(!isObj(initialState)) {
+    throw new TypeError('The expected argument must be an object.')
+  }
 
   return function(component) {
-    const hash = watch(def)
+    const hash = watch(initialState)
 
     return React.memo(({...props}) => {
-      const state = context.store.state(def)
-
-      event.on(hash, (data) => {
+      const state = context.store.state(excludeFromDefault(initialState))
+      /**
+       * It's unique to every subscribing component
+       * and only fires when a specific state is dispatched.
+       */
+      event.on(hash, ({...data}) => {
+        /**
+         * Reset to default state, replace undefined state after removing it from context
+         */
+        for(var i in data) {
+          if(data[i] === undefined) {
+            data[i] = initialState[i]
+          }
+        }
         state.set(data)
       })
+
       return React.createElement(component, assign(props, context.data, state.data()))
     })
   }
@@ -165,27 +190,31 @@ function initReducers(reducers) {
   
   for(var i in reducers) {
     const reducer = reducers[i]
-
     if(!isObj(reducer)) {
       continue
     }
-    
-    const isReducer = checkReducers(reducer)
-    if(isReducer == 0) {
-      watch({
-        [i]: true,
-        target: true
-      })
-      context.add({[i]: reducer})
+
+    if(reducer.initialState) {
+      assign(reducer, reducer.initialState)
+      delete reducer.initialState
     }
 
-    if(isReducer) {
-      if(reducer.__initialState) {
-        assign(reducer, reducer.__initialState)
-      }
+    context.add({[i]: proxyReducer(reducer)})
+  }
+}
 
-      context.add({[i]: proxyReducer(reducer)})
-    }
+
+/**
+ * Initialize default state from reducers
+ * @param {object} reducers 
+ */
+function addToWatchlist(watchlist) {
+  for(var i in watchlist) {
+    watch({
+      [i]: true,
+      target: true
+    })
+    context.add({[i]: watchlist[i]})
   }
 }
 
@@ -259,7 +288,7 @@ export function Provider({config, children}) {
           data = await invokeReducer(data, context.data, config?.reducers)
         }
         context.add(data)
-
+        
         /**
          * Emit update event for subscribers
          */
@@ -273,6 +302,6 @@ export function Provider({config, children}) {
       }
     })
   })
-  
+
   return React.createElement(React.Fragment, {children})
 }

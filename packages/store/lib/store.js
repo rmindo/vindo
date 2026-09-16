@@ -124,20 +124,20 @@ function useStore(state, dispatch) {
     /**
      * Remove data
      */
-    remove(keys) {
+    async remove(keys) {
       if(isStr(keys)) {
         keys = [keys]
       }
-      return dispatch(
-        Object.fromEntries(keys.map(key => {
-          if(state[key]) {
-            if(state[key].__reducer) {
-              throw new Error('You cannot remove a reducer.')
-            }
+
+      for(var key of keys) {
+        if(state[key]) {
+          if(state[key].__reducer) {
+            throw new Error('You cannot remove a reducer.')
           }
-          return [key, null]
-        }))
-      )
+        }
+        dispatch({[key]: undefined})
+      }
+      state.storage.unset(keys)
     },
     /**
      * Replace value
@@ -155,12 +155,12 @@ function useStore(state, dispatch) {
      * Persist data
      */
     async persist(data) {
-      if(!isObj(data)) {
-        return
+      if(isFunc(data)) {
+        data = await data(state)
       }
 
       if(state.storage) {
-        state.storage.set(state.storage.key, data)
+        state.storage.add(data)
       }
       return await dispatch(data)
     },
@@ -212,6 +212,9 @@ export function createContext(data = {}) {
         obj = obj[0](data)
       }
       return assign(data, ...obj)
+    },
+    delete(key) {
+      delete data[key]
     }
   }
 

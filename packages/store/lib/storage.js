@@ -13,6 +13,15 @@ export default function(storage = {}) {
     storage.key = 'local:store'
   }
 
+
+  /**
+   * Add data
+   * @param {object} data
+   */
+  storage.add = function add(data) {
+    storage.set(storage.key, data)
+  }
+
   
   /**
    * Get data
@@ -58,7 +67,7 @@ export default function(storage = {}) {
 
 
   /**
-   * Add data
+   * Set data
    * @param {string} name 
    * @param {object} data
    */
@@ -67,7 +76,7 @@ export default function(storage = {}) {
       return
     }
 
-    storage.get(name)?.then((store) => {
+    storage.get(name)?.then(store => {
       if(storage.key !== name) {
         store = data
       }
@@ -79,6 +88,32 @@ export default function(storage = {}) {
       }
       storage.engine.setItem(name, JSON.stringify(store))
     })
+  }
+
+
+  /**
+   * Unset state from object
+   * @param {string[]} keys
+   */
+  storage.unset = async function unset(keys) {
+    storage.data(data => {
+      for(var key of keys) {
+        if(key in data) delete data[key]
+      }
+      storage.replace(data)
+    })
+  }
+
+
+  /**
+   * Replace current data set
+   * @param {object} data
+   */
+  storage.replace = function replace(data) {
+    if(!storage.engine) {
+      return
+    }
+    storage.engine.setItem(storage.key, JSON.stringify(data))
   }
 
   return storage

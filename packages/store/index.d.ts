@@ -6,23 +6,22 @@
 
 
 declare module '@vindo/store' {
-  type ReducerType = {
-    [key: string]: Function | object | boolean | string | number | ReducerType
+  type ConfigType = {
+    watchlist?: {
+      [key: string]: object | boolean | string | number
+    }
+    storage?: {
+      key?: string
+      engine: any
+    }
+    reducers?: object
   }
   type StoreType = {
     config?: ConfigType
   }
-  type ConfigType = {
-    storage?: {
-      key?: string
-      engine: any
-      persist?: string[]
-    },
-    reducers?: ReducerType
-  }
   export function pure(component:React.FC<any>)
   export function getContext()
-  export function subscribe(def?:any)
+  export function subscribe(initial?:any)
   export function configure(conf:ConfigType)
   export function Provider(props: StoreType & React.PropsWithChildren)
 }

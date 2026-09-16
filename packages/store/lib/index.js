@@ -93,14 +93,11 @@ function watch(data) {
  * 
  * @param {object} conf
  */
-export async function configure(conf) {
+export function configure(conf) {
   /**
-   * Initialize default state of reducers
+   * Initialize
    */
   initReducers(conf.reducers)
-  /**
-   * Initialize states to watch for changes
-   */
   addToWatchlist(conf.watchlist)
   /**
    * Add persisted data to the context

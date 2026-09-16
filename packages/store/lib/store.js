@@ -124,7 +124,7 @@ function useStore(state, dispatch) {
     /**
      * Remove data
      */
-    async remove(keys) {
+    remove(keys) {
       if(isStr(keys)) {
         keys = [keys]
       }

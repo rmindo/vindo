@@ -26,10 +26,16 @@ export default Object.freeze({
   /**
    * Execute the event
    */
-  emit(name, ...data) {
-    if(this.events[name]) {
-      this.events[name].forEach(listener => listener(...data))
+  emit(name, ...args) {
+    const data = {}
+    const event = this.events[name]
+
+    if(event) {
+      event.forEach(listener => {
+        data[name] = listener(...args)
+      })
     }
+    return data[name]
   },
 
   /**

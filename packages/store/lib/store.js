@@ -10,6 +10,10 @@
 import useState from './state'
 
 
+
+
+export const watchlist = {}
+
 /**
  * Shorthand of typeof string
  * @param {function} arg 
@@ -34,6 +38,40 @@ export function isObj(arg) {
   return typeof arg === 'object' && arg.constructor === Object
 }
 
+
+/**
+ * Convert object to hash
+ * @param {object} obj 
+ */
+function toHash(obj) {
+  return to16CharHash(JSON.stringify(obj))
+}
+
+
+/**
+ * Create 16 character hash
+ * @param {object} obj
+ */
+function to16CharHash(str) {
+  var h1 = 0xdeadbeef
+  var h2 = 0x41c6ce57
+
+  for(var i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i)
+    h1 = Math.imul(h1 ^ ch, 2654435761)
+    h2 = Math.imul(h2 ^ ch, 1597334677)
+  }
+
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+
+  const hex1 = (h1 >>> 0).toString(16).padStart(8, '0')
+  const hex2 = (h2 >>> 0).toString(16).padStart(8, '0')
+
+  return hex1 + hex2
+}
+
+
 /**
  * Merge object with empty object as default
  * @param {object} origin 
@@ -53,13 +91,11 @@ export function assign(origin, ...obj) {
  */
 export function merge(data, arg) {
   for(var i in arg) {
-    if(data[i]) {
-      if(data[i].__reducer) {
-        delete arg[i]
-      }
-      if(isObj(arg[i])) {
-        arg[i] = assign(data[i], arg[i])
-      }
+    if(!data[i]) {
+      continue
+    }
+    if(isObj(arg[i])) {
+      arg[i] = assign(data[i], arg[i])
     }
   }
   return arg
@@ -67,20 +103,50 @@ export function merge(data, arg) {
 
 
 /**
+ * Add subscriber to the watchlist
+ * @param {object} data
+ */
+export function watch(data) {
+  if(!isObj(data)) {
+    throw new TypeError('The expected argument must be an object.')
+  }
+  const hash = toHash(data)
+
+  for(var i in data) {
+    if(i == 'target') {
+      continue
+    }
+    if(!watchlist[i]) {
+      watchlist[i] = {
+        keys: [],
+        target: !!data.target
+      }
+    }
+    if(!watchlist[i].keys.includes(hash)) watchlist[i].keys.push(hash)
+  }
+
+  return hash
+}
+
+
+/**
  * Store proxy
  */
-export function store({data, dispatch}) {
-  const target = useStore(data, dispatch)
+export function store({context, dispatch}) {
+  const target = useStore(context, dispatch)
 
-  const storeProxy = new Proxy(target, {
+  return new Proxy(target, {
+    set(target, key, value) {
+      target[key] = value
+      return true
+    },
     get(target, key) {
       if(target[key]) {
         return target[key]
       }
-      return data[key]
+      return context.data[key]
     }
   })
-  return Object.freeze(storeProxy)
 }
 
 
@@ -90,10 +156,12 @@ export function store({data, dispatch}) {
  * @param {object} data 
  * @param {function} dispatch 
  */
-function useStore(state, dispatch) {
+function useStore(context, dispatch) {
+  const state = context.data
+
   return {
     __reducer: true,
-    state: useState,
+    useLocalState: useState,
     /**
      * Set global state
      */
@@ -122,9 +190,32 @@ function useStore(state, dispatch) {
       return fallback
     },
     /**
+     * Watch for state changes
+     */
+    state(data) {
+      if(!isObj(data)) {
+        throw new TypeError('The expected argument must be an object.')
+      }
+      const update = useState(data)
+
+      for(var i in data) {
+        if(state[i]) {
+          data[i] = state[i]
+        }
+        context.event.on(watch({[i]: true}), update.set)
+      }
+      return data
+    },
+    /**
+     * Replace value
+     */
+    replace(data) {
+      dispatch(data)
+    },
+    /**
      * Remove data
      */
-    remove(keys) {
+    async remove(keys) {
       if(isStr(keys)) {
         keys = [keys]
       }
@@ -138,18 +229,6 @@ function useStore(state, dispatch) {
         dispatch({[key]: undefined})
       }
       state.storage.unset(keys)
-    },
-    /**
-     * Replace value
-     */
-    replace(arg) {
-      if(arg) {
-        /**
-         * Exclude reducer
-         */
-        for(var i in arg) if(state[i].__reducer) delete arg[i]
-      }
-      dispatch(arg)
     },
     /**
      * Persist data

@@ -79,7 +79,7 @@ function contentView(state, children) {
     React.createElement(View,
       {style: [{
           bottom: 0,
-          borderRadius: 20,
+          borderRadius: 15,
           width: screen.width,
           overflow: 'hidden',
           position: 'absolute',
@@ -158,47 +158,42 @@ function animatedOverlay(animate, overlay, children) {
 }
 
 
-
 /**
  * Modal content
  */
-export default pure(({store, isOpen, event, items, current}) => {
-  const state = store.state(current)
+export default pure(({store, isOpen, event, items, modal, current}) => {
+  const state = store.useLocalState(current)
 
   const animate = useAnimation({
     fade: {value: isOpen ? 0 : 1},
     slide: {value: isOpen ? screen.height : 0},
   })
+
+  /**
+   * Modal option
+   */
+  event.on(current.optionEventId, state.set)
   
   /**
-   * Set listen to events
+   * Animate when opening
    */
-  event.on('modal.option', state.set)
-  event.on('modal.closing', () => {
+  event.on(current.openEventId, () => {
+    animate.fade.start(1, 800)
+    animate.slide.start(0, 500)
+  })
+
+  /**
+   * Animate when closing
+   */
+  event.on(current.closeEventId, () => {
     animate.fade.start(0, 1000)
     animate.slide.start(screen.height, 1000)
   })
 
-  /**
-   * Start the animation when its open
-   */
-  React.useEffect(() => {
-    if(isOpen) {
-      animate.fade.start(1, 800)
-      animate.slide.start(0, 500) 
-    }
-  }, [animate.slide.value])
-  
 
   return animatedOverlay(
     animate,
     state.overlay,
-    touchableClose(
-      animate,
-      function() {
-        event.emit('modal.close')
-      },
-      contentView(state, items[state.name])
-    )
+    touchableClose(animate, modal.close, contentView(state, items[state.name]))
   )
 })

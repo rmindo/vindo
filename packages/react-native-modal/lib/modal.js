@@ -9,92 +9,91 @@
 
 
 const keys = Object.keys
-const assign = Object.assign
 const entries = Object.fromEntries
 
 
+
+export const stack = {}
+export const isOpen = false
+export const isClose = true
+
+
 /**
- * Modal properties
+ * Get current modal
  */
-export default function({event, store}) {
-  const modal = {}
-  const initialValue = {
-    stack: {},
-    isOpen: false,
-    isClose: true,
-  }
-
-
-  event.on('modal.close', (data) => {
-    if(typeof data == 'function') {
-      data = data(store)
-    }
-
-    store.modal.isOpen = false
-    store.modal.isClose = true
-
-    /**
-     * Remove top modal
-     */
-    store.modal.stack = entries(
-      keys(store.modal.stack).slice(0, -1).map(key => [key, store.modal.stack[key]])
-    )
-    /**
-     * Dispatch with updated stack
-     */
-    store.dispatch({
-      ...data,
-      modal: store.modal
-    })
-    event.emit('modal.closing')
-  })
-  
-
-  /**
-   * Get current modal
-   */
-  modal.get = function get(name) {
-    return store.modal.stack[name]
-  }
-
-  
-  /**
-   * Open and add modal to stack
-   */
-  modal.open = function open(arg) {
-    if(typeof arg == 'function') {
-      arg = arg(store)
-    }
-
-    store.modal.isOpen = true
-    store.modal.isClose = false
-
-    if(!arg.data) {
-      arg.data = {}
-    }
-    if(!store.modal.stack[arg.name]) {
-      store.modal.stack[arg.name] = arg
-    }
-
-    store.dispatch({modal: store.modal})
-  }
-
-
-  /**
-   * Close top level modal
-   */
-  modal.close = function close(data = {}) {
-    event.emit('modal.close', data)
-  }
-
-
-  /**
-   * Modal option
-   */
-  modal.option = function option(data = {}) {
-    event.emit('modal.option', data)
-  }
-
-  return assign(initialValue, store.modal, modal)
+export function get(name, {modal}) {
+  return modal.stack[name]
 }
 
+
+/**
+ * Open and add modal to stack
+ */
+export function open(data, {store, modal, event}) {
+
+  if(typeof data == 'function') {
+    data = data(store)
+  }
+
+  modal.isOpen = true
+  modal.isClose = false
+
+  data.openEventId = 'modal.open.' + data.name
+  data.closeEventId = 'modal.close.' + data.name
+  data.optionEventId = 'modal.option.' + data.name
+
+
+  if(!data.data) {
+    data.data = {}
+  }
+
+  if(!modal.stack[data.name]) {
+    modal.stack[data.name] = data
+  }
+  /**
+   * Let the modal dispatched first before emitting animation
+   */
+  setTimeout(() => {
+    event.emit(data.openEventId)
+  }, 0)
+
+  store.dispatch({modal})
+}
+
+
+/**
+ * Close top level modal
+ */
+export function close(data = {}, {store, event, modal}) {
+
+  if(typeof data == 'function') {
+    data = data(store)
+  }
+  
+  modal.isOpen = false
+  modal.isClose = true
+
+  /**
+   * Animate when closing
+   */
+  event.emit(Object.values(modal.stack).at(-1).closeEventId)
+
+  /**
+   * Remove top modal
+   */
+  modal.stack = entries(
+    keys(modal.stack).slice(0, -1).map(key => {
+      return [key, modal.stack[key]]
+    })
+  )
+  
+  store.dispatch({...data, modal})
+}
+
+
+/**
+ * Modal option
+ */
+export function option(data = {}, {event, modal}) {
+  event.emit(Object.values(modal.stack).at(-1).optionEventId, data)
+}

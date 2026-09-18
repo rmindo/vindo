@@ -22,16 +22,14 @@ import content from './content'
  */
 export function Stack() {}
 
-
 /**
  * Modal container
  */
 export const StackContainer = pure(({store, children}) => {
-
-  if(!store.modal) {
-    return null
-  }
-  const stack = Object.values(store.modal.stack)
+  const {modal} = store.state({
+    modal: {}
+  })
+  const stack = Object.values(modal.stack)
 
   /**
    * Stact reducer
@@ -51,7 +49,7 @@ export const StackContainer = pure(({store, children}) => {
         key,
         current,
         items: children.reduce(reducer, {}),
-        isOpen: key == (stack.length - 1) ? store.modal.isOpen : false,
+        isOpen: key == (stack.length - 1) ? modal.isOpen : false,
       }
     )
   })

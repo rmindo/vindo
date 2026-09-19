@@ -9,6 +9,7 @@
 
 
 const keys = Object.keys
+const values = Object.values
 const entries = Object.fromEntries
 
 
@@ -73,21 +74,24 @@ export function close(data = {}, {store, event, modal}) {
   modal.isOpen = false
   modal.isClose = true
 
-  /**
-   * Animate when closing
-   */
-  event.emit(Object.values(modal.stack).at(-1).closeEventId)
+  const keys = Object.keys(modal.stack)
+  const values = Object.values(modal.stack)
 
   /**
    * Remove top modal
    */
   modal.stack = entries(
-    keys(modal.stack).slice(0, -1).map(key => {
+    keys.slice(0, -1).map(key => {
       return [key, modal.stack[key]]
     })
   )
-  
-  store.dispatch({...data, modal})
+
+  /**
+   * Animate when closing
+   */
+  event.emit(values.at(-1).closeEventId)
+
+  store.update({...data, modal})
 }
 
 

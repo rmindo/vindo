@@ -190,7 +190,6 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
     animate.slide.start(screen.height, 1000)
   })
 
-
   return animatedOverlay(
     animate,
     state.overlay,

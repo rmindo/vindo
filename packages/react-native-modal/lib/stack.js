@@ -28,7 +28,6 @@ export function Stack() {}
 export const StackContainer = pure(({store, children}) => {
   const modal = store.watch('modal')
 
-  const stack = Object.values(modal.stack)
   /**
    * Stact reducer
    */
@@ -36,7 +35,8 @@ export const StackContainer = pure(({store, children}) => {
     items[props.name] = props.component
     return items
   }
-
+  
+  const stack = Object.values(modal.stack)
   /**
    * Handles multiple layers of modals
    */

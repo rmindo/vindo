@@ -13,7 +13,7 @@ import React from 'react'
 
 import event from './event'
 import persistStorage from './storage'
-import {store, merge, assign, isObj, isFunc, watch, watchlist, createContext} from './store'
+import {store, merge, assign, isObj, isFunc, createContext, updateListeners} from './store'
 
 
 
@@ -24,10 +24,22 @@ const context = createContext({event})
 
 
 /**
- * Global context
+ * Get context
  */
 export function getContext() {
   return Object.freeze({...context.data})
+}
+
+
+/**
+ * HOC pure component with memo
+ * 
+ * @param {function} component
+ */
+export function pure(component) {
+  return React.memo(({...props}) => {
+    return React.createElement(component, assign(props, context.data))
+  })
 }
 
 
@@ -50,8 +62,7 @@ export function configure(conf) {
   /**
    * Initialize
    */
-  addReducers(conf.reducers)
-  addWatchlist(conf.watchlist)
+  initReducers(conf.reducers)
 }
 
 
@@ -59,25 +70,13 @@ export function configure(conf) {
  * Initialize default state from reducers
  * @param {object} reducers 
  */
-function addReducers(reducers) {
-  
+function initReducers(reducers) {
   for(var i in reducers) {
     if(!isObj(reducers[i])) {
       continue
     }
     context.add({[i]: proxyReducer(reducers[i])})
   }
-}
-
-
-/**
- * Initialize default state from reducers
- * @param {object} reducers 
- */
-function addWatchlist(list) {
-  list.forEach((key) => {
-    watch({[key]: true, target: true})
-  })
 }
 
 
@@ -95,6 +94,7 @@ function proxyReducer(reducer) {
     },
     get(target, key) {
       const item = target[key]
+        
       if(isFunc(item)) {
         return async function(data = {}) {
           return await item(data, context.data)
@@ -102,18 +102,6 @@ function proxyReducer(reducer) {
       }
       return item
     }
-  })
-}
-
-
-/**
- * HOC pure component with memo
- * 
- * @param {function} component
- */
-export function pure(component) {
-  return React.memo(({...props}) => {
-    return React.createElement(component, assign(props, context.data))
   })
 }
 
@@ -127,13 +115,15 @@ async function invokeReducer(data) {
   if(!key) {
     return data
   }
-  const reducer = context.data[name][key]
 
-  if(isFunc(reducer)) {
-    const state = await reducer(data?.data)
-    if(state) {
-      return merge(context.data, {[name]: state})
-    } 
+  const reducer = context.data[name][key]
+  if(!isFunc(reducer)) {
+    return
+  }
+
+  const state = await reducer(data?.data)
+  if(state) {
+    return merge(context.data, {[name]: state})
   }
 }
 
@@ -160,15 +150,10 @@ export function Provider({children}) {
           data = await invokeReducer(data)
         }
         context.add(data)
-
         /**
-         * Emit state for subscribers
+         * Emit listeners
          */
-        Object.keys(data).forEach(key => {
-          if(watchlist[key]) {
-            watchlist[key].keys.forEach(hash => event.emit(hash, data))
-          }
-        })
+        updateListeners(data, context)
 
         return data
       }

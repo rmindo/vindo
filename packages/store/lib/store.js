@@ -9,14 +9,14 @@
 
 import useState from './state'
 
-
-
-
-export const watchlist = {}
+/**
+ * List of state keys
+ */
+export const listners = {}
 
 /**
  * Shorthand of typeof string
- * @param {function} arg 
+ * @param {string} arg 
  */
 export function isStr(arg) {
   return typeof arg == 'string'
@@ -32,7 +32,7 @@ export function isFunc(arg) {
 
 /**
  * Shorthand of typeof object
- * @param {function} arg 
+ * @param {object} arg 
  */
 export function isObj(arg) {
   return typeof arg === 'object' && arg.constructor === Object
@@ -40,19 +40,31 @@ export function isObj(arg) {
 
 
 /**
+ * Create a shallow copy of the object
+ * @param {object} obj
+ */
+export function copy(obj) {
+  if(!isObj(obj)) {
+    throw new TypeError('The expected argument must be an object.')
+  }
+  return {...obj}
+}
+
+
+/**
  * Convert object to hash
  * @param {object} obj 
  */
-function toHash(obj) {
+export function toHash(obj) {
   return to16CharHash(JSON.stringify(obj))
 }
 
 
 /**
  * Create 16 character hash
- * @param {object} obj
+ * @param {string} str
  */
-function to16CharHash(str) {
+export function to16CharHash(str) {
   var h1 = 0xdeadbeef
   var h2 = 0x41c6ce57
 
@@ -103,29 +115,56 @@ export function merge(data, arg) {
 
 
 /**
- * Add subscriber to the watchlist
- * @param {object} data
+ * Add subscriber to the watch list
+ * @param {object} initialState
+ * @param {object} context
  */
-export function watch(data) {
-  if(!isObj(data)) {
-    throw new TypeError('The expected argument must be an object.')
-  }
-  const hash = toHash(data)
-
+export function watch(initialState, context) {
+  const data = copy(initialState)
+  const hash = toHash(initialState)
+  
   for(var i in data) {
-    if(i == 'target') {
-      continue
+    /**
+     * Replace the default with new value from context after dispatched
+     */
+    if(context.has(i)) {
+      data[i] = context.data[i]
     }
-    if(!watchlist[i]) {
-      watchlist[i] = {
-        keys: [],
-        target: !!data.target
-      }
+    /**
+     * Add to watchlist
+     */
+    if(!listners[i]) {
+      listners[i] = []
     }
-    if(!watchlist[i].keys.includes(hash)) watchlist[i].keys.push(hash)
+    if(!listners[i].includes(hash)) listners[i].push(hash)
   }
 
-  return hash
+  const state = useState(data)
+  /**
+   * Set to default state if removed from context
+   */
+  context.event.on(hash, (data) => {
+    for(var i in data) {
+      if(data[i] == undefined) data[i] = initialState[i]
+    }
+    state.set(data)
+  })
+  
+  return state.data()
+}
+
+
+/**
+ * Update component when specific state is dispatched
+ * @param {object} data 
+ * @param {object} context 
+ */
+export function updateListeners(data, context) {
+  Object.keys(data).forEach(key => {
+    if(listners[key]) {
+      listners[key].forEach(hash => context.event.emit(hash, data))
+    }
+  })
 }
 
 
@@ -180,54 +219,56 @@ function useStore(context, dispatch) {
     /**
      * Get data
      */
-    get(name, fallback) {
-      if(!name) {
+    get(key) {
+      if(!key) {
         return state
       }
-      if(state[name]) {
-        return state[name]
+      if(state[key]) {
+        return state[key]
       }
-      return fallback
     },
     /**
-     * Watch for state changes
+     * Watch for changes
+     * @param {string} key
+     */
+    watch(key) {
+      if(!isStr(key)) {
+        throw new TypeError('The expected argument must be a string.')
+      }
+      return watch({[key]: true}, context)[key]
+    },
+    /**
+     * Watch for state changes and update the current component with new state
      */
     state(data) {
-      if(!isObj(data)) {
+      if(isStr(data)) {
         throw new TypeError('The expected argument must be an object.')
       }
-      const update = useState(data)
-
-      for(var i in data) {
-        if(state[i]) {
-          data[i] = state[i]
-        }
-        context.event.on(watch({[i]: true}), update.set)
-      }
-      return data
+      return watch(data, context)
     },
     /**
-     * Replace value
+     * Replace the entire state value instead of merging it with the new value.
      */
     replace(data) {
       dispatch(data)
     },
     /**
-     * Remove data
+     * Rerender without dispatching new state to the global context;
+     * only the current component will receive the updated state.
+     */
+    update(data) {
+      updateListeners(data, context)
+    },
+    /**
+     * Remove data from both persistent storage and global context
      */
     async remove(keys) {
       if(isStr(keys)) {
         keys = [keys]
       }
-
-      for(var key of keys) {
-        if(state[key]) {
-          if(state[key].__reducer) {
-            throw new Error('You cannot remove a reducer.')
-          }
-        }
-        dispatch({[key]: undefined})
-      }
+      dispatch(
+        Object.fromEntries(keys.map(key => [key, undefined]))
+      )
       state.storage.unset(keys)
     },
     /**
@@ -292,8 +333,11 @@ export function createContext(data = {}) {
       }
       return assign(data, ...obj)
     },
-    delete(key) {
-      delete data[key]
+    delete(keys) {
+      if(isStr(keys)) {
+        keys = [keys]
+      }
+      keys.forEach(key => delete data[key])
     }
   }
 

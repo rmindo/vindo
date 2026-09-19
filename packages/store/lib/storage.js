@@ -29,7 +29,13 @@ export default function(storage = {}) {
    */
   storage.data = function data(cb) {
     if(cb) {
-      return storage.get(storage.key)?.then(cb)
+      return storage.get(storage.key)?.then((data) => {
+        if(cb) {
+          cb(data)
+        }
+        storage.persisted = Object.keys(data)
+        return data
+      })
     }
   }
 

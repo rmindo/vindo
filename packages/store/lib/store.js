@@ -7,7 +7,7 @@
 'use strict'
 
 
-import useState from './state'
+import useLocalState from './state'
 
 /**
  * List of state keys
@@ -103,7 +103,7 @@ export function assign(origin, ...obj) {
  */
 export function merge(data, arg) {
   for(var i in arg) {
-    if(!data[i]) {
+    if(!(i in data)) {
       continue
     }
     if(isObj(arg[i])) {
@@ -139,7 +139,7 @@ export function watch(initialState, context) {
     if(!listners[i].includes(hash)) listners[i].push(hash)
   }
 
-  const state = useState(data)
+  const state = useLocalState(data)
   /**
    * Set to default state if removed from context
    */
@@ -180,7 +180,7 @@ export function store({context, dispatch}) {
       return true
     },
     get(target, key) {
-      if(target[key]) {
+      if(key in target) {
         return target[key]
       }
       return context.data[key]
@@ -199,37 +199,24 @@ function useStore(context, dispatcher) {
   const state = context.data
 
   return {
-    __reducer: true,
-    useLocalState: useState,
+    useLocalState,
     /**
-     * Set global state
+     * Get the state
      */
-    async set(data) {
-      if(isFunc(data)) {
-        data = await data(state)
-      }
-      /**
-       * Merge old and new state
-       */
+    get(key) {
+      return state[key]
+    },
+    /**
+     * Add state to the context without rerendering the current components
+     */
+    add(data) {
       if(data) {
         data = merge(state, data)
       }
-      return await dispatcher(data)
+      context.add(add)
     },
     /**
-     * Get data
-     */
-    get(key) {
-      if(!key) {
-        return state
-      }
-      if(state[key]) {
-        return state[key]
-      }
-    },
-    /**
-     * Watch for changes
-     * @param {string} key
+     * Watch for changes of a single state
      */
     watch(key) {
       if(!isStr(key)) {
@@ -249,15 +236,21 @@ function useStore(context, dispatcher) {
     /**
      * Replace the entire state value instead of merging it with the new value.
      */
-    replace(data) {
+    async replace(data) {
+      if(isFunc(data)) {
+        data = await data(state)
+      }
       dispatcher(data)
     },
     /**
      * Rerender without dispatching new state to the global context;
      * only the current component will receive the updated state.
      */
-    update(data) {
-      updateListeners(data, context)
+    async update(data) {
+      if(isFunc(data)) {
+        data = await data(state)
+      }
+      updateListeners(merge(state, data), context)
     },
     /**
      * Remove data from both persistent storage and global context
@@ -272,7 +265,7 @@ function useStore(context, dispatcher) {
       state.storage.unset(keys)
     },
     /**
-     * Persist data
+     * Add data to the persistent storage
      */
     async persist(data) {
       if(isFunc(data)) {
@@ -286,7 +279,7 @@ function useStore(context, dispatcher) {
       return await dispatcher(data)
     },
     /**
-     * Dispatch action
+     * Dispatch reducer or state
      */
     async dispatch(data, param) {
       if(isFunc(data)) {
@@ -328,11 +321,8 @@ export function createContext(data = {}) {
     has(key) {
       return key in data
     },
-    add(...obj) {
-      if(isFunc(obj[0])) {
-        obj = obj[0](data)
-      }
-      return assign(data, ...obj)
+    add(obj) {
+      return assign(data, obj)
     },
     delete(keys) {
       if(isStr(keys)) {
@@ -344,7 +334,7 @@ export function createContext(data = {}) {
 
   return new Proxy(target, {
     get(target, key) {
-      if(target[key]) {
+      if(key in target) {
         return target[key]
       }
 

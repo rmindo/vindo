@@ -55,10 +55,9 @@ export default function state(initialState = {}, otherState = {}) {
      * Get state
      */
     get(target, key) {
-      if(target[key]) {
+      if(key in target) {
         return target[key]
       }
-      
       return current[key]
     }
   })

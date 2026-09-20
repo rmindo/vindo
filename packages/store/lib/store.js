@@ -122,7 +122,7 @@ export function merge(data, arg) {
 export function watch(initialState, context) {
   const data = copy(initialState)
   const hash = toHash(initialState)
-  
+
   for(var i in data) {
     /**
      * Replace the default with new value from context after dispatched
@@ -171,8 +171,8 @@ export function updateListeners(data, context) {
 /**
  * Store proxy
  */
-export function store({context, dispatch}) {
-  const target = useStore(context, dispatch)
+export function store({context, dispatcher}) {
+  const target = useStore(context, dispatcher)
 
   return new Proxy(target, {
     set(target, key, value) {

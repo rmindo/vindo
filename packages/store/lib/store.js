@@ -193,9 +193,9 @@ export function store({context, dispatch}) {
  * The object to proxy
  * 
  * @param {object} data 
- * @param {function} dispatch 
+ * @param {function} dispatcher 
  */
-function useStore(context, dispatch) {
+function useStore(context, dispatcher) {
   const state = context.data
 
   return {
@@ -214,7 +214,7 @@ function useStore(context, dispatch) {
       if(data) {
         data = merge(state, data)
       }
-      return await dispatch(data)
+      return await dispatcher(data)
     },
     /**
      * Get data
@@ -250,7 +250,7 @@ function useStore(context, dispatch) {
      * Replace the entire state value instead of merging it with the new value.
      */
     replace(data) {
-      dispatch(data)
+      dispatcher(data)
     },
     /**
      * Rerender without dispatching new state to the global context;
@@ -266,7 +266,7 @@ function useStore(context, dispatch) {
       if(isStr(keys)) {
         keys = [keys]
       }
-      dispatch(
+      dispatcher(
         Object.fromEntries(keys.map(key => [key, undefined]))
       )
       state.storage.unset(keys)
@@ -278,11 +278,12 @@ function useStore(context, dispatch) {
       if(isFunc(data)) {
         data = await data(state)
       }
+      data = merge(state, data)
 
       if(state.storage) {
         state.storage.add(data)
       }
-      return await dispatch(data)
+      return await dispatcher(data)
     },
     /**
      * Dispatch action
@@ -308,7 +309,7 @@ function useStore(context, dispatch) {
         data.type = data.type.split(/\//)
       }
 
-      return await dispatch(data)
+      return await dispatcher(data)
     }
   }
 }

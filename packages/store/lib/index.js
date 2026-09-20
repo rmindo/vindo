@@ -12,7 +12,7 @@ import React from 'react'
 
 
 import event from './event'
-import persistStorage from './storage'
+import persistentStorage from './storage'
 import {store, merge, assign, isObj, isFunc, createContext, updateListeners} from './store'
 
 
@@ -24,9 +24,13 @@ const context = createContext({event})
 
 
 /**
- * Get context
+ * Get state from context
+ * @param {string} key 
  */
-export function getContext() {
+export function getState(key) {
+  if(context.has(key)) {
+    return context.data[key]
+  }
   return Object.freeze({...context.data})
 }
 
@@ -52,7 +56,7 @@ export function configure(conf) {
   /**
    * Add persisted data to the context
    */
-  const storage = persistStorage(conf.storage)
+  const storage = persistentStorage(conf.storage)
   storage.data((data) => {
     context.add(data)
   })
@@ -94,7 +98,7 @@ function proxyReducer(reducer) {
     },
     get(target, key) {
       const item = target[key]
-        
+      
       if(isFunc(item)) {
         return async function(data = {}) {
           return await item(data, context.data)
@@ -138,7 +142,7 @@ export function Provider({children}) {
       /**
        * Dispatch reducer or new state
        */
-      async dispatch(data) {
+      async dispatcher(data) {
         if(!data) {
           return
         }

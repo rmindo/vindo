@@ -37,6 +37,7 @@ export const StackContainer = pure(({store, children}) => {
   }
   
   const stack = Object.values(modal.stack)
+
   /**
    * Handles multiple layers of modals
    */

@@ -30,10 +30,14 @@ export function get(name, {modal}) {
 /**
  * Open and add modal to stack
  */
-export function open(data, {store, modal, event}) {
+export function open(data, {store, event, modal}) {
 
   if(typeof data == 'function') {
     data = data(store)
+  }
+
+  if(!data.data) {
+    data.data = {}
   }
 
   modal.isOpen = true
@@ -44,21 +48,14 @@ export function open(data, {store, modal, event}) {
   data.optionEventId = 'modal.option.' + data.name
 
 
-  if(!data.data) {
-    data.data = {}
-  }
-
-  if(!modal.stack[data.name]) {
+  store.start(() => {
     modal.stack[data.name] = data
-  }
-  /**
-   * Let the modal dispatched first before emitting animation
-   */
-  setTimeout(() => {
+    
+    store.dispatch({modal})
+  })
+  .delay(100, () => {
     event.emit(data.openEventId)
-  }, 0)
-
-  store.dispatch({modal})
+  })
 }
 
 
@@ -89,9 +86,7 @@ export function close(data = {}, {store, event, modal}) {
   /**
    * Animate when closing
    */
-  event.emit(values.at(-1).closeEventId)
-
-  store.update({...data, modal})
+  event.emit(values.at(-1).closeEventId, {...data, modal})
 }
 
 

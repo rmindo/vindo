@@ -46,14 +46,14 @@ function useAnimation(data) {
      * @param toValue Starting point of the animation
      * @param duration Time duration in milliseconds
      */
-    item.start = function start(toValue, duration) {
+    item.start = function start(toValue, duration, callback) {
       const option = {
         toValue,
         duration,
         useNativeDriver: true,
         easing: Easing.out(Easing.exp)
       }
-      Animated.timing(item.value, option).start()
+      Animated.timing(item.value, option).start(callback)
     }
   }
 
@@ -134,14 +134,14 @@ function touchableClose(animate, onPress, content) {
 /**
  * Animate the overlay holder
  * 
- * @param {object} animate 
- * @param {boolean} overlay 
+ * @param {number} animate 
+ * @param {boolean} state 
  * @param {object} children
  */
-function animatedOverlay(animate, overlay, children) {
+function animatedOverlay(animate, state, children) {
   return React.createElement(Animated.View,
     {
-      style: {
+      style: [{
         top: 0,
         bottom: 0,
         zIndex: 1,
@@ -150,8 +150,9 @@ function animatedOverlay(animate, overlay, children) {
         width: screen.width,
         height: screen.height,
         opacity: animate.fade.value,
-        backgroundColor: overlay ?? 'rgba(0,0,0,0.6)',
-      }
+        backgroundColor: 'rgba(0,0,0,0.6)',
+      },
+      state.overlayStyle]
     },
     children
   )
@@ -169,6 +170,7 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
     slide: {value: isOpen ? screen.height : 0},
   })
 
+  
   /**
    * Modal option
    */
@@ -185,14 +187,24 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
   /**
    * Animate when closing
    */
-  event.on(current.closeEventId, () => {
-    animate.fade.start(0, 1000)
-    animate.slide.start(screen.height, 1000)
+  event.on(current.closeEventId, (data) => {
+    store.start(() => {
+      animate.fade.start(0, 1000)
+      animate.slide.start(screen.height, 1000)
+    })
+    .delay(200, () => {
+      store.dispatch(data)
+    })
   })
+
 
   return animatedOverlay(
     animate,
-    state.overlay,
-    touchableClose(animate, modal.close, contentView(state, items[state.name]))
+    state,
+    touchableClose(
+      animate,
+      modal.close,
+      contentView(state, items[state.name])
+    )
   )
 })

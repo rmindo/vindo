@@ -52,6 +52,17 @@ export function copy(obj) {
 
 
 /**
+ * Check if it has a then function
+ * @param {object|function} value
+ */
+export function isThen(value) {
+  return (
+    value !== null && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function'
+  )
+}
+
+
+/**
  * Convert object to hash
  * @param {object} obj 
  */
@@ -155,6 +166,59 @@ export function watch(initialState, context) {
 
 
 /**
+ * Create a chain of middlewares and dispatch to the context
+ * @param {object} data 
+ * @param {function} dispatcher 
+ */
+function nextBuild(data, dispatcher) {
+  var promise = Promise.resolve(data)
+      
+  function resolve(name, callback, skip = false, timeout = 0) {
+    if(isThen(callback)) {
+      return callback.then(data => data)
+    }
+    /**
+     * Resolve promise with delay
+     */
+    switch(name) {
+      case 'delay':
+        return new Promise((resolve) => promise.then(data => {
+          setTimeout(() => {
+            resolve(callback ? callback(data) : data)
+          }, timeout)
+        }))
+      /**
+       * Resolve promise
+       */
+      default:
+        return promise.then(async (result) => {
+          data = await callback(result)
+          if(skip) {
+            return data
+          }
+          return dispatcher(data)
+        })
+    }
+  }
+
+  return {
+    build(callback) {
+      promise = resolve('build', callback)
+      return this
+    },
+    next(callback) {
+      promise = resolve('next', callback, true)
+      return this
+    },
+    delay(timeout, callback) {
+      promise = resolve('delay', callback, true, timeout)
+      return this
+    },
+  }
+}
+
+
+/**
  * Update component when specific state is dispatched
  * @param {object} data 
  * @param {object} context 
@@ -214,6 +278,15 @@ function useStore(context, dispatcher) {
         data = merge(state, data)
       }
       context.add(add)
+    },
+    /**
+     * Create a middleware and dispatch
+     */
+    start(data) {
+      if(isFunc(data)) {
+        data = data()
+      }
+      return nextBuild(data, (data) => dispatcher(merge(state, data)))
     },
     /**
      * Watch for changes of a single state

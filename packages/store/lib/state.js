@@ -14,7 +14,7 @@ import React from 'react'
 /**
  * Use state
  */
-export default function state(initialState = {}, otherState = {}) {
+export default function useLocalState(initialState = {}, otherState = {}) {
   const {current} = React.useRef({})
   const [state, setState] = React.useState({...initialState, ...otherState})
   
@@ -55,9 +55,10 @@ export default function state(initialState = {}, otherState = {}) {
      * Get state
      */
     get(target, key) {
-      if(key in target) {
+      if(target[key]) {
         return target[key]
       }
+      
       return current[key]
     }
   })

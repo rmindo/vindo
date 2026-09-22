@@ -40,18 +40,23 @@ export function open(data, {store, event, modal}) {
     data.data = {}
   }
 
-  modal.isOpen = true
-  modal.isClose = false
 
-  data.openEventId = 'modal.open.' + data.name
-  data.closeEventId = 'modal.close.' + data.name
-  data.optionEventId = 'modal.option.' + data.name
+  store.build(() => {
+    data.openEventId = 'modal.open.' + data.name
+    data.closeEventId = 'modal.close.' + data.name
+    data.optionEventId = 'modal.option.' + data.name
 
+    return data
+  })
+  .deploy((data) => {
+    modal.isOpen = true
+    modal.isClose = false
 
-  store.start(() => {
     modal.stack[data.name] = data
     
-    store.dispatch({modal})
+    modal.current = values(modal.stack).at(-1)
+
+    return {modal}
   })
   .delay(100, () => {
     event.emit(data.openEventId)
@@ -67,26 +72,20 @@ export function close(data = {}, {store, event, modal}) {
   if(typeof data == 'function') {
     data = data(store)
   }
-  
+
   modal.isOpen = false
   modal.isClose = true
-
-  const keys = Object.keys(modal.stack)
-  const values = Object.values(modal.stack)
-
+  modal.current = values(modal.stack).at(-1)
   /**
    * Remove top modal
    */
   modal.stack = entries(
-    keys.slice(0, -1).map(key => {
+    keys(modal.stack).slice(0, -1).map(key => {
       return [key, modal.stack[key]]
     })
   )
-
-  /**
-   * Animate when closing
-   */
-  event.emit(values.at(-1).closeEventId, {...data, modal})
+    
+  event.emit(modal.current.closeEventId, {...data, modal})
 }
 
 
@@ -94,5 +93,5 @@ export function close(data = {}, {store, event, modal}) {
  * Modal option
  */
 export function option(data = {}, {event, modal}) {
-  event.emit(Object.values(modal.stack).at(-1).optionEventId, data)
+  event.emit(modal.current.optionEventId, data)
 }

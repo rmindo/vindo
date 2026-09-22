@@ -188,7 +188,7 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
    * Animate when closing
    */
   event.on(current.closeEventId, (data) => {
-    store.start(() => {
+    store.build(() => {
       animate.fade.start(0, 1000)
       animate.slide.start(screen.height, 1000)
     })

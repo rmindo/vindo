@@ -173,45 +173,42 @@ export function watch(initialState, context) {
 function nextBuild(data, dispatcher) {
   var promise = Promise.resolve(data)
       
-  function resolve(name, callback, skip = false, timeout = 0) {
-    if(isThen(callback)) {
-      return callback.then(data => data)
+  async function resolve(name, callback, timeout = 0) {
+
+    if(!isFunc(callback)) {
+      throw new TypeError('The expected argument must be a function.')
     }
-    /**
-     * Resolve promise with delay
-     */
+    
     switch(name) {
+      case 'next':
+        if(isThen(callback)) {
+          return callback.then(data => data)
+        }
+        return promise.then(callback)
+
       case 'delay':
         return new Promise((resolve) => promise.then(data => {
           setTimeout(() => {
             resolve(callback ? callback(data) : data)
           }, timeout)
         }))
-      /**
-       * Resolve promise
-       */
+
       default:
-        return promise.then(async (result) => {
-          data = await callback(result)
-          if(skip) {
-            return data
-          }
-          return dispatcher(data)
-        })
+        return promise.then(async (data) => dispatcher(await callback(data)))
     }
   }
 
   return {
-    build(callback) {
-      promise = resolve('build', callback)
+    next(callback) {
+      promise = resolve('next', callback)
       return this
     },
-    next(callback) {
-      promise = resolve('next', callback, true)
+    deploy(callback) {
+      promise = resolve('deploy', callback)
       return this
     },
     delay(timeout, callback) {
-      promise = resolve('delay', callback, true, timeout)
+      promise = resolve('delay', callback, timeout)
       return this
     },
   }
@@ -282,7 +279,7 @@ function useStore(context, dispatcher) {
     /**
      * Create a middleware and dispatch
      */
-    start(data) {
+    build(data) {
       if(isFunc(data)) {
         data = data()
       }

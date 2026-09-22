@@ -30,6 +30,57 @@ from 'react-native'
  */
 const screen = Dimensions.get('screen')
 
+
+/**
+ * Modal content
+ */
+export default pure(({store, isOpen, event, items, modal, current}) => {
+  const state = store.useLocalState(current)
+
+  const animate = useAnimation({
+    fade: {value: isOpen ? 0 : 1},
+    slide: {value: isOpen ? screen.height : 0},
+  })
+
+  /**
+   * Modal option
+   */
+  event.on(current.optionEventId, state.set)
+  
+  /**
+   * Animate when opening
+   */
+  event.on(current.openEventId, () => {
+    animate.fade.start(1, 800)
+    animate.slide.start(0, 500)
+  })
+
+  /**
+   * Animate when closing
+   */
+  event.on(current.closeEventId, (data) => {
+    store.build(() => {
+      animate.fade.start(0, 1000)
+      animate.slide.start(screen.height, 1000)
+    })
+    .delay(200, () => {
+      store.dispatch(data)
+    })
+  })
+
+
+  return animatedOverlay(
+    animate,
+    state,
+    touchableClose(
+      animate,
+      modal.close,
+      contentView(state, items[state.name])
+    )
+  )
+})
+
+
 /**
  * Custom animation
  * 
@@ -157,54 +208,3 @@ function animatedOverlay(animate, state, children) {
     children
   )
 }
-
-
-/**
- * Modal content
- */
-export default pure(({store, isOpen, event, items, modal, current}) => {
-  const state = store.useLocalState(current)
-
-  const animate = useAnimation({
-    fade: {value: isOpen ? 0 : 1},
-    slide: {value: isOpen ? screen.height : 0},
-  })
-
-  
-  /**
-   * Modal option
-   */
-  event.on(current.optionEventId, state.set)
-  
-  /**
-   * Animate when opening
-   */
-  event.on(current.openEventId, () => {
-    animate.fade.start(1, 800)
-    animate.slide.start(0, 500)
-  })
-
-  /**
-   * Animate when closing
-   */
-  event.on(current.closeEventId, (data) => {
-    store.build(() => {
-      animate.fade.start(0, 1000)
-      animate.slide.start(screen.height, 1000)
-    })
-    .delay(200, () => {
-      store.dispatch(data)
-    })
-  })
-
-
-  return animatedOverlay(
-    animate,
-    state,
-    touchableClose(
-      animate,
-      modal.close,
-      contentView(state, items[state.name])
-    )
-  )
-})

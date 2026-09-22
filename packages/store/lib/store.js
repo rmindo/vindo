@@ -52,17 +52,6 @@ export function copy(obj) {
 
 
 /**
- * Check if it has a then function
- * @param {object|function} value
- */
-export function isThen(value) {
-  return (
-    value !== null && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function'
-  )
-}
-
-
-/**
  * Convert object to hash
  * @param {object} obj 
  */
@@ -167,23 +156,15 @@ export function watch(initialState, context) {
 
 /**
  * Create a chain of middlewares and dispatch to the context
- * @param {object} data 
+ * @param {object} initialState 
  * @param {function} dispatcher 
  */
-function nextBuild(data, dispatcher) {
-  var promise = Promise.resolve(data)
+function nextBuild(initialState, dispatcher) {
+  var promise = Promise.resolve(initialState)
       
   async function resolve(name, callback, timeout = 0) {
-
-    if(!isFunc(callback)) {
-      throw new TypeError('The expected argument must be a function.')
-    }
-    
     switch(name) {
       case 'next':
-        if(isThen(callback)) {
-          return callback.then(data => data)
-        }
         return promise.then(callback)
 
       case 'delay':

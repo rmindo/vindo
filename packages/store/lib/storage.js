@@ -8,6 +8,17 @@
 
 
 
+/**
+ * Check if it has a then function
+ * @param {object|function} value
+ */
+export function isThen(value) {
+  return (
+    value !== null && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function'
+  )
+}
+
+
 export default function(storage = {}) {
   if(!storage.key) {
     storage.key = 'local:store'
@@ -61,7 +72,7 @@ export default function(storage = {}) {
     }
     const item = storage.engine.getItem(name)
 
-    if(!item?.then) {
+    if(!isThen(item)) {
       return new Promise((resolve) => {
         resolve(
           JSON.parse(item)

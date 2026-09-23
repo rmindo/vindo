@@ -22,15 +22,17 @@ export const isClose = true
 /**
  * Get current modal
  */
-export function get(name, {modal}) {
-  return modal.stack[name]
+export function get(name, store) {
+  return store.modal.stack[name]
 }
 
 
 /**
  * Open and add modal to stack
  */
-export function open(data, {store, event, modal}) {
+export function open(data, store) {
+  const event = store.event
+  const modal = store.modal
 
   if(typeof data == 'function') {
     data = data(store)
@@ -67,7 +69,9 @@ export function open(data, {store, event, modal}) {
 /**
  * Close top level modal
  */
-export function close(data = {}, {store, event, modal}) {
+export function close(data = {}, store) {
+  const event = store.event
+  const modal = store.modal
 
   if(typeof data == 'function') {
     data = data(store)
@@ -92,6 +96,6 @@ export function close(data = {}, {store, event, modal}) {
 /**
  * Modal option
  */
-export function option(data = {}, {event, modal}) {
-  event.emit(modal.current.optionEventId, data)
+export function option(data = {}, store) {
+  store.event.emit(store.modal.current.optionEventId, data)
 }

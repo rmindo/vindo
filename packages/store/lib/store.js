@@ -156,43 +156,70 @@ export function watch(initialState, context) {
 
 /**
  * Create a chain of middlewares and dispatch to the context
- * @param {object} initialState 
- * @param {function} dispatcher 
+ * @param {object} initialState
+ * @param {function} dispatcher
  */
 function nextBuild(initialState, dispatcher) {
+  var build = {}
   var promise = Promise.resolve(initialState)
       
-  async function resolve(name, callback, timeout = 0) {
-    switch(name) {
-      case 'next':
-        return promise.then(callback)
 
-      case 'delay':
-        return new Promise((resolve) => promise.then(data => {
-          setTimeout(() => {
-            resolve(callback ? callback(data) : data)
-          }, timeout)
-        }))
-
-      default:
-        return promise.then(async (data) => dispatcher(await callback(data)))
+  async function getData(callback) {
+    var data = await promise
+    if(callback) {
+      data = await callback(data)
     }
+    return data
   }
 
-  return {
-    next(callback) {
-      promise = resolve('next', callback)
-      return this
-    },
-    deploy(callback) {
-      promise = resolve('deploy', callback)
-      return this
-    },
-    delay(timeout, callback) {
-      promise = resolve('delay', callback, timeout)
-      return this
-    },
+  function resolve(name, callback, timeout = 0) {
+    promise = new Promise(async (resolve, reject) => {
+      try {
+        var data = await getData(callback)
+        switch(name) {
+          case 'next':
+            return resolve(data)
+          case 'deploy':
+            return resolve(dispatcher(data))
+          case 'delay':
+            return setTimeout(() => resolve(data), timeout)
+        }
+      }
+      catch(e) {
+        reject(e)
+      }
+    })
+    promise.catch((e) => dispatcher(callback(e)))
+
+    return build
   }
+
+  /**
+   * Go to the next middleware without dispatching data
+   */
+  build.next = function(callback) {
+    return resolve('next', callback)
+  }
+  /**
+   * Catch the error
+   */
+  build.catch = function(callback) {
+    return resolve('catch', callback)
+  }
+  /**
+   * Deploy state to global context
+   */
+  build.deploy = function(callback) {
+    return resolve('deploy', callback)
+  }
+  /**
+   * Delay before going to the next middleware
+   */
+  build.delay = function(timeout, callback) {
+    return resolve('delay', callback, timeout)
+  }
+
+  return build
 }
 
 

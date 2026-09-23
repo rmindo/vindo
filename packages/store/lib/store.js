@@ -276,12 +276,6 @@ function useStore(context, dispatcher) {
       return state[key]
     },
     /**
-     * Get context
-     */
-    data() {
-      return state
-    },
-    /**
      * Add state to the context without rerendering the current components
      */
     add(data) {

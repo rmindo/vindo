@@ -27,7 +27,7 @@ export function isStr(arg) {
  * @param {function} arg 
  */
 export function isFunc(arg) {
-  return typeof arg == 'function'
+  return arg && typeof arg == 'function'
 }
 
 /**
@@ -35,7 +35,7 @@ export function isFunc(arg) {
  * @param {object} arg 
  */
 export function isObj(arg) {
-  return typeof arg === 'object' && arg.constructor === Object
+  return arg && typeof arg === 'object' && arg.constructor === Object
 }
 
 
@@ -103,11 +103,10 @@ export function assign(origin, ...obj) {
  */
 export function merge(data, arg) {
   for(var i in arg) {
-    if(!(i in data)) {
-      continue
-    }
-    if(isObj(arg[i])) {
-      arg[i] = assign(data[i], arg[i])
+    if(i in data) {
+      if(isObj(data[i]) && isObj(arg[i])) {
+        arg[i] = assign(data[i], arg[i])
+      }
     }
   }
   return arg
@@ -205,9 +204,8 @@ function deploy(data, resolve, callback, dispatcher) {
  * @param {object} initialState 
  * @param {function} dispatcher 
  */
-function nextBuild(initialState, dispatcher) {
-  var build = {}
-  var promise = Promise.resolve(initialState)
+function nextBuild(promise, dispatcher) {
+  const build = {}
 
       
   function resolve(name, callback, timeout = 0) {
@@ -337,11 +335,18 @@ function useStore(context, dispatcher) {
     /**
      * Create a middleware and dispatch
      */
-    build(data) {
-      if(isFunc(data)) {
-        data = data()
+    build(callback) {
+      var promise = Promise.resolve(state)
+
+      if(isFunc(callback)) {
+        try {
+          promise = Promise.resolve(callback())
+        }
+        catch(e) {
+          promise = Promise.reject(e)
+        }
       }
-      return nextBuild(data, (data) => dispatcher(merge(state, data)))
+      return nextBuild(promise, (data) => dispatcher(merge(state, data)))
     },
     /**
      * Watch for changes of a single state
@@ -350,12 +355,12 @@ function useStore(context, dispatcher) {
       if(!isStr(key)) {
         throw new TypeError('The expected argument must be a string.')
       }
-      return watch({[key]: true}, context)[key]
+      return watch({[key]: undefined}, context)[key]
     },
     /**
      * Watch for state changes and update the current component with new state
      */
-    state(data) {
+    useGlobalState(data) {
       if(isStr(data)) {
         throw new TypeError('The expected argument must be an object.')
       }
@@ -379,6 +384,8 @@ function useStore(context, dispatcher) {
         data = await data(state)
       }
       updateListeners(merge(state, data), context)
+
+      return data
     },
     /**
      * Remove data from both persistent storage and global context

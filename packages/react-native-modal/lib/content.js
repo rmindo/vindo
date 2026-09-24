@@ -64,7 +64,9 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
       animate.slide.start(screen.height, 1000)
     })
     .delay(200, () => {
-      store.dispatch(data)
+      if(data) {
+        store.dispatch(data)
+      }
     })
   })
 

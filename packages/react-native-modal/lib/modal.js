@@ -99,16 +99,27 @@ export function close(data = {}, store) {
  */
 export function closeAll(data = {}, store) {
   const modal = store.modal
+  const event = store.event
 
   if(typeof data == 'function') {
     data = data(store)
   }
 
-  modal.stack = {}
   modal.isOpen = false
   modal.isClose = true
+  modal.current = values(modal.stack).at(-1)
 
-  store.update({...data, modal})
+  /**
+   * Remove top modal
+   */
+  store.build(() => {
+    event.emit(modal.current.closeEventId)
+  })
+  .delay(100, () => {
+    modal.stack = {}
+    store.update({...data, modal})
+  })
+  
 }
 
 

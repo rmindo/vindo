@@ -144,7 +144,7 @@ exports.html = function html(...args) {
     args[i] = args[i].concat('.html')
   }
 
-  return string.replace(exports.read(args), data)
+  return string.replace(exports.read(...args), data)
 }
 
 
@@ -202,7 +202,7 @@ exports.read = function read(...args) {
     opts = lastArg
   }
 
-  const file = exports.join(args)
+  const file = exports.join(...args)
   if(!exports.exists(file) || exports.isDir(file)) {
     return
   }

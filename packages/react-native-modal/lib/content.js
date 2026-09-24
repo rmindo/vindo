@@ -97,14 +97,14 @@ function useAnimation(data) {
      * @param toValue Starting point of the animation
      * @param duration Time duration in milliseconds
      */
-    item.start = function start(toValue, duration, callback) {
+    item.start = function start(toValue, duration) {
       const option = {
         toValue,
         duration,
         useNativeDriver: true,
         easing: Easing.out(Easing.exp)
       }
-      Animated.timing(item.value, option).start(callback)
+      Animated.timing(item.value, option).start()
     }
   }
 

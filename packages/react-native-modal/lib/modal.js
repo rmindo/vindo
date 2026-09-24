@@ -88,7 +88,7 @@ export function close(data = {}, store) {
       return [key, modal.stack[key]]
     })
   )
-    
+
   event.emit(modal.current.closeEventId, {...data, modal})
 }
 

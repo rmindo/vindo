@@ -41,5 +41,9 @@ export default Object.freeze({
   /**
    * Remove event
    */
-  remove: (name) => delete this.events[name]
+  remove(name) {
+    if(this.events[name]) {
+      delete this.events[name]
+    }
+  }
 })

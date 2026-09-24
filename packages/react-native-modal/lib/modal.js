@@ -34,6 +34,7 @@ export function open(data, store) {
   const event = store.event
   const modal = store.modal
 
+
   if(typeof data == 'function') {
     data = data(store)
   }
@@ -90,6 +91,24 @@ export function close(data = {}, store) {
   )
 
   event.emit(modal.current.closeEventId, {...data, modal})
+}
+
+
+/**
+ * Remove all opened modals
+ */
+export function closeAll(data = {}, store) {
+  const modal = store.modal
+
+  if(typeof data == 'function') {
+    data = data(store)
+  }
+
+  modal.stack = {}
+  modal.isOpen = false
+  modal.isClose = true
+
+  store.update({...data, modal})
 }
 
 

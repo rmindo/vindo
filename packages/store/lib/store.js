@@ -172,7 +172,7 @@ export function watch(initialState, context) {
   /**
    * Set to default state if removed from context
    */
-  context.event.on(hash, (data = {}) => {
+  context.event.on(hash, (data) => {
     for(var i in data) {
       if(data[i] == undefined) data[i] = initialState[i]
     }
@@ -297,18 +297,13 @@ function nextBuild(promise, dispatcher) {
 
 /**
  * Update component when specific state is dispatched
- * @param {object|array} data 
+ * @param {object} data 
  * @param {object} context 
  */
 export function updateListeners(data, context) {
-  var keys = data
-  
-  if(!isArr(data)) {
-    keys = Object.keys(data)
-  }
-  keys.forEach(key => {
+  Object.keys(data).forEach(key => {
     if(listners[key]) {
-      listners[key].forEach(hash => context.event.emit(hash, !isArr(data) ? data : {}))
+      listners[key].forEach(hash => context.event.emit(hash, data))
     }
   })
 }
@@ -426,7 +421,7 @@ function useStore(context, dispatcher) {
       }
       storage.unset(keys)
       context.delete(keys)
-      updateListeners(keys, context)
+      updateListeners(Object.fromEntries(keys.map(key => [key, undefined])), context)
     },
     /**
      * Add data to the persistent storage

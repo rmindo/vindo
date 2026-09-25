@@ -26,8 +26,8 @@ export function Stack() {}
  * Modal container
  */
 export const StackContainer = pure(({store, children}) => {
-  const modal = store.watch('modal')
-
+  const modal = store.get('modal')
+  
   /**
    * Stact reducer
    */

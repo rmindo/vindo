@@ -312,16 +312,19 @@ function useStore(context, dispatcher) {
   return {
     useLocalState,
     /**
-     * Get the state
-     */
-    get(key) {
-      return state[key]
-    },
-    /**
      * Get context
      */
     data() {
       return state
+    },
+    /**
+     * Watch for changes of a single state
+     */
+    get(key) {
+      if(!isStr(key)) {
+        throw new TypeError('The expected argument must be a string.')
+      }
+      return watch({[key]: undefined}, context)[key]
     },
     /**
      * Add state to the context without rerendering the current components
@@ -347,15 +350,6 @@ function useStore(context, dispatcher) {
         }
       }
       return nextBuild(promise, (data) => dispatcher(merge(state, data)))
-    },
-    /**
-     * Watch for changes of a single state
-     */
-    watch(key) {
-      if(!isStr(key)) {
-        throw new TypeError('The expected argument must be a string.')
-      }
-      return watch({[key]: undefined}, context)[key]
     },
     /**
      * Watch for state changes and update the current component with new state

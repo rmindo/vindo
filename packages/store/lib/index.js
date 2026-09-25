@@ -27,11 +27,11 @@ const context = createContext({event})
  * Get state from context
  * @param {string} key 
  */
-export function getState(key) {
+export function getStore(key) {
   if(context.has(key)) {
     return context.data[key]
   }
-  return Object.freeze({...context.data})
+  return context.store
 }
 
 

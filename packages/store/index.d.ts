@@ -23,7 +23,7 @@ declare module '@vindo/store' {
     }
   }
   export function pure(component:React.FC<any>)
-  export function getState(key?:string)
+  export function getStore(key?:string)
   export function configure(config:ConfigType)
   export function Provider(props: React.PropsWithChildren)
 }

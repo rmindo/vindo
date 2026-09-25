@@ -14,6 +14,7 @@ import useLocalState from './state'
  */
 export const listners = {}
 
+
 /**
  * Shorthand of typeof string
  * @param {string} arg 
@@ -22,6 +23,7 @@ export function isStr(arg) {
   return typeof arg == 'string'
 }
 
+
 /**
  * Shorthand of typeof function
  * @param {function} arg 
@@ -29,6 +31,16 @@ export function isStr(arg) {
 export function isFunc(arg) {
   return arg && typeof arg == 'function'
 }
+
+
+/**
+ * Shorthand of typeof string
+ * @param {string} arg 
+ */
+export function isArr(arg) {
+  return Array.isArray(arg) && arg.constructor === Array
+}
+
 
 /**
  * Shorthand of typeof object
@@ -44,7 +56,7 @@ export function isObj(arg) {
  * @param {object} obj
  */
 export function copy(obj) {
-  if(!isObj(obj)) {
+  if(isStr(obj)) {
     throw new TypeError('The expected argument must be an object.')
   }
   return {...obj}
@@ -96,15 +108,33 @@ export function assign(origin, ...obj) {
   )
 }
 
+
 /**
  * Make a shallow merge of old and new state object
  * @param {object} arg
  * @param {object} data
  */
 export function merge(data, arg) {
+  /**
+   * Merge only the object values
+   */
   for(var i in arg) {
+    if(data[i] == undefined) {
+      delete data[i]
+    }
+
     if(i in data) {
-      if(isObj(data[i]) && isObj(arg[i])) {
+      var obj1 = isObj(arg[i])
+      var obj2 = isObj(data[i])
+      /**
+       * Reducers is wrapped with proxy constructor so,
+       * create a copy of it as a plain object before checking to avoid false return.
+       */
+      if(data[i].__reducer) {
+        obj2 = isObj(copy(data[i]))
+      }
+
+      if(obj1 && obj2) {
         arg[i] = assign(data[i], arg[i])
       }
     }
@@ -142,7 +172,7 @@ export function watch(initialState, context) {
   /**
    * Set to default state if removed from context
    */
-  context.event.on(hash, (data) => {
+  context.event.on(hash, (data = {}) => {
     for(var i in data) {
       if(data[i] == undefined) data[i] = initialState[i]
     }
@@ -154,7 +184,7 @@ export function watch(initialState, context) {
 
 
 /**
- * Timeout before going to the next middleware
+ * Go to the next middleware without dispatching data
  * @param {object} data 
  * @param {function} resolve 
  * @param {function} callback
@@ -267,13 +297,18 @@ function nextBuild(promise, dispatcher) {
 
 /**
  * Update component when specific state is dispatched
- * @param {object} data 
+ * @param {object|array} data 
  * @param {object} context 
  */
 export function updateListeners(data, context) {
-  Object.keys(data).forEach(key => {
+  var keys = data
+  
+  if(!isArr(data)) {
+    keys = Object.keys(data)
+  }
+  keys.forEach(key => {
     if(listners[key]) {
-      listners[key].forEach(hash => context.event.emit(hash, data))
+      listners[key].forEach(hash => context.event.emit(hash, !isArr(data) ? data : {}))
     }
   })
 }
@@ -308,6 +343,7 @@ export function store({context, dispatcher}) {
  */
 function useStore(context, dispatcher) {
   const state = context.data
+  const storage = context.storage
 
   return {
     useLocalState,
@@ -388,10 +424,9 @@ function useStore(context, dispatcher) {
       if(isStr(keys)) {
         keys = [keys]
       }
-      dispatcher(
-        Object.fromEntries(keys.map(key => [key, undefined]))
-      )
-      state.storage.unset(keys)
+      storage.unset(keys)
+      context.delete(keys)
+      updateListeners(keys, context)
     },
     /**
      * Add data to the persistent storage
@@ -402,8 +437,8 @@ function useStore(context, dispatcher) {
       }
       data = merge(state, data)
 
-      if(state.storage) {
-        state.storage.add(data)
+      if(storage) {
+        storage.add(data)
       }
       return await dispatcher(data)
     },

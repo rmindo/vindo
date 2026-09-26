@@ -178,7 +178,7 @@ export function watch(initialState, context) {
     }
     state.set(data)
   })
-  
+
   return state.data()
 }
 
@@ -468,7 +468,7 @@ function useStore(context, dispatcher) {
 
 
 /**
- * Wrap the native context of react with a custom context
+ * Create custom context
  * @param {object} data
  */
 export function createContext(data = {}) {

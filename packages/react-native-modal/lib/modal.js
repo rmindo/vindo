@@ -73,14 +73,18 @@ export function open(data, store) {
 export function close(data = {}, store) {
   const event = store.event
   const modal = store.modal
+  const stack = values(modal.stack)
 
+  if(stack.length == 0) {
+    return
+  }
   if(typeof data == 'function') {
     data = data(store)
   }
 
   modal.isOpen = false
   modal.isClose = true
-  modal.current = values(modal.stack).at(-1)
+  modal.current = stack.at(-1)
   /**
    * Remove top modal
    */
@@ -100,14 +104,18 @@ export function close(data = {}, store) {
 export function closeAll(data = {}, store) {
   const modal = store.modal
   const event = store.event
+  const stack = values(modal.stack)
 
+  if(stack.length == 0) {
+    return
+  }
   if(typeof data == 'function') {
     data = data(store)
   }
 
   modal.isOpen = false
   modal.isClose = true
-  modal.current = values(modal.stack).at(-1)
+  modal.current = stack.at(-1)
 
   /**
    * Remove top modal
@@ -119,7 +127,6 @@ export function closeAll(data = {}, store) {
     modal.stack = {}
     store.update({...data, modal})
   })
-  
 }
 
 

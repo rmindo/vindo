@@ -402,7 +402,7 @@ function useStore(context, dispatcher) {
     },
     /**
      * Rerender without dispatching new state to the global context;
-     * only the current component will receive the updated state.
+     * only the current and subscribing component will receive the updated state.
      */
     async update(data) {
       if(isFunc(data)) {

@@ -124,17 +124,15 @@ export function merge(state, data) {
     }
 
     if(i in state) {
-      var obj1 = isObj(data[i])
-      var obj2 = isObj(state[i])
       /**
        * Reducers are wrapped with a Proxy constructor,
        * so copy and convert them to plain objects before validation to prevent false result.
        */
       if(state[i].__reducer) {
-        obj2 = isObj(copy(state[i]))
+        state[i] = copy(state[i])
       }
 
-      if(obj1 && obj2) {
+      if(isObj(state[i]) && isObj(data[i])) {
         data[i] = assign(state[i], data[i])
       }
     }
@@ -240,12 +238,6 @@ function nextBuild(promise, dispatcher) {
       
   function resolve(name, callback, timeout = 0) {
     /**
-     * Catch error
-     */
-    if(name == 'catch') {
-      promise.catch(callback)
-    }
-    /**
      * Wrap it again
      */
     promise = new Promise((resolve, reject) => {
@@ -261,7 +253,12 @@ function nextBuild(promise, dispatcher) {
       })
       .catch(reject)
     })
-
+    /**
+     * Catch error
+     */
+    if(name == 'catch') {
+      promise.catch(callback)
+    }
     return build
   }
 

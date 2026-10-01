@@ -76,7 +76,9 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
     state,
     touchableClose(
       animate,
-      modal.close,
+      function() {
+        modal.close()
+      },
       contentView(state, items[state.name])
     )
   )

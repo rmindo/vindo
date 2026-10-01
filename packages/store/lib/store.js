@@ -127,8 +127,8 @@ export function merge(state, data) {
       var obj1 = isObj(data[i])
       var obj2 = isObj(state[i])
       /**
-       * Reducers is wrapped with proxy constructor so,
-       * create a copy of it as a plain object before checking to avoid false return.
+       * Reducers are wrapped with a Proxy constructor,
+       * so copy and convert them to plain objects before validation to prevent false result.
        */
       if(state[i].__reducer) {
         obj2 = isObj(copy(state[i]))

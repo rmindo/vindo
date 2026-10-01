@@ -111,35 +111,35 @@ export function assign(origin, ...obj) {
 
 /**
  * Make a shallow merge of old and new state object
- * @param {object} arg
+ * @param {object} state
  * @param {object} data
  */
-export function merge(data, arg) {
+export function merge(state, data) {
   /**
    * Merge only the object values
    */
-  for(var i in arg) {
-    if(data[i] == undefined) {
-      delete data[i]
+  for(var i in data) {
+    if(state[i] == undefined) {
+      delete state[i]
     }
 
-    if(i in data) {
-      var obj1 = isObj(arg[i])
-      var obj2 = isObj(data[i])
+    if(i in state) {
+      var obj1 = isObj(data[i])
+      var obj2 = isObj(state[i])
       /**
        * Reducers is wrapped with proxy constructor so,
        * create a copy of it as a plain object before checking to avoid false return.
        */
-      if(data[i].__reducer) {
-        obj2 = isObj(copy(data[i]))
+      if(state[i].__reducer) {
+        obj2 = isObj(copy(state[i]))
       }
 
       if(obj1 && obj2) {
-        arg[i] = assign(data[i], arg[i])
+        data[i] = assign(state[i], data[i])
       }
     }
   }
-  return arg
+  return data
 }
 
 
@@ -178,7 +178,7 @@ export function watch(initialState, context) {
     }
     state.set(data)
   })
-
+  
   return state.data()
 }
 
@@ -301,6 +301,9 @@ function nextBuild(promise, dispatcher) {
  * @param {object} context 
  */
 export function updateListeners(data, context) {
+  if(!data) {
+    return
+  }
   Object.keys(data).forEach(key => {
     if(listners[key]) {
       listners[key].forEach(hash => context.event.emit(hash, data))
@@ -402,7 +405,7 @@ function useStore(context, dispatcher) {
     },
     /**
      * Rerender without dispatching new state to the global context;
-     * only the current and subscribing component will receive the updated state.
+     * only the current component will receive the updated state.
      */
     async update(data) {
       if(isFunc(data)) {
@@ -468,7 +471,7 @@ function useStore(context, dispatcher) {
 
 
 /**
- * Create custom context
+ * Wrap the native context of react with a custom context
  * @param {object} data
  */
 export function createContext(data = {}) {

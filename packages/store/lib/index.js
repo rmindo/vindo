@@ -100,8 +100,8 @@ function proxyReducer(reducer) {
       const item = target[key]
       
       if(isFunc(item)) {
-        return async function(data = {}) {
-          return await item(data, context.store)
+        return function(data = {}) {
+          return item(data, context.store)
         }
       }
       return item

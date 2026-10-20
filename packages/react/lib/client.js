@@ -29,112 +29,36 @@ const create = React.createElement
 const isValid = React.isValidElement
 
 
-
-/**
- * Component Holder
- */
-export function View() {}
-
-
-/**
- * Wrapper
- */
-export function Provider({children, ...value}) {
-  return create(context, {value}, children)
-}
-
-
-/**
- * Find current route
- */
-export function Content(props) {
-  const {meta, component} = useContext()
-
-  /**
-   * From backend: View content from backend (src/http)
-   */
-  if(component) {
-    if(isValid(component)) {
-      return component
-    }
-    if(isFunc(component)) {
-      return component({meta})
-    }
-  }
-  
-  /**
-   * From frontend: View content (<View path="/page-name" ...>) from react directory (src/react)
-   */
-  return React.Children.map(props.children, ({props}) => {
-    if(!props.path) {
-      throw new ReferenceError(`Property 'path' is required for View component.`)
-    }
-
-    if(props.path == meta.path) {
-      return create(props.component, {meta})
-    }
-  })
-}
-
-
-/**
- * Link
- */
-export function Link({href, text, disabled, children, ...props}) {
-  if(!href) {
-    throw new ReferenceError(`No href property found or no value provided on property href.`)
-  }
-
-  const onClick = (e) => {
-    e.preventDefault()
-
-    if(disabled) {
-      return
-    }
-    redirect(href, text)
-  }
-
-  if(!children) {
-    children = text
-  }
-  return create('a', {href, onClick, ...props}, children)
-}
-
-/**
- * Navigation
- */
-Link.back = back
-Link.redirect = redirect
-
-
 /**
  * Back to previous page
  */
-export function back(step = -1) {
+function back(step = -1) {
   window.history.go(step)
 }
 
-/**
- * Redirect without reloading the page
- */
-export function redirect(href, text = null) {
-  update({
-    type: 'route',
-    path: new URL(href, location.origin)
-  })
-  window.history.pushState({}, text, href)
-}
 
 /**
  * Update DOM
  */
-export function update({path, type, ...data}, opts = {}) {
+function update({path, type, ...data}, opts = {}) {
   const args = {
     type: type ?? 'update',
     path,
     data: merge(event.data.state, data)
   }
   request(args, opts).then((data) => event.render(data, type))
+}
+
+
+/**
+ * Redirect without reloading the page
+ */
+function redirect(href, text = null) {
+  update({
+    type: 'route',
+    path: new URL(href, location.origin)
+  })
+  window.history.pushState({}, text, href)
 }
 
 
@@ -326,3 +250,80 @@ export function render({head, body}, chunk) {
     http.get({type: 'hydrate'}).then(data => event.render(data))
   }
 }
+
+
+/**
+ * Component Holder
+ */
+export function View() {}
+
+
+/**
+ * Wrapper
+ */
+export function Provider({children, ...value}) {
+  return create(context, {value}, children)
+}
+
+
+/**
+ * Find current route
+ */
+export function Content(props) {
+  const {meta, component} = useContext()
+
+  /**
+   * From backend: View content from backend (src/http)
+   */
+  if(component) {
+    if(isValid(component)) {
+      return component
+    }
+    if(isFunc(component)) {
+      return component({meta})
+    }
+  }
+  
+  /**
+   * From frontend: View content (<View path="/page-name" ...>) from react directory (src/react)
+   */
+  return React.Children.map(props.children, ({props}) => {
+    if(!props.path) {
+      throw new ReferenceError(`Property 'path' is required for View component.`)
+    }
+
+    if(props.path == meta.path) {
+      return create(props.component, {meta})
+    }
+  })
+}
+
+
+/**
+ * Link
+ */
+export function Link({href, text, disabled, children, ...props}) {
+  if(!href) {
+    throw new ReferenceError(`No href property found or no value provided on property href.`)
+  }
+
+  const onClick = (e) => {
+    e.preventDefault()
+
+    if(disabled) {
+      return
+    }
+    redirect(href, text)
+  }
+
+  if(!children) {
+    children = text
+  }
+  return create('a', {href, onClick, ...props}, children)
+}
+
+/**
+ * Navigation
+ */
+Link.back = back
+Link.redirect = redirect

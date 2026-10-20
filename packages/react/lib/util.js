@@ -6,16 +6,6 @@ export const merge = Object.assign
 export const isArr = Array.isArray
 
 
-
-export function isEmpty(obj) {
-  if(obj && Object.keys(obj).length == 0) {
-    return true
-  }
-  return false
-}
-export function isMore(val) {
-  return isObj(val) || val == undefined ? 'jsx' : 'jsxs'
-}
 export function isNum(val) {
   return val && typeof val === 'number' && {}.toString.call(val) === '[object Number]'
 }

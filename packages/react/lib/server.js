@@ -118,14 +118,22 @@ function head(children, bundle) {
  * @param {object} args
  */
 function body(children, data) {
+  if(!children) {
+    return
+  }
+
   if(!isArr(children)) {
     children = [children]
   }
+
   /**
    * Add meta data
    */
   return children.map((child, key) => {
     if(child) {
+      if(!isFunc(child.type)) {
+        return child
+      }
       return clone(child, {key, ...data})
     }
   })
@@ -141,9 +149,8 @@ function reduce(args) {
   if(!args) {
     return
   }
-  const {children} = args.data
-  if(children) {
-    args.data.children = reducer(children)[0]
+  if(args.component) {
+    args.component = reducer(args.component)[0]
   }
   return args
 }
@@ -317,7 +324,7 @@ function useBundle(req, vindo) {
  * React DOM
  * @param {object} data 
  */
-function reactDOM(bundle, data) {
+function getReactDOM(bundle, data) {
   var app = getRoot(bundle.entry, data.meta)
 
   function children(item, key) {
@@ -351,25 +358,16 @@ function reactDOM(bundle, data) {
  * @param {object} component 
  * @param {object} context
  */
-function getDom(component, {meta, store, state, bundle}) {
-  const props = {...component?.props}
-
-  if(props) {
-    delete props.children
-  }
+function useComponent(component, {meta, state, bundle}) {
+  const data = {meta, component}
   /**
-   * Metadata and component
+   * Get from directory
    */
-  const data = {
-    meta,
-    store,
-    data: {props}
+  if(!component) {
+    data.component = require(path.resolve(bundle.entry.concat('/pages', meta.path))).default
   }
-  const dom = reactDOM(bundle, data)
 
-  if(component) {
-    data.data.children = isFunc(component.type) ? null : component
-  }
+  const dom = getReactDOM(bundle, data)
   /**
    * Get HTML root component
    */
@@ -421,16 +419,20 @@ exports.server = function server() {
     /**
      * Emit fetch event
      */
-    async function getEvent(name) {
-      return await events.emit(mkId(name, state.page), state.data)
+    async function getEvent() {
+      const id = mkId(
+        req.method,
+        state.page
+      )
+      return await events.emit(id, state.data)
     }
 
     /**
      * Dispatch data and clear
      */
-    async function dispatch(obj = {}) {
+    async function response(obj = {}) {
       data = {}
-      if(obj.data) {
+      if(obj.component) {
         obj = reduce(obj)
       }
       res.json(obj)
@@ -440,7 +442,7 @@ exports.server = function server() {
      * Render on first request
      */
     events.on('__render', function(component) {
-      const args = getDom(component, {
+      const args = useComponent(component, {
         meta,
         bundle,
         state: state.data,
@@ -455,18 +457,18 @@ exports.server = function server() {
        * Update content
        */
       if(state.type == 'route' || state.type == 'update') {
-        return dispatch(args.data)
+        return response(args.data)
       }
       
       return args
     })
     
     if(state.type == 'fetch') {
-      return dispatch(await getEvent(req.method))
+      return response(await getEvent())
     }
 
     if(state.type == 'hydrate') {
-      return dispatch(data[bundle.hash])
+      return response(data[bundle.hash])
     }
     
     next({state})

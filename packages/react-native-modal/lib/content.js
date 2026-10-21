@@ -46,7 +46,7 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
    * Modal option
    */
   event.on(current.optionEventId, state.set)
-  
+
   /**
    * Animate when opening
    */
@@ -87,41 +87,45 @@ export default pure(({store, isOpen, event, items, modal, current}) => {
 
 /**
  * Custom animation
- * 
+ *
  * @param {object} data
  */
 function useAnimation(data) {
+  const ref = React.useRef(null)
 
-  for(var i in data) {
-    const item = data[i]
-    
-    item.value = new Animated.Value(item.value)
-    /**
-     * Animation
-     * @param toValue Starting point of the animation
-     * @param duration Time duration in milliseconds
-     */
-    item.start = function start(toValue, duration) {
-      const option = {
-        toValue,
-        duration,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.exp)
+  if(!ref.current) {
+    for(var i in data) {
+      const item = data[i]
+
+      item.value = new Animated.Value(item.value)
+      /**
+       * Animation
+       * @param toValue Starting point of the animation
+       * @param duration Time duration in milliseconds
+       */
+      item.start = function start(toValue, duration) {
+        const option = {
+          toValue,
+          duration,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.exp)
+        }
+        Animated.timing(item.value, option).start()
       }
-      Animated.timing(item.value, option).start()
     }
+    ref.current = data
   }
 
-  return data
+  return ref.current
 }
 
 
 
 /**
  * Render the content
- * 
+ *
  * @param {object} state
- * @param {object} children 
+ * @param {object} children
  */
 function contentView(state, children) {
   const {data} = state.data()
@@ -152,8 +156,8 @@ function contentView(state, children) {
 
 /**
  * Disable feedback when touching the content
- * 
- * @param {object} children 
+ *
+ * @param {object} children
  */
 function withoutFeedback(children) {
   return React.createElement(TouchableWithoutFeedback, {children})
@@ -162,7 +166,7 @@ function withoutFeedback(children) {
 
 /**
  * Close when touching the overlay
- * 
+ *
  * @param {function} animate
  * @param {object} onPress
  * @param {object} content
@@ -188,9 +192,9 @@ function touchableClose(animate, onPress, content) {
 
 /**
  * Animate the overlay holder
- * 
- * @param {number} animate 
- * @param {boolean} state 
+ *
+ * @param {number} animate
+ * @param {boolean} state
  * @param {object} children
  */
 function animatedOverlay(animate, state, children) {

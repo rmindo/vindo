@@ -14,9 +14,7 @@ const exception = require('@vindo/exception')
 /**
  * Default export
  */
-module.exports = exports = {
-  context: {meta: {}}
-}
+module.exports = exports = {}
 
 
 /**
@@ -199,12 +197,49 @@ exports.getLibs = async function getLibs(files = [], ctx, conf) {
 
 
 /**
+ * * Meta data
+ * @param {object} data Default data
+ */
+function metadata(data = {}) {
+  const target = {
+    data() {
+      return data
+    },
+    reset() {
+      data = {}
+    },
+    create(obj) {
+      merge(data, obj)
+    }
+  }
+
+  return new Proxy(target, {
+    set(_, key, value) {
+      if(keys(target).includes(key)) {
+        throw new TypeError(`Cannot assign to read-only property '${key}'`)
+      }
+      data[key] = value
+      return true
+    },
+    get(target, key) {
+      if(key in target) {
+        return target[key]
+      }
+      return data[key]
+    }
+  })
+}
+
+
+/**
  * Context
  * @param config Configuration
  * @param dependencies Dependencies to inject
  */
 exports.getContext = async function getContext(conf, dependencies) {
-  var ctx = exports.context
+  const ctx = {
+    meta: metadata()
+  }
 
   /**
    * Built-in utilities
@@ -228,7 +263,7 @@ exports.getContext = async function getContext(conf, dependencies) {
   }
 
   /**
-   * Read all libraries from lib directory
+   * Read all files from lib directory all at once
    */
   var files = readdir('lib', {recursive: true}) ?? []
   /**

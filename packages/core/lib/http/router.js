@@ -613,7 +613,7 @@ exports.end = async function end(args) {
      * Reset and clear data when response is ended
      */
     if(isEnded(args[2])) {
-      args[3].meta = {}
+      args[3].meta.reset()
       args[3].events.remove('__render')
     }
     else {

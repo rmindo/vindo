@@ -31,19 +31,13 @@ data.head = function head(meta) {
 data.body = function body({meta}) {
   var {props:{children}} = React.cloneElement(({BODY_COMPONENT}))
 
-  if(Array.isArray(children)) {
-    var filtered = children.filter(v => v)
-
-    if(filtered.length > 1) {
-      throw new Error('<Provider> should be at the top-level component after the body element.')
-    }
-    children = filtered[0]
+  if(!Array.isArray(children)) {
+    children = React.Children.toArray(children)
   }
 
-  if(typeof children.type == 'string') {
-    return children
-  }
-  return children.type({children: children.props.children, ...arguments[0]})
+  return React.Children.map(children, (child, key) => {
+    return React.cloneElement(child, {key, ...arguments[0]})
+  })
 }
 
 client.render(document, data)

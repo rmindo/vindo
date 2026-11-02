@@ -169,6 +169,10 @@ async function startBundle(opt) {
 }
 
 
+/**
+ * Compile scss file
+ * @param {object} opt 
+ */
 async function startCompile(opt) {
 	if(!opt.compileSass) {
 		return

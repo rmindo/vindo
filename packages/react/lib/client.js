@@ -9,18 +9,15 @@
 
 import React from 'react'
 import ReactDom from 'react-dom/client'
-import {request, HTTPRequest} from '@vindo/react/request'
-import {isObj, isFunc, merge, transform} from '@vindo/react/util'
+import event from '@vindo/react/event'
+import {request} from '@vindo/react/request'
+import {transform, merge} from '@vindo/react/util'
+import {getStore, getState, createContext} from '@vindo/react/store'
 
 
-const event = {
-  data: {
-    state: {}
-  },
-  updating: false
-}
-const http = HTTPRequest()
-const context = React.createContext({})
+
+const content = {}
+const context = createContext({event})
 
 /**
  * Shorthand
@@ -40,13 +37,13 @@ function back(step = -1) {
 /**
  * Update DOM
  */
-function update({path, type, ...data}, opts = {}) {
+function update({path, type = 'update', ...data}) {
   const args = {
-    type: type ?? 'update',
+    type,
     path,
-    data: merge(event.data.state, data)
+    data: merge(context.state, data)
   }
-  request(args, opts).then((data) => event.render(data, type))
+  request(args).then((data) => content.render(data, type))
 }
 
 
@@ -61,112 +58,22 @@ function redirect(href, text = null) {
   window.history.pushState({}, text, href)
 }
 
+/**
+ * Use store
+ * @param {object} initialState
+ */
+export function useStore(initialState = {}) {
+  return getStore(initialState, context)
+}
+
 
 /**
  * Use state
+ * @param {object} initialState
  */
-export function useState(initialState = {}, otherState = {}) {
-  const current = {}
-  const [state, setState] = React.useState({...initialState, ...otherState})
-  
-  if(!isObj(initialState)) {
-    throw Error('Custom state hook only allow object as parameter.')
-  }
-  
-  merge(current, state)
-  
-  return new Proxy({
-    async set(state = {}) {
-      event.updating = false
-
-      /**
-       * This allow multiple state arguments to be set
-       */
-      if(arguments.length > 1) {
-        merge(...arguments)
-      }
-
-      if(isObj(state)) {
-        setState(state)
-      }
-
-      if(isFunc(state)) {
-        const dataState = state(current)
-
-        if(dataState) {
-          if(dataState instanceof Promise) {
-            setState(await dataState)
-          }
-          else {
-            setState(dataState)
-          }
-        }
-      }
-    },
-    /**
-     * Send GET request to the server
-     */
-    get(data) {
-      if(isObj(data)) {
-        return http.get({data})
-      }
-      if(isFunc(data)) {
-        return http.get({}).then(data)
-      }
-    },
-    /**
-     * Send POST request to the server
-     */
-    post(data) {
-      if(isObj(data)) {
-        return http.post({data})
-      }
-      if(isFunc(data)) {
-        return http.post({}).then(data)
-      }
-    },
-    /**
-     * Re-render DOM with new global state
-     */
-    update(data = {}) {
-      /**
-       * Merge the value of its argument if the function (set) have more than 1 state as arguments
-       */
-      if(arguments.length > 1) {
-        merge(...arguments)
-      }
-      event.update(data)
-    },
-  },
-  {
-    get(target, key) {
-      if(target[key]) {
-        return target[key]
-      }
-      if(event.updating) {
-        merge(current, event.data.state)
-      }
-      return current[key]
-    }
-  })
+export function useState(initialState = {}) {
+  return getState(initialState, context)
 }
-
-
-/**
- * Context
- */
-export function useContext(name = null) {
-  const ctx = React.useContext(context)
-
-  switch(name) {
-    case 'data': ctx.data
-    case 'meta': ctx.meta
-    case 'state': ctx.state
-    default:
-      return ctx
-  }
-}
-
 
 /**
  * Render react dom to root
@@ -184,54 +91,55 @@ export function render({head, body}, chunk) {
     switch(key) {
       case 'set':
       case 'update':
-      case 'render':
         return update
     }
-    return target.data.state[key]
+    return target[key]
   }
     
   /**
    * Re-render DOM
    */
-  event.update = function update(state) {
+  content.update = function update(state) {
     merge(
-      event.data.state,
+      context.state,
       state
     )
-    event.render(event.data)
+    content.render({state: context.state})
   }
   
   /**
    * Render content
    */
-  event.render = function render(args, type = null) {
+  content.render = function render(data, type = null) {
     /**
      * Set data
      */
-    event.data = args
-    event.updating = true
+    context.add({
+      state: data.state,
+      updating: true,
+    })
     /**
      * State and metadata reference for mouse event functions
      */
     chunk.refs = {
-      state: new Proxy(event, {
+      state: new Proxy(data.state, {
         get: getter
       }),
-      meta: args.meta,
+      meta: data.meta,
     }
     /**
      * For route request only
      */
     if(type == 'route') {
-      head.render(chunk.head(args.meta))
+      head.render(chunk.head(data.meta))
     }
     /**
      * Set only for dynamic content coming from server
      */
-    if(args.component) {
-      args.component = transform(args.component, chunk)[0]
+    if(data.component) {
+      data.component = transform(data.component, chunk)[0]
     }
-    body.render(chunk.body(args))
+    body.render(chunk.body(data))
   }
 
   /**
@@ -247,7 +155,7 @@ export function render({head, body}, chunk) {
    * Make sure the entire page has finished loading, including all dependent resources (images, scripts, CSS files, etc.).
    */
   window.onload = function onload() {
-    http.get({type: 'hydrate'}).then(data => event.render(data))
+    request({type: 'hydrate'}).then(data => content.render(data))
   }
 }
 
@@ -259,41 +167,38 @@ export function View() {}
 
 
 /**
- * Wrapper
+ * Context provider
+ * @param {*} props
  */
-export function Provider({children, ...value}) {
-  return create(context, {value}, children)
+export function Provider({meta, children, component}) {
+  context.add({
+    meta,
+    component,
+  })
+  return React.createElement(React.Fragment, {children})
 }
 
 
 /**
  * Find current route
  */
-export function Content(props) {
-  const {meta, component} = useContext()
-
+export function Content({children}) {
   /**
    * From backend: View content from backend (src/http)
    */
-  if(component) {
-    if(isValid(component)) {
-      return component
-    }
-    if(isFunc(component)) {
-      return component({meta})
-    }
+  if(isValid(context.component)) {
+    return context.component
   }
-  
   /**
    * From frontend: View content (<View path="/page-name" ...>) from react directory (src/react)
    */
-  return React.Children.map(props.children, ({props}) => {
+  return React.Children.map(children, ({props}) => {
     if(!props.path) {
       throw new ReferenceError(`Property 'path' is required for View component.`)
     }
 
-    if(props.path == meta.path) {
-      return create(props.component, {meta})
+    if(props.path == context.meta.route.path) {
+      return create(props.component, context.data)
     }
   })
 }
@@ -310,10 +215,9 @@ export function Link({href, text, disabled, children, ...props}) {
   const onClick = (e) => {
     e.preventDefault()
 
-    if(disabled) {
-      return
+    if(!disabled) {
+      redirect(href, text)
     }
-    redirect(href, text)
   }
 
   if(!children) {

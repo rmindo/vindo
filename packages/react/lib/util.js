@@ -1,11 +1,39 @@
+/*
+ * @vindo/react
+ * Copyright(c) 2026 Ruel Mindo
+ * MIT Licensed
+ */
+
+'use strict'
+
+
 import runtime from 'react/jsx-runtime'
 
 
-export const str = JSON.stringify
-export const merge = Object.assign
-export const isArr = Array.isArray
+const assign = Object.assign
+const isArray = Array.isArray
 
 
+/**
+ * Create a shallow copy of the object
+ * @param {object} obj
+ */
+export function copy(obj) {
+  if(isStr(obj)) {
+    throw new TypeError('The expected argument must be an object.')
+  }
+  return {...obj}
+}
+
+export function merge(origin, ...obj) {
+  return assign({}, assign(origin, ...obj))
+}
+export function isArr(arg) {
+  return isArray(arg) && arg.constructor === Array
+}
+export function isMore(val) {
+  return isObj(val) || val == undefined ? 'jsx' : 'jsxs'
+}
 export function isNum(val) {
   return val && typeof val === 'number' && {}.toString.call(val) === '[object Number]'
 }
@@ -17,6 +45,39 @@ export function isFunc(val) {
 }
 export function isObj(val) {
   return val && typeof val === 'object' && val.constructor === Object && Object.prototype === Object.getPrototypeOf(val)
+}
+
+
+/**
+ * Convert object to hash
+ * @param {object} obj 
+ */
+export function toHash(obj) {
+  return to16CharHash(JSON.stringify(obj))
+}
+
+
+/**
+ * Create 16 character hash
+ * @param {string} str
+ */
+export function to16CharHash(str) {
+  var h1 = 0xdeadbeef
+  var h2 = 0x41c6ce57
+
+  for(var i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i)
+    h1 = Math.imul(h1 ^ ch, 2654435761)
+    h2 = Math.imul(h2 ^ ch, 1597334677)
+  }
+
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
+
+  const hex1 = (h1 >>> 0).toString(16).padStart(8, '0')
+  const hex2 = (h2 >>> 0).toString(16).padStart(8, '0')
+
+  return hex1 + hex2
 }
 
 
@@ -56,6 +117,7 @@ export function reducer(children) {
     if(!props) {
       return
     }
+
     /**
      * Component function
      */
@@ -125,6 +187,7 @@ export function transform(children, data) {
     if(!props) {
       return
     }
+
     if(isArr(type)) {
       const key = type[0]
       type = data[key]
@@ -155,9 +218,12 @@ export function transform(children, data) {
         }
       }
       if(isArr(v)) {
-        p.children = v.map((i) => {
+        p.children = v.map((i, k) => {
           if(isObj(i)) {
-            return transform(i, data)
+            const child = transform(i, data)
+            if(child[0]) {
+              return {...child[0], key: k}
+            }
           }
           return i
         })

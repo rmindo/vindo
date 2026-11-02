@@ -15,12 +15,13 @@ const requestTypes = [
   'hydrate',
 ]
 
+
 /**
  * Get name
  * @param {string} pathname 
  */
 function name(pathname) {
-  const name = pathname.split('/').at(-1)
+  const name = pathname?.split('/').at(-1)
   if(name) {
     return name
   }
@@ -59,7 +60,7 @@ function getURL() {
  * HTTP Request
  */
 export function HTTPRequest() {
-  const http = Object.defineProperties({}, {
+  return Object.defineProperties({}, {
     get: {
       value: function get(args = {}) {
         return request({type: 'fetch', ...args, path: getURL()}, {method: 'GET'})
@@ -73,7 +74,6 @@ export function HTTPRequest() {
       writable: false
     },
   })
-  return http
 }
 
 
@@ -95,10 +95,7 @@ export function request({data, path, type, ...args}, opts = {}) {
     ...opts,
     headers: Object.assign(opts.headers ?? {}, {
       'X-State-Request': btoa(
-        JSON.stringify({
-          type,
-          page: page(type, path)
-        })
+        JSON.stringify({type, page: page(type, path)})
       ),
     })
   }
@@ -122,6 +119,5 @@ export function request({data, path, type, ...args}, opts = {}) {
     opts.body = JSON.stringify(data)
     opts.headers['Content-Type'] = 'application/json'
   }
-
   return fetch(path, opts).then((res) => res.json()).catch(console.error)
 }

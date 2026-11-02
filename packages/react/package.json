@@ -30,6 +30,14 @@
       "types": "./index.d.ts",
       "default": "./lib/util.js"
     },
+    "./event": {
+      "types": "./index.d.ts",
+      "default": "./lib/event.js"
+    },
+    "./store": {
+      "types": "./index.d.ts",
+      "default": "./lib/store.js"
+    },
     "./client": {
       "types": "./index.d.ts",
       "default": "./lib/client.js"

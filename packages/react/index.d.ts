@@ -2,6 +2,8 @@ declare module '@vindo/react' {
   export function server(): Function;
 }
 
+declare module '@vindo/react/store'
+declare module '@vindo/react/event'
 declare module '@vindo/react/request'
 declare module '@vindo/react/client' {
   type DataType = {
@@ -24,7 +26,7 @@ declare module '@vindo/react/client' {
   }
 
   export function useState(state?:DataType): any
-  export function useContext(name?:string | null): any
+  export function useStore(state?:DataType): any
   export function View(props:ViewType): JSX.Element
   export function Content(props:DataType): JSX.Element
   export function Provider(props:DataType): JSX.Element

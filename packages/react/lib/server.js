@@ -77,9 +77,11 @@ function html(obj) {
    * We'll convert the charset to lowe case manually to avoid W3C validation errors and
    * potential parsing issues for strict crawlers, impacting SEO.
    */
-  return '<!DOCTYPE html>'.concat(
-    str.replace(charset, (_, g1, g2) => g1.toLowerCase().concat(`=${g2}`))
-  )
+  return {
+    html: '<!DOCTYPE html>'.concat(
+      str.replace(charset, (_, g1, g2) => g1.toLowerCase().concat(`=${g2}`))
+    )
+  }
 }
 
 
@@ -156,112 +158,6 @@ function reduce(args) {
 }
 
 
-
-/**
- * Get state
- * @param {object} req 
- */
-function getState(req) {
-  const state = {
-    data: {},
-    type: 'initial',
-  }
-
-  var token = req.get('x-state-request')
-  if(token) {
-    merge(state, decode(token))
-  }
-
-  if(state.type == 'fetch' || state.type == 'update') {
-    if(req.method == 'GET') {
-      merge(state.data, req.query)
-    }
-    if(req.method == 'POST') {
-      merge(state.data, req.body)
-    }
-  }
-  return state
-}
-
-
-/**
- * State response
- * 
- * @param {object} req 
- * @param {object} events
- */
-function HTTPState(req, events) {
-  var exert = {}
-  var state = getState(req)
-
-
-  state.on = function on(name, cb) {
-    events.on(mkId(name, req.name), async function(data) {
-      if(typeof cb !== 'function') {
-        throw new ReferenceError('Callback function is required.')
-      }
-      return await cb(data)
-    })
-  }
-
-  state.set = function set(data) {
-    merge(exert, data)
-  }
-  /**
-   * Response for 'fetch' event from client
-   */
-  state.get = function get(cb) {
-    state.on('GET', cb)
-  }
-  /**
-   * Response for 'fetch' event from client
-   */
-  state.post = function post(cb) {
-    state.on('POST', cb)
-  }
-  /**
-   * Initial state
-   */
-  state.use = async function use(initial = {}) {
-    if(isFunc(initial)) {
-      initial = await initial()
-    }
-    if(state.type == 'route' || state.type == 'initial') {
-      merge(state.data, initial)
-    }
-  }
-  /**
-   * Apply and update the current state
-   */
-  state.apply = async function apply(cb) {
-    if(!isFunc(cb)) {
-      return
-    }
-    if(state.type == 'update') {
-      var data = await cb(state.data)
-      if(data) {
-        exert = data
-      }
-    }
-  }
-
-  return new Proxy(state, {
-    get(target, key) {
-      if(target[key]) {
-        return target[key]
-      }
-      if(exert[key]) {
-        return exert[key]
-      }
-      return target.data[key]
-    },
-    set() {
-      throw new TypeError(`Cannot assign to read only object.`)
-    }
-  })
-}
-
-
 /**
  * Require main component from react directory
  * @param {string} entrypoint
@@ -279,18 +175,36 @@ function getRoot(entrypoint, data) {
 
 
 /**
+ * Get current location
+ * @param {object} req
+ */
+function getRoute(req) {
+  return {
+    url: req.url,
+    base: req.base,
+    name: req.name,
+    query: req.query,
+    path: req.pathname
+  }
+}
+
+
+/**
  * Set bundle on specific basename
  * @param {object} vindo  
  */
 function getBundles(vindo) {
   var data = {}
+
   for(var pkg in vindo.bundles) {
+    var entry = [pkg].concat('src', 'react')
+
     var [hash, name] = decode(vindo.bundles[pkg])
-    
     data[name] = {
       hash,
       file: `/${name}-${hash}.js`,
-      entry: [pkg].concat('src', 'react')
+      entry,
+      pages: entry.concat('pages')
     }
   }
   return data
@@ -300,7 +214,7 @@ function getBundles(vindo) {
 /**
  * Use bundle on specific basename if has one
  */
-function useBundle(req, vindo) {
+function getBundle(req, vindo) {
   if(!vindo.bundles) {
     throw new ReferenceError('No bundles found in vindo config.')
   }
@@ -315,6 +229,7 @@ function useBundle(req, vindo) {
    */
   if(bundles.main) {
     bundles.main.entry = 'src/react'
+    bundles.main.pages = 'src/react/pages'
     return bundles.main
   }
 }
@@ -349,89 +264,151 @@ function getReactDOM(bundle, data) {
     }
   }
 
-  return clone(app, {lang: 'en'}, app.props.children.map(children))
+  return html(
+    clone(app, {
+      lang: 'en',
+      children: app.props.children.map(children)
+    })
+  )
 }
+
 
 
 /**
- * Prepare data
- * @param {object} component 
- * @param {object} context
+ * Use state
+ * @param {object} req 
  */
-function useComponent(component, {meta, state, bundle}) {
-  const data = {meta, component}
-  /**
-   * Get from directory
-   */
-  if(!component) {
-    data.component = require(path.resolve(bundle.entry.concat('/pages', meta.path))).default
+function useState(req) {
+  const state = {
+    data: {},
+    type: 'initial',
   }
 
-  const dom = getReactDOM(bundle, data)
-  /**
-   * Get HTML root component
-   */
-  return {data: merge(data, {state}), html: html(dom)}
+  var token = req.get('x-state-request')
+  if(token) {
+    merge(state, decode(token))
+  }
+
+  if(state.type == 'fetch' || state.type == 'update') {
+    if(req.method == 'GET') {
+      merge(state.data, req.query)
+    }
+    if(req.method == 'POST') {
+      merge(state.data, req.body)
+    }
+  }
+  return state
 }
+
+/**
+ * State response
+ * 
+ * @param {object} req 
+ * @param {object} events
+ */
+function getState(req, events) {
+  var exert = {}
+  var state = useState(req)
+
+
+  state.on = function on(name, cb) {
+    const id = mkId(name, req.name)
+
+    events.on(id, async function(data) {
+      if(typeof cb !== 'function') {
+        throw new ReferenceError('Callback function is required.')
+      }
+      return await cb(data)
+    })
+  }
+
+  state.set = function set(data) {
+    merge(exert, data)
+  }
+  /**
+   * Response for 'fetch' event from client
+   */
+  state.get = function get(cb) {
+    state.on('GET', cb)
+  }
+  /**
+   * Response for 'fetch' event from client
+   */
+  state.post = function post(cb) {
+    state.on('POST', cb)
+  }
+  /**
+   * Apply and update the current state
+   */
+  state.apply = async function apply(cb) {
+    if(!isFunc(cb)) {
+      return
+    }
+    if(state.type == 'update') {
+      var data = await cb(state.data)
+      if(data) {
+        exert = data
+      }
+    }
+  }
+
+  state.initialize = function(initialState) {
+    if(state.type == 'route' || state.type == 'initial') {
+      merge(state.data, initialState)
+    }
+
+    return new Proxy(state, {
+      get(target, key) {
+        if(key in target) {
+          return target[key]
+        }
+        if(key in exert) {
+          return exert[key]
+        }
+        return target.data[key]
+      },
+      set() {
+        throw new TypeError(`Cannot assign to read only object.`)
+      }
+    })
+  }
+  
+  return state
+}
+
 
 
 /**
  * Middleware
  */
 exports.server = function server() {
-  var data = {}
+  var context = {}
   
-
   return async function(req, res, next, {meta, vindo, events}) {
-    const state = HTTPState(req, events)
-    const bundle = useBundle(req, vindo)
+    const route = getRoute(req)
+    const state = getState(req, events)
+    const bundle = getBundle(req, vindo)
     
-    const protocol = req.socket.encrypted ? 'https:' : 'http:'
-    const host = req.headers.host
-    const origin = protocol.concat('//', host)
-    const href = origin.concat(req.url)
 
-
-    const pathname = req.url.split('?')[0]
-
-    meta.url = req.url
-    meta.path = pathname
-    meta.base = req.base
-    meta.name = req.name
-    meta.query = req.query
-
-    global.window = {}
-    global.location = {
-      host,
-      href,
-      origin,
-      protocol,
-      pathname
-    }
-    global.document = {
-      scripts: {
-        bundle: {
-          src: origin.concat(bundle.file)
-        }
-      }
-    }
+    meta.route = route
+    meta.state = state.initialize
 
     /**
      * Emit fetch event
      */
-    async function getEvent() {
+    function getEvent() {
       const id = mkId(
         req.method,
         state.page
       )
-      return await events.emit(id, state.data)
+      return events.emit(id, state.data)
     }
 
     /**
      * Dispatch data and clear
      */
-    async function response(obj = {}) {
-      data = {}
+    function response(obj = {}) {
+      context = {}
       if(obj.component) {
         obj = reduce(obj)
       }
@@ -442,33 +419,33 @@ exports.server = function server() {
      * Render on first request
      */
     events.on('__render', function(component) {
-      const args = useComponent(component, {
-        meta,
-        bundle,
+      const data = {
+        component,
+        meta: meta.data(),
         state: state.data,
-      })
+      }
       /**
        * Initial content
        */
       if(state.type == 'initial') {
-        data[bundle.hash] = args.data
+        context[bundle.hash] = data
       }
       /**
        * Update content
        */
       if(state.type == 'route' || state.type == 'update') {
-        return response(args.data)
+        return response(data)
       }
-      
-      return args
+
+      return getReactDOM(bundle, data)
     })
-    
+
     if(state.type == 'fetch') {
       return response(await getEvent())
     }
 
     if(state.type == 'hydrate') {
-      return response(data[bundle.hash])
+      return response(context[bundle.hash])
     }
     
     next({state})

@@ -200,32 +200,30 @@ exports.getLibs = async function getLibs(files = [], ctx, conf) {
  * * Meta data
  * @param {object} data Default data
  */
-function metadata(data = {}) {
+function metadata() {
   const target = {
-    data() {
-      return data
-    },
+    data: {},
     reset() {
-      data = {}
+      target.data = {}
     },
     create(obj) {
-      merge(data, obj)
+      merge(target.data, obj)
     }
   }
 
   return new Proxy(target, {
-    set(_, key, value) {
+    set(target, key, value) {
       if(keys(target).includes(key)) {
         throw new TypeError(`Cannot assign to read-only property '${key}'`)
       }
-      data[key] = value
+      target.data[key] = value
       return true
     },
     get(target, key) {
       if(key in target) {
         return target[key]
       }
-      return data[key]
+      return target.data[key]
     }
   })
 }
@@ -234,9 +232,9 @@ function metadata(data = {}) {
 /**
  * Context
  * @param config Configuration
- * @param dependencies Dependencies to inject
+ * @param extLib External libraries to inject
  */
-exports.getContext = async function getContext(conf, dependencies) {
+exports.getContext = async function getContext(conf, extLib) {
   const ctx = {
     meta: metadata()
   }
@@ -258,8 +256,8 @@ exports.getContext = async function getContext(conf, dependencies) {
   /**
    * Add external libraries
    */
-  if(dependencies) {
-    merge(ctx, await dependencies(ctx))
+  if(extLib) {
+    merge(ctx, await extLib(ctx))
   }
 
   /**

@@ -522,6 +522,13 @@ async function isFromDefault(route, args) {
   if(!methods || !isFunc(methods.default) || isEnded(args[2]) || !isAbsolute(route.path) && !isPathEqual(route)) {
     return false
   }
+
+  /**
+   * Add to context
+   */
+  args[3].request = args[0].request
+  args[3].response = args[0].response
+
   /**
    * Default export
    * @example

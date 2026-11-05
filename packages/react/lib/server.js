@@ -384,11 +384,18 @@ exports.server = function server() {
       bundle: true,
       state: state.initialize
     })
-    
+
     /**
      * Dispatch data and clear
      */
     async function response(type, data = null) {
+      /**
+       * Exclude files
+       */
+      if(req.extension) {
+        return next()
+      }
+
       switch(type) {
         /**
          * HTTP request
@@ -399,8 +406,8 @@ exports.server = function server() {
             if(!isObj(data)) {
               throw new TypeError(`State response must be of type object.`)
             }
+            return res.json(data)
           }
-          return res.json(data)
         /**
          * Update page
          */
@@ -422,6 +429,7 @@ exports.server = function server() {
             return getReactDOM(bundle, data)
           }
       }
+      next()
     }
 
 
@@ -437,7 +445,6 @@ exports.server = function server() {
       return response(state.type, data)
     })
 
-    response(state.type, context[bundle.hash])
-    next()
+    await response(state.type, context[bundle.hash])
   }
 }

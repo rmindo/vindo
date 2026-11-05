@@ -11,7 +11,7 @@ const fs = require('fs')
 const path = require('path')
 const React = require('react')
 const ReactDom = require('react-dom/server')
-const {isArr, isFunc, merge, reducer} = require('@vindo/react/util')
+const {isArr, isObj, isFunc, merge, reducer} = require('@vindo/react/util')
 
 /**
  * Shorthand
@@ -143,22 +143,6 @@ function body(children, data) {
 
 
 /**
- * Reduce to fewer object props before sending to client
- * 
- * @param {string} name 
- */
-function reduce(args) {
-  if(!args) {
-    return
-  }
-  if(args.component) {
-    args.component = reducer(args.component)[0]
-  }
-  return args
-}
-
-
-/**
  * Require main component from react directory
  * @param {string} entrypoint
  * @param {object} data
@@ -241,7 +225,7 @@ function getBundle(req, vindo) {
  */
 function getReactDOM(bundle, data) {
   var app = getRoot(bundle.entry, data.meta)
-
+  
   function children(item, key) {
     /**
      * Add script and bundle to the head component
@@ -273,18 +257,17 @@ function getReactDOM(bundle, data) {
 }
 
 
-
 /**
- * Use state
+ * Get state request
  * @param {object} req 
  */
-function useState(req) {
+function getStateRequest(req) {
   const state = {
     data: {},
     type: 'initial',
   }
 
-  var token = req.get('x-state-request')
+  const token = req.get('x-state-request')
   if(token) {
     merge(state, decode(token))
   }
@@ -296,9 +279,12 @@ function useState(req) {
     if(req.method == 'POST') {
       merge(state.data, req.body)
     }
+    state.eventId = mkId(req.method, state.page)
   }
+
   return state
 }
+
 
 /**
  * State response
@@ -308,7 +294,7 @@ function useState(req) {
  */
 function getState(req, events) {
   var exert = {}
-  var state = useState(req)
+  var state = getStateRequest(req)
 
 
   state.on = function on(name, cb) {
@@ -359,6 +345,10 @@ function getState(req, events) {
 
     return new Proxy(state, {
       get(target, key) {
+        if(key == 'initialize') {
+          throw new TypeError(`You can't initialize an already initialized state.`)
+        }
+
         if(key in target) {
           return target[key]
         }
@@ -372,10 +362,9 @@ function getState(req, events) {
       }
     })
   }
-  
+
   return state
 }
-
 
 
 /**
@@ -390,30 +379,51 @@ exports.server = function server() {
     const bundle = getBundle(req, vindo)
     
 
-    meta.route = route
-    meta.state = state.initialize
-
-    /**
-     * Emit fetch event
-     */
-    function getEvent() {
-      const id = mkId(
-        req.method,
-        state.page
-      )
-      return events.emit(id, state.data)
-    }
-
+    meta.create({
+      route,
+      bundle: true,
+      state: state.initialize
+    })
+    
     /**
      * Dispatch data and clear
      */
-    function response(obj = {}) {
-      context = {}
-      if(obj.component) {
-        obj = reduce(obj)
+    async function response(type, data = null) {
+      switch(type) {
+        /**
+         * HTTP request
+         */
+        case 'fetch':
+          if(state.eventId) {
+            data = await events.emit(state.eventId, state.data)
+            if(!isObj(data)) {
+              throw new TypeError(`State response must be of type object.`)
+            }
+          }
+          return res.json(data)
+        /**
+         * Update page
+         */
+        case 'route':
+        case 'update':
+        case 'hydrate':
+          context = {}
+          if(data) {
+            if(data.component) {
+              data.component = reducer(data.component)[0]
+            }
+            return res.json(data)
+          }
+        default:
+          if(data) {
+            if(meta.bundle) {
+              context[bundle.hash] = data
+            }
+            return getReactDOM(bundle, data)
+          }
       }
-      res.json(obj)
     }
+
 
     /**
      * Render on first request
@@ -421,33 +431,13 @@ exports.server = function server() {
     events.on('__render', function(component) {
       const data = {
         component,
-        meta: meta.data(),
+        meta: meta.data,
         state: state.data,
       }
-      /**
-       * Initial content
-       */
-      if(state.type == 'initial') {
-        context[bundle.hash] = data
-      }
-      /**
-       * Update content
-       */
-      if(state.type == 'route' || state.type == 'update') {
-        return response(data)
-      }
-
-      return getReactDOM(bundle, data)
+      return response(state.type, data)
     })
 
-    if(state.type == 'fetch') {
-      return response(await getEvent())
-    }
-
-    if(state.type == 'hydrate') {
-      return response(context[bundle.hash])
-    }
-    
-    next({state})
+    response(state.type, context[bundle.hash])
+    next()
   }
 }

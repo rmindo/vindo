@@ -7,7 +7,7 @@ declare module '@vindo/react/event'
 declare module '@vindo/react/request'
 declare module '@vindo/react/client' {
   type DataType = {
-    [key:string]: string | number | boolean | object | DataType
+    [key:string]: string | number | boolean | object | DataType | null
   }
   type ViewType = {
     path: string
@@ -17,7 +17,8 @@ declare module '@vindo/react/client' {
     href: string
     text?: string
     disabled?: boolean
-    children: React.ReactNode
+    className?: string
+    children?: React.ReactNode
   }
   
   export const Link: React.FC<LinkPropsType> & {

@@ -27,15 +27,8 @@ const isValid = React.isValidElement
 
 
 /**
- * Back to previous page
- */
-function back(step = -1) {
-  window.history.go(step)
-}
-
-
-/**
  * Update DOM
+ * @param {object} params
  */
 function update({path, type = 'update', ...data}) {
   const args = {
@@ -46,17 +39,6 @@ function update({path, type = 'update', ...data}) {
   request(args).then((data) => content.render(data, type))
 }
 
-
-/**
- * Redirect without reloading the page
- */
-function redirect(href, text = null) {
-  update({
-    type: 'route',
-    path: new URL(href, location.origin)
-  })
-  window.history.pushState({}, text, href)
-}
 
 /**
  * Use store
@@ -168,7 +150,7 @@ export function View() {}
 
 /**
  * Context provider
- * @param {*} props
+ * @param {object} props
  */
 export function Provider({meta, children, component}) {
   context.add({
@@ -181,6 +163,7 @@ export function Provider({meta, children, component}) {
 
 /**
  * Find current route
+ * @param {object} props
  */
 export function Content({children}) {
   /**
@@ -206,6 +189,7 @@ export function Content({children}) {
 
 /**
  * Link
+ * @param {object} props
  */
 export function Link({href, text, disabled, children, ...props}) {
   if(!href) {
@@ -216,7 +200,7 @@ export function Link({href, text, disabled, children, ...props}) {
     e.preventDefault()
 
     if(!disabled) {
-      redirect(href, text)
+      Link.redirect(href, text)
     }
   }
 
@@ -226,8 +210,25 @@ export function Link({href, text, disabled, children, ...props}) {
   return create('a', {href, onClick, ...props}, children)
 }
 
+
 /**
- * Navigation
+ * Navigate back to previous page
+ * @param {number} step
  */
-Link.back = back
-Link.redirect = redirect
+Link.back = function back(step = -1) {
+  window.history.go(step)
+}
+
+
+/**
+ * Redirect without reloading the page
+ * @param {string} href 
+ * @param {string} text 
+ */
+Link.redirect = function redirect(href, text = null) {
+  update({
+    type: 'route',
+    path: new URL(href, location.origin)
+  })
+  window.history.pushState({}, text, href)
+}

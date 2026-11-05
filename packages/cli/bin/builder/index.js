@@ -29,6 +29,10 @@ function getname(val) {
 async function getChunk(dir) {
 	var code = []
 	var files = await file.readdir(dir, {recursive: true})
+	
+	if(!files) {
+		return code
+	}
 
 	for(var {name, parentPath} of files) {
 		if(!/\.(js|tsx|jsx)$/.test(name)) {
@@ -57,7 +61,7 @@ async function getChunk(dir) {
  */
 async function getImports(entry, data) {
 	var imp = []
-	var matches = data.matchAll(/import\s(.*)\sfrom.*('|"|\/)([a-zA-Z0-9_-]+)('|")/g)
+	var matches = data.matchAll(/(?<!\/\/.*)(?<!\/\*.*)import\s(.*)\sfrom.*('|"|\/)([a-zA-Z0-9_-]+)('|")/g)
 
 	for(var item of matches) {
 		if(/(\.\/|)components\//.test(item[0])) {

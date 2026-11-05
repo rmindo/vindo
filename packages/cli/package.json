@@ -1,6 +1,6 @@
 {
   "name": "@vindo/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Command line for running vindo server and react SSR for development.",
   "main": "bin/index.js",
   "publishConfig": {
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/rmindo/vindo/tree/main/packages/cli",
   "dependencies": {
-    "@vindo/utility": "file:../utility",
+    "@vindo/utility": "^0.0.13",
     "chokidar": "^4.0.3",
     "esbuild": "^0.27.3",
     "sass": "^1.98.0",

@@ -42,7 +42,7 @@ exports.cookie = function(req, res, next) {
       }
       cookies.push(cookie)
     }
-    res.setHeader('Set-Cookie', cookies)
+    res.prepare({setCookie: cookies})
   }
   
   return next()

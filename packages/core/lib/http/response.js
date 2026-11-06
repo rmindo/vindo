@@ -12,30 +12,53 @@ const {string} = require('@vindo/utility')
 /**
  * Default exports
  */
-module.exports = exports = {}
+module.exports = exports = {
+  headers: {}
+}
+
+
+/**
+ * Reset headers
+ */
+exports.reset = function reset() {
+  exports.headers = {}
+}
 
 
 /**
  * Set status
- * @param code
+ * @param {number} code
  */
 exports.status = function status(code) {
   this.statusCode = code
 }
 
+
 /**
- * Set headers
- * @param headers
+ * Prepare header before sending response
+ * @param {object} data
  */
-exports.headers = function headers(headers) {
+exports.prepare = function prepare(data) {
+  for(var key in data) {
+    exports.headers[string.toKebabCase(key)] = data[key]
+  }
+}
+
+
+/**
+ * Create headers
+ * @param {object} headers
+ */
+exports.create = function create(headers) {
   for(var key in headers) {
     this.setHeader(string.toKebabCase(key), headers[key])
   }
 }
 
+
 /**
- * Redirect URL
- * @param url
+ * * Redirect URL
+ * @param {string} url
  */
 exports.redirect = function redirect(url) {
   if(this.writableEnded) {
@@ -43,6 +66,23 @@ exports.redirect = function redirect(url) {
   }
   this.writeHead(301, {Location: url})
   this.end()
+}
+
+
+/**
+ * Send response
+ * @param {string} body 
+ * @param {number} code 
+ * @param {object} headers 
+ */
+exports.send = function send(body, code = 200, headers = {}) {
+  if(this.writableEnded) {
+    return
+  }
+  this.prepare(headers)
+  this.writeHead(code, exports.headers)
+  this.end(body)
+  this.reset()
 }
 
 /**
@@ -55,11 +95,10 @@ exports.html = function html(body = null, code = 200, headers = {}) {
   if(!body || this.writableEnded) {
     return
   }
-  this.writeHead(code, {
+  this.send(body, code, {
     ...headers,
     'Content-Type': 'text/html; charset=utf-8'
   })
-  this.end(body)
 }
 
 /**
@@ -76,11 +115,10 @@ exports.json = function json(body = {}, code = 200, headers = {}) {
     throw Error('The first argument must be of type object.')
   }
 
-  this.writeHead(code, {
+  this.send(JSON.stringify(body, null, 2), code, {
     ...headers,
     'Content-Type': 'application/json'
   })
-  this.end(JSON.stringify(body, null, 2))
 }
 
 /**
@@ -93,9 +131,9 @@ exports.print = function print(body = null, code = 200, headers = {}) {
   if(this.writableEnded) {
     return
   }
-  this.writeHead(code, headers)
-  this.end(body)
+  this.send(body, code, headers)
 }
+
 
 /**
  * Use stream event
@@ -103,7 +141,7 @@ exports.print = function print(body = null, code = 200, headers = {}) {
 exports.eventStream = function eventStream(headers = {}) {
   const res = this
 
-  res.headers({
+  res.create({
     ...headers,
     connection: 'keep-alive',
     cacheControl: 'no-cache',

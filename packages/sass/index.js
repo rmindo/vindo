@@ -40,7 +40,7 @@ exports.compiler = function(_opt = {}) {
     const url = toScss(req.url.slice(1))
 
     if(req.extension == '.css') {
-      res.headers({
+      res.prepare({
         'Content-Type': 'text/css'
       })
     

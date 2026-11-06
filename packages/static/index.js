@@ -29,10 +29,8 @@ exports.serve = function serve(path) {
     if(!mimeType) {
       return next()
     }
-
-    res.headers({
-      'Content-Type': mimeType,
-      'Cache-Control': 'public, max-age=31536000, immutable'
+    res.create({
+      contentType: mimeType
     })
     /**
      * 

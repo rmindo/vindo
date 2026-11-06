@@ -97,7 +97,8 @@ export function request({data, path, type, ...args}, opts = {}) {
       'X-State-Request': btoa(
         JSON.stringify({type, page: page(type, path)})
       ),
-    })
+    }),
+    credentials: 'include'
   }
 
   if(!data) {

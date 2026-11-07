@@ -173,7 +173,7 @@ export function reducer(children) {
 /**
  * Transform back to react object
  */
-export function transform(children, data) {
+export function transform(children, components, refs) {
   if(!children) {
     return
   }
@@ -190,7 +190,7 @@ export function transform(children, data) {
 
     if(isArr(type)) {
       const key = type[0]
-      type = data[key]
+      type = components[key]
       if(!type) {
         throw TypeError(`Cannot read property '${key}'.`)
       }
@@ -202,25 +202,27 @@ export function transform(children, data) {
       if(isStr(v) || isNum(v)) {
         p[i] = v
       }
+
       if(isObj(v)) {
         if(i == 'style') {
           p.style = v
         }
         if(i == 'children') {
-          p.children = transform(v, data)
+          p.children = transform(v, components, refs)
         }
         if(v.mouseevent) {
           p[i] = toFunc(v.name, {
+            refs,
             args: v.args,
             code: v.code,
-            refs: data.refs
           })
         }
       }
+
       if(isArr(v)) {
         p.children = v.map((i, k) => {
           if(isObj(i)) {
-            const child = transform(i, data)
+            const child = transform(i, components, refs)
             if(child[0]) {
               return {...child[0], key: k}
             }

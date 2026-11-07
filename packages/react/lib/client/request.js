@@ -56,26 +56,6 @@ function getURL() {
   }
 }
 
-/**
- * HTTP Request
- */
-export function HTTPRequest() {
-  return Object.defineProperties({}, {
-    get: {
-      value: function get(args = {}) {
-        return request({type: 'fetch', ...args, path: getURL()}, {method: 'GET'})
-      },
-      writable: false
-    },
-    post: {
-      value: function post(args = {}) {
-        return request({type: 'fetch', ...args, path: getURL()}, {method: 'POST'})
-      },
-      writable: false
-    },
-  })
-}
-
 
 /**
  * State request
@@ -90,7 +70,7 @@ export function request({data, path, type, ...args}, opts = {}) {
     throw new ReferenceError(`Invalid request type.`)
   }
 
-  var opts = {
+  const option = {
     method: 'GET',
     ...opts,
     headers: Object.assign(opts.headers ?? {}, {
@@ -108,7 +88,7 @@ export function request({data, path, type, ...args}, opts = {}) {
     path = new URL(location.href)
   }
 
-  if(opts.method == 'GET') {
+  if(option.method == 'GET') {
     if(data) {
       for(var i in data) {
         path.searchParams.append(i, data[i])
@@ -116,9 +96,28 @@ export function request({data, path, type, ...args}, opts = {}) {
     }
   }
 
-  if(opts.method == 'POST') {
-    opts.body = JSON.stringify(data)
-    opts.headers['Content-Type'] = 'application/json'
+  if(option.method == 'POST') {
+    option.body = JSON.stringify(data)
+    option.headers['Content-Type'] = 'application/json'
   }
-  return fetch(path, opts).then((res) => res.json()).catch(console.error)
+  return fetch(path, option).then((res) => res.json()).catch(console.error)
 }
+
+
+/**
+ * HTTP Request
+ */
+export default Object.defineProperties({}, {
+  get: {
+    value: function get(args = {}) {
+      return request({type: 'fetch', ...args, path: getURL()}, {method: 'GET'})
+    },
+    writable: false
+  },
+  post: {
+    value: function post(args = {}) {
+      return request({type: 'fetch', ...args, path: getURL()}, {method: 'POST'})
+    },
+    writable: false
+  },
+})

@@ -9,10 +9,11 @@
 
 import React from 'react'
 import ReactDom from 'react-dom/client'
+
 import event from '@vindo/react/event'
 import {request} from '@vindo/react/request'
-import {transform, merge} from '@vindo/react/util'
-import {getStore, getState, createContext} from '@vindo/react/store'
+import {merge, transform} from '@vindo/react/util'
+import {getStore, getState, persistent, createContext} from '@vindo/react/storage'
 
 
 
@@ -60,68 +61,32 @@ export function useState(initialState = {}) {
 /**
  * Render react dom to root
  * @param {object} document 
- * @param {object} chunk 
+ * @param {object} components 
  */
-export function render({head, body}, chunk) {
+export function render({head, body}, components) {
   var head = ReactDom.createRoot(head)
   var body = ReactDom.createRoot(body)
-
-  /**
-   * Proxy handler
-   */
-  function getter(target, key) {
-    switch(key) {
-      case 'set':
-      case 'update':
-        return update
-    }
-    return target[key]
-  }
     
-  /**
-   * Re-render DOM
-   */
-  content.update = function update(state) {
-    merge(
-      context.state,
-      state
-    )
-    content.render({state: context.state})
-  }
-  
   /**
    * Render content
    */
-  content.render = function render(data, type = null) {
-    /**
-     * Set data
-     */
+  content.render = function render(data) {
     context.add({
       state: data.state,
-      updating: true,
     })
     /**
-     * State and metadata reference for mouse event functions
-     */
-    chunk.refs = {
-      state: new Proxy(data.state, {
-        get: getter
-      }),
-      meta: data.meta,
-    }
-    /**
-     * For route request only
-     */
-    if(type == 'route') {
-      head.render(chunk.head(data.meta))
-    }
-    /**
-     * Set only for dynamic content coming from server
+     * Transform back to react component object
      */
     if(data.component) {
-      data.component = transform(data.component, chunk)[0]
+      const refs = {
+        meta: data.meta,
+        state: {...data.state, update}
+      }
+      data.component = transform(data.component, components, refs)[0]
     }
-    body.render(chunk.body(data))
+    
+    head.render(components.head(data.meta))
+    body.render(components.body(data))
   }
 
   /**
@@ -137,6 +102,9 @@ export function render({head, body}, chunk) {
    * Make sure the entire page has finished loading, including all dependent resources (images, scripts, CSS files, etc.).
    */
   window.onload = function onload() {
+    context.add(
+      persistent(context).data()
+    )
     request({type: 'hydrate'}).then(data => content.render(data))
   }
 }
@@ -155,7 +123,7 @@ export function View() {}
 export function Provider({meta, children, component}) {
   context.add({
     meta,
-    component,
+    component
   })
   return React.createElement(React.Fragment, {children})
 }
@@ -165,25 +133,26 @@ export function Provider({meta, children, component}) {
  * Find current route
  * @param {object} props
  */
-export function Content({children}) {
+export function Content({children, ...props}) {
   /**
    * From backend: View content from backend (src/http)
    */
   if(isValid(context.component)) {
-    return context.component
+    return create('div', props, context.component)
   }
+  
   /**
    * From frontend: View content (<View path="/page-name" ...>) from react directory (src/react)
    */
-  return React.Children.map(children, ({props}) => {
+  return create('div', props, React.Children.map(children, ({props}) => {
     if(!props.path) {
       throw new ReferenceError(`Property 'path' is required for View component.`)
     }
 
-    if(props.path == context.meta.route.path) {
+    if(props.path == context.meta.path) {
       return create(props.component, context.data)
     }
-  })
+  }))
 }
 
 
@@ -191,25 +160,23 @@ export function Content({children}) {
  * Link
  * @param {object} props
  */
-export function Link({href, text, disabled, children, ...props}) {
+export function Link({href, data, text, disabled, children, ...props}) {
   if(!href) {
     throw new ReferenceError(`No href property found or no value provided on property href.`)
   }
 
-  const onClick = (e) => {
-    e.preventDefault()
+  return create('a', {
+    ...props,
+    href,
+    onClick(e) {
+      e.preventDefault()
 
-    if(!disabled) {
-      Link.redirect(href, text)
+      if(!disabled) {
+        Link.navigate(href, data)
+      }
     }
-  }
-
-  if(!children) {
-    children = text
-  }
-  return create('a', {href, onClick, ...props}, children)
+  }, text ?? children)
 }
-
 
 /**
  * Navigate back to previous page
@@ -219,16 +186,38 @@ Link.back = function back(step = -1) {
   window.history.go(step)
 }
 
+/**
+ * History state
+ */
+Link.state = function state() {
+  return window.history.state
+}
 
 /**
- * Redirect without reloading the page
- * @param {string} href 
- * @param {string} text 
+ * Redirect to other page
+ * @param {string} href
  */
-Link.redirect = function redirect(href, text = null) {
+Link.reload = function reload() {
+  window.location.reload()
+}
+
+/**
+ * Redirect to other page
+ * @param {string} href
+ */
+Link.redirect = function redirect(href) {
+  window.location.href = href
+}
+
+/**
+ * Navigate without reloading the page
+ * @param {string} href 
+ * @param {string} data
+ */
+Link.navigate = function navigate(href, data = {}) {
   update({
     type: 'route',
-    path: new URL(href, location.origin)
+    path: new URL(href, window.location.origin)
   })
-  window.history.pushState({}, text, href)
+  window.history.pushState(data, null, href)
 }

@@ -25,7 +25,7 @@ const create = React.createElement
  * @param {string} prefix 
  * @param {string} name 
  */
-function mkId(prefix, name) {
+function makeId(prefix, name) {
   if(!name) {
     name = 'root'
   }
@@ -226,24 +226,24 @@ function getBundle(req, vindo) {
 function getReactDOM(bundle, data) {
   var app = getRoot(bundle.entry, data.meta)
   
-  function children(item, key) {
+  function children(child, key) {
     /**
      * Add script and bundle to the head component
      */
-    if(item.type == 'head') {
-      return clone(item, {
+    if(child.type == 'head') {
+      return clone(child, {
         key,
-        children: head(item.props.children, data.meta.bundle && bundle.file)
+        children: head(child.props.children, data.meta.bundle && bundle.file)
       })
     }
     /**
      * Add props to each children of the body component
      */
-    if(item.type == 'body') {
-      return clone(item, {
+    if(child.type == 'body') {
+      return clone(child, {
         key,
-        ...item.props,
-        children: body(item.props.children, data)
+        ...child.props,
+        children: body(child.props.children, data)
       })
     }
   }
@@ -258,86 +258,36 @@ function getReactDOM(bundle, data) {
 
 
 /**
- * Get state request
- * @param {object} req 
+ * State response
+ * 
+ * @param {object} request
  */
-function getStateRequest(req) {
+function getState(request) {
   const state = {
     data: {},
     type: 'initial',
   }
 
-  const token = req.get('x-state-request')
+  const token = request.get('x-state-request')
   if(token) {
     merge(state, decode(token))
   }
 
-  if(state.type == 'fetch' || state.type == 'update') {
-    if(req.method == 'GET') {
-      merge(state.data, req.query)
+  if(['fetch', 'update'].includes(state.type)) {
+    switch(request.method) {
+      case 'GET':
+        merge(state.data, request.query)
+        break
+      case 'POST':
+        merge(state.data, request.body)
+        break
     }
-    if(req.method == 'POST') {
-      merge(state.data, req.body)
-    }
-    state.eventId = mkId(req.method, state.page)
+    state.eventId = makeId(request.method, state.page)
   }
 
-  return state
-}
-
-
-/**
- * State response
- * 
- * @param {object} req 
- * @param {object} events
- */
-function getState(req, events) {
-  var exert = {}
-  var state = getStateRequest(req)
-
-
-  state.on = function on(name, cb) {
-    const id = mkId(name, req.name)
-
-    events.on(id, async function(data) {
-      if(typeof cb !== 'function') {
-        throw new ReferenceError('Callback function is required.')
-      }
-      return await cb(data)
-    })
-  }
-
-  state.set = function set(data) {
-    merge(exert, data)
-  }
   /**
-   * Response for 'fetch' event from client
+   * State initializer
    */
-  state.get = function get(cb) {
-    state.on('GET', cb)
-  }
-  /**
-   * Response for 'fetch' event from client
-   */
-  state.post = function post(cb) {
-    state.on('POST', cb)
-  }
-  /**
-   * Apply and update the current state
-   */
-  state.apply = async function apply(cb) {
-    if(!isFunc(cb)) {
-      return
-    }
-    if(state.type == 'update') {
-      var data = await cb(state.data)
-      if(data) {
-        exert = data
-      }
-    }
-  }
-
   state.initialize = function(initialState) {
     if(state.type == 'route' || state.type == 'initial') {
       merge(state.data, initialState)
@@ -345,15 +295,8 @@ function getState(req, events) {
 
     return new Proxy(state, {
       get(target, key) {
-        if(key == 'initialize') {
-          throw new TypeError(`You can't initialize an already initialized state.`)
-        }
-
         if(key in target) {
           return target[key]
-        }
-        if(key in exert) {
-          return exert[key]
         }
         return target.data[key]
       },
@@ -373,26 +316,39 @@ function getState(req, events) {
 exports.server = function server() {
   var context = {}
   
-  return async function(req, res, next, {meta, vindo, events}) {
-    const route = getRoute(req)
-    const state = getState(req, events)
-    const bundle = getBundle(req, vindo)
+  return async function(request, response, next, {meta, vindo, events}) {
+    const route = getRoute(request)
+    const state = getState(request)
+    const bundle = getBundle(request, vindo)
     
 
+    meta.create(route)
     meta.create({
-      route,
       bundle: true,
       state: state.initialize
     })
 
     /**
-     * Dispatch data and clear
+     * Response for 'fetch' event from client
      */
-    async function response(type, data = null) {
+    response.get = function get(cb) {
+      events.on(makeId('GET', meta.name), cb)
+    }
+    /**
+     * Response for 'fetch' event from client
+     */
+    response.post = function post(cb) {
+      events.on(makeId('POST', meta.name), cb)
+    }
+
+    /**
+     * Send data to client
+     */
+    async function dispatch(type, data = null) {
       /**
        * Exclude files
        */
-      if(req.extension) {
+      if(request.extension) {
         return next()
       }
 
@@ -406,7 +362,7 @@ exports.server = function server() {
             if(!isObj(data)) {
               throw new TypeError(`State response must be of type object.`)
             }
-            return res.json(data)
+            return response.json(data)
           }
         /**
          * Update page
@@ -419,7 +375,7 @@ exports.server = function server() {
             if(data.component) {
               data.component = reducer(data.component)[0]
             }
-            return res.json(data)
+            return response.json(data)
           }
         default:
           if(data) {
@@ -442,9 +398,9 @@ exports.server = function server() {
         meta: meta.data,
         state: state.data,
       }
-      return response(state.type, data)
+      return dispatch(state.type, data)
     })
 
-    await response(state.type, context[bundle.hash])
+    await dispatch(state.type, context[bundle.hash])
   }
 }

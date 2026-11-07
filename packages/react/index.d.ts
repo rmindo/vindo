@@ -7,7 +7,7 @@ declare module '@vindo/react/event'
 declare module '@vindo/react/request'
 declare module '@vindo/react/client' {
   type DataType = {
-    [key:string]: string | number | boolean | object | DataType | null
+    [key:string]: null | undefined | string | number | boolean | object | DataType
   }
   type ViewType = {
     path: string
@@ -16,6 +16,7 @@ declare module '@vindo/react/client' {
   type LinkPropsType = {
     href: string
     text?: string
+    data?: object
     disabled?: boolean
     className?: string
     children?: React.ReactNode
@@ -23,7 +24,10 @@ declare module '@vindo/react/client' {
   
   export const Link: React.FC<LinkPropsType> & {
     back: (step: number) => void
-    redirect: (href: string, text?: string) => void
+    state: () => any
+    reload: () => void
+    redirect: (href: string) => void
+    navigate: (href: string, data?: object) => void
   }
 
   export function useState(state?:DataType): any

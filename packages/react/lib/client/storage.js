@@ -8,16 +8,72 @@
 
 
 import React from 'react'
-import {HTTPRequest} from '@vindo/react/request'
+import http from '@vindo/react/request'
 import {copy, isStr, isObj, isFunc, merge, toHash} from '@vindo/react/util'
 
-
-const http = HTTPRequest()
 
 /**
  * List of state keys
  */
 export const listners = {}
+
+
+/**
+ * Get data from local storage related to the current hostname
+ */
+function data() {
+  const data = {}
+  const entries = Object.entries(localStorage)
+
+  for(var [key, value] of entries) {
+    try {
+      if(key.includes(location.hostname)) {
+        data[key.split(/\//)[1]] = JSON.parse(value)
+      }
+    }
+    catch(e) {
+      continue
+    }
+  }
+  return data
+}
+
+/**
+ * Add data using current hostname as key
+ * @param {object} data 
+ */
+function add(data) {
+  if(typeof data !== 'object') {
+    throw TypeError('The second argument must be of type object.')
+  }
+
+  for(var i in data) {
+    if(data[i] !== undefined) {
+      localStorage.setItem(location.hostname.concat('/', i), JSON.stringify(data[i]))
+    }
+  }
+}
+
+/**
+ * Remove persisted data from local storage
+ * @param {string|array} keys 
+ */
+function remove(keys) {
+  if(typeof keys == 'string') {
+    keys = [keys]
+  }
+  for(var key of keys) {
+    localStorage.removeItem(location.hostname.concat('/', key))
+  }
+}
+
+/**
+ * Add storage to the global context
+ * @param {object} context
+ */
+export function persistent(context) {
+  return context.add({storage: {add, data, remove}}).storage
+}
 
 
 /**
@@ -56,7 +112,7 @@ export function watch(initialState, context) {
     state.set(data)
   })
   
-  return state.data()
+  return state.data
 }
 
 
@@ -77,13 +133,15 @@ export function updateListeners(data, context) {
 }
 
 
+
 /**
  * Get store proxy
  */
 export function getStore(initialState, context) {
   const state = watch(initialState, context)
 
-  return new Proxy({
+  const store = {
+    data: context.data,
     /**
      * Remove data from both persistent storage and global context
      */
@@ -91,8 +149,19 @@ export function getStore(initialState, context) {
       if(isStr(keys)) {
         keys = [keys]
       }
-      context.delete(keys)
+      context.remove(keys)
+      context.storage.remove(keys)
       updateListeners(Object.fromEntries(keys.map(key => [key, undefined])), context)
+    },
+    /**
+     * Persist data
+     */
+    async persist(data) {
+      if(isFunc(data)) {
+        data = await data(state)
+      }
+      context.storage.add(data)
+      return store.dispatch(data)
     },
     /**
      * Dispatch reducer or state
@@ -102,14 +171,12 @@ export function getStore(initialState, context) {
         data = await data(context.data)
       }
       context.add(data)
-      /**
-       * Emit listeners
-       */
       updateListeners(data, context)
       return data
     }
-  },
-  {
+  }
+
+  return new Proxy(store, {
     get(target, key) {
       if(key in target) {
         return target[key]
@@ -117,7 +184,9 @@ export function getStore(initialState, context) {
       if(key in state) {
         return state[key]
       }
-      return context.data[key]
+      if(key in target.data) {
+        return target.data[key]
+      }
     }
   })
 }
@@ -139,9 +208,8 @@ export function getState(initialState = {}, context) {
   merge(current, state)
   
   return new Proxy({
-    data() {
-      return current
-    },
+    data: current,
+    
     set(data = {}) {
       /**
        * This allow multiple state arguments to be set
@@ -213,7 +281,7 @@ export function createContext(data = {}) {
     add(obj) {
       return merge(data, obj)
     },
-    delete(keys) {
+    remove(keys) {
       if(isStr(keys)) {
         keys = [keys]
       }
@@ -226,7 +294,7 @@ export function createContext(data = {}) {
       if(key in target) {
         return target[key]
       }
-      return data[key]
+      return target.data[key]
     }
   })
 }

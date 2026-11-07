@@ -1,6 +1,6 @@
 {
   "name": "@vindo/react",
-  "version": "0.0.11",
+  "version": "0.0.9",
   "description": "React SSR for @vindo/core framework.",
   "main": "./index.js",
   "types": "./index.d.ts",
@@ -32,19 +32,19 @@
     },
     "./event": {
       "types": "./index.d.ts",
-      "default": "./lib/event.js"
-    },
-    "./store": {
-      "types": "./index.d.ts",
-      "default": "./lib/store.js"
+      "default": "./lib/client/event.js"
     },
     "./client": {
       "types": "./index.d.ts",
-      "default": "./lib/client.js"
+      "default": "./lib/client/index.js"
     },
     "./request": {
       "types": "./index.d.ts",
-      "default": "./lib/request.js"
+      "default": "./lib/client/request.js"
+    },
+    "./storage": {
+      "types": "./index.d.ts",
+      "default": "./lib/client/storage.js"
     }
   },
   "author": "Ruel Mindo",

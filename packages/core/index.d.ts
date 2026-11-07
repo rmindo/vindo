@@ -74,7 +74,7 @@ declare module '@vindo/core' {
     status(code: number): void
     cookie(data: object): void
     headers(headers: object): void
-    redirect(url: string): void
+    redirect(url: string, headers?: object): void
     json(body: object, code?: number, headers?: object): void
     html(body: string | null, code?: number, headers?: object): void
     print(body: string | null, code?: number, headers?: object): void

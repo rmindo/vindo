@@ -60,22 +60,25 @@ exports.create = function create(headers) {
  * * Redirect URL
  * @param {string} url
  */
-exports.redirect = function redirect(url) {
+exports.redirect = function redirect(url, headers = {}) {
   if(this.writableEnded) {
     return
   }
-  this.writeHead(301, {Location: url})
+  this.writeHead(301, {
+    ...headers,
+    Location: url
+  })
   this.end()
 }
 
 
 /**
- * Send response
+ * Send body response
  * @param {string} body 
  * @param {number} code 
  * @param {object} headers 
  */
-exports.send = function send(body, code = 200, headers = {}) {
+exports.print = function print(body, code = 200, headers = {}) {
   if(this.writableEnded) {
     return
   }
@@ -95,7 +98,7 @@ exports.html = function html(body = null, code = 200, headers = {}) {
   if(!body || this.writableEnded) {
     return
   }
-  this.send(body, code, {
+  this.print(body, code, {
     ...headers,
     'Content-Type': 'text/html; charset=utf-8'
   })
@@ -115,25 +118,11 @@ exports.json = function json(body = {}, code = 200, headers = {}) {
     throw Error('The first argument must be of type object.')
   }
 
-  this.send(JSON.stringify(body, null, 2), code, {
+  this.print(JSON.stringify(body, null, 2), code, {
     ...headers,
     'Content-Type': 'application/json'
   })
 }
-
-/**
- * Response body
- * @param body
- * @param code
- * @param headers
- */
-exports.print = function print(body = null, code = 200, headers = {}) {
-  if(this.writableEnded) {
-    return
-  }
-  this.send(body, code, headers)
-}
-
 
 /**
  * Use stream event

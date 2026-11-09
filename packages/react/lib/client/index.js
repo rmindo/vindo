@@ -11,7 +11,7 @@ import React from 'react'
 import ReactDom from 'react-dom/client'
 
 import event from '@vindo/react/event'
-import {request} from '@vindo/react/request'
+import http from '@vindo/react/request'
 import {merge, transform} from '@vindo/react/util'
 import {getStore, getState, persistent, createContext} from '@vindo/react/storage'
 
@@ -37,7 +37,7 @@ function update({path, type = 'update', ...data}) {
     path,
     data: merge(context.state, data)
   }
-  request(args).then((data) => content.render(data, type))
+  http.get(args).then((data) => content.render(data, type))
 }
 
 
@@ -105,7 +105,7 @@ export function render({head, body}, components) {
     context.add(
       persistent(context).data()
     )
-    request({type: 'hydrate'}).then(data => content.render(data))
+    http.get({type: 'hydrate'}).then(data => content.render(data))
   }
 }
 

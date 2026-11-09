@@ -238,6 +238,9 @@ export function getState(initialState = {}, context) {
       if(isObj(data)) {
         return http.get({data})
       }
+      if(isStr(data)) {
+        return http.get(arguments)
+      }
       if(isFunc(data)) {
         return http.get({}).then(data)
       }
@@ -248,6 +251,9 @@ export function getState(initialState = {}, context) {
     post(data) {
       if(isObj(data)) {
         return http.post({data})
+      }
+      if(isStr(data)) {
+        return http.post(arguments)
       }
       if(isFunc(data)) {
         return http.post({}).then(data)

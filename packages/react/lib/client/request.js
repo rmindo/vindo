@@ -7,12 +7,16 @@
 'use strict'
 
 
+import {isObj, isArr} from '@vindo/react/util'
+
+
 const requestTypes = [
   'store',
   'fetch',
   'route',
   'update',
   'hydrate',
+  'generic',
 ]
 
 
@@ -27,12 +31,13 @@ function name(pathname) {
   }
 }
 
+
 /**
  * Get pagename
  * @param {string} type
  * @param {object} path
  */
-function page(type, path) {
+function pagename(type, path) {
   var base
   switch(type) {
     case 'route':
@@ -44,15 +49,15 @@ function page(type, path) {
   return base ?? 'root'
 }
 
-/**
- * Get hash to create new url
- */
-function getURL() {
-  var src = new URL(document.scripts.bundle.src)
 
-  var name = src.pathname.match(/^\/(.*)-(.*)\.js$/)
-  if(name) {
-    return new URL(name[1].concat('/', name[2]), location.origin)
+/**
+ * Arguments for generic request
+ */
+function genericArgs([path, data]) {
+  return {
+    data,
+    type: 'generic',
+    path: new URL(path, location.origin)
   }
 }
 
@@ -60,64 +65,131 @@ function getURL() {
 /**
  * State request
  */
-export function request({data, path, type, ...args}, opts = {}) {
-
-  if(data && typeof data !== 'object') {
-    throw new TypeError(`Invalid type of 'data'. Expected value of type 'object' but got ${typeof data}'.`)
-  }
-
+export function request({data, path, type, ...args}) {
   if(!requestTypes.includes(type)) {
     throw new ReferenceError(`Invalid request type.`)
   }
-
-  const option = {
-    method: 'GET',
-    ...opts,
-    headers: Object.assign(opts.headers ?? {}, {
-      'X-State-Request': btoa(
-        JSON.stringify({type, page: page(type, path)})
-      ),
-    }),
-    credentials: 'include'
-  }
-
-  if(!data) {
-    data = args
-  }
+  
   if(!path) {
     path = new URL(location.href)
   }
 
-  if(option.method == 'GET') {
-    if(data) {
-      for(var i in data) {
-        path.searchParams.append(i, data[i])
+  const option = {
+    method: 'GET',
+    credentials: 'include',
+    ...args,
+    headers: Object.assign({...args.headers}, {
+      'X-State-Request': btoa(
+        JSON.stringify({type, name: pagename(type, path)})
+      ),
+    }),
+  }
+
+  return fetch(path, option).then((res) => res.json())
+}
+
+
+/**
+ * Form data
+ */
+function formData(data) {
+  const form = new FormData()
+
+  for(let i in data) {
+    const item = data[i]
+
+    if(isObj(item)) {
+      form.append(i, JSON.stringify(item))
+    }
+    else {
+      form.append(i, item)
+    }
+  }
+  return form
+}
+
+
+function setQueries(args) {
+  const data = args.data
+
+  for(var k in data) {
+    if(isArr(data[k])) {
+      for(var i of data[k]) {
+        args.path.searchParams.append(`${k}[]`, i)
       }
+    }
+    else if(isObj(data[k])) {
+      for(var i in data[k]) {
+        if(data[k][i]) {
+          args.path.searchParams.append(`${k}[${i}]`, data[k][i])    
+        }
+      }
+    }
+    else {
+      args.path.searchParams.append(k, data[k])
     }
   }
 
-  if(option.method == 'POST') {
-    option.body = JSON.stringify(data)
-    option.headers['Content-Type'] = 'application/json'
+  return args
+}
+
+
+
+function setPayload(data) {
+  if(data.data.file) {
+    data.body = formData(data.data)
   }
-  return fetch(path, option).then((res) => res.json()).catch(console.error)
+  else {
+    data.headers = {
+      'Content-Type': 'application/json'
+    }
+    data.body = JSON.stringify(data.data)
+  }
+  return data
+}
+
+
+/**
+ * GET request
+ * @param {object} data 
+ */
+export function get(data = {}) {
+  if(!data.path) {
+    data.path = new URL(location.href)
+  }
+
+  if(data.length) {
+    data = genericArgs(data)
+  }
+  if(data.data) {
+    data = setQueries(data)
+  }
+
+  return request({type: 'fetch', ...data, method: 'GET'})
+}
+
+
+/**
+ * POST request
+ * @param {object} data 
+ */
+export function post(data = {}) {
+  if(!data.path) {
+    data.path = new URL(location.href)
+  }
+
+  if(data.length) {
+    data = genericArgs(data)
+  }
+  if(data.data) {
+    data = setPayload(data)
+  }
+
+  return request({type: 'fetch', ...data, method: 'POST'})
 }
 
 
 /**
  * HTTP Request
  */
-export default Object.defineProperties({}, {
-  get: {
-    value: function get(args = {}) {
-      return request({type: 'fetch', ...args, path: getURL()}, {method: 'GET'})
-    },
-    writable: false
-  },
-  post: {
-    value: function post(args = {}) {
-      return request({type: 'fetch', ...args, path: getURL()}, {method: 'POST'})
-    },
-    writable: false
-  },
-})
+export default {get, post}

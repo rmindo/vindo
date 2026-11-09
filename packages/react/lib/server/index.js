@@ -282,7 +282,7 @@ function getState(request) {
         merge(state.data, request.body)
         break
     }
-    state.eventId = makeId(request.method, state.page)
+    state.eventId = makeId(request.method, state.name)
   }
 
   /**
@@ -346,7 +346,7 @@ exports.server = function server() {
      */
     async function dispatch(type, data = null) {
       /**
-       * Exclude files
+       * Exclude path with extensions
        */
       if(request.extension) {
         return next()
@@ -357,13 +357,11 @@ exports.server = function server() {
          * HTTP request
          */
         case 'fetch':
-          if(state.eventId) {
-            data = await events.emit(state.eventId, state.data)
-            if(!isObj(data)) {
-              throw new TypeError(`State response must be of type object.`)
-            }
-            return response.json(data)
+          var data = await events.emit(state.eventId, state.data)
+          if(!data) {
+            return
           }
+          return response.json(data)
         /**
          * Update page
          */
@@ -377,7 +375,7 @@ exports.server = function server() {
             }
             return response.json(data)
           }
-        default:
+        case 'initial':
           if(data) {
             if(meta.bundle) {
               context[bundle.hash] = data

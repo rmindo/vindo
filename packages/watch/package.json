@@ -1,0 +1,23 @@
+{
+  "name": "watch",
+  "version": "0.0.1",
+  "description": "",
+  "main": "bin/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\""
+  },
+  "keywords": [
+    "cli"
+  ],
+  "bin": {
+    "watch": "./bin/index.js"
+  },
+  "author": "Ruel Mindo",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^6.0.0"
+  }
+}

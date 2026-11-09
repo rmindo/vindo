@@ -49,6 +49,12 @@ const resolve = {
   /**
    * Resolve files of this cli package.
    */
+  bindir(...args) {
+    return file.path.resolve(__dirname, ...args)
+  },
+  /**
+   * Resolve files of this cli package.
+   */
   clidir(...args) {
     return file.path.resolve(file.path.dirname(__dirname), ...args)
   },

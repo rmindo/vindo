@@ -67,7 +67,7 @@ function getOption() {
 
 		entry: resolve.root(opt.entry),
 		chunk: resolve.root(opt.output, 'chunk.jsx'),
-		template: resolve.clidir('builder', 'template.js'),
+		template: resolve.bindir('builder', 'template.js'),
 		components: resolve.dirname(opt.entry, 'components'),
 		outfile: resolve.root(`${opt.output}/${opt.bundleName}.js`),
 		devScript: `http://127.0.0.1:${opt.port}/development`,

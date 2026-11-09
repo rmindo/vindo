@@ -48,7 +48,6 @@
       "default": "./lib/context.js"
     }
   },
-  "dependencies": {},
   "peerDependencies": {
     "@vindo/exception": "*",
     "@vindo/utility": "*"

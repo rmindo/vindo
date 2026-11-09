@@ -56,12 +56,12 @@ declare module '@vindo/core' {
    * Http Request
    */
   export interface HttpRequest extends Http.IncomingMessage, Route {
+    url: string
     body: DynamicType
     route: Route
     method: string
-    cookies: {
-      [key:string]: string
-    }
+    query: DynamicType
+    cookies: DynamicType
     get(name:string): string
     is(basename:string | undefined): boolean
     isOrigin(): boolean

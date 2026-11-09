@@ -61,7 +61,7 @@ exports.create = function create(headers) {
  * @param {string} url
  */
 exports.redirect = function redirect(url, headers = {}) {
-  if(this.writableEnded) {
+  if(this.writableEnded || this.writableFinished) {
     return
   }
   this.writeHead(301, {
@@ -79,7 +79,7 @@ exports.redirect = function redirect(url, headers = {}) {
  * @param {object} headers 
  */
 exports.print = function print(body, code = 200, headers = {}) {
-  if(this.writableEnded) {
+  if(this.writableEnded || this.writableFinished) {
     return
   }
   this.prepare(headers)
@@ -94,10 +94,7 @@ exports.print = function print(body, code = 200, headers = {}) {
  * @param code
  * @param headers
  */
-exports.html = function html(body = null, code = 200, headers = {}) {
-  if(!body || this.writableEnded) {
-    return
-  }
+exports.html = function html(body, code = 200, headers = {}) {
   this.print(body, code, {
     ...headers,
     'Content-Type': 'text/html; charset=utf-8'
@@ -111,13 +108,9 @@ exports.html = function html(body = null, code = 200, headers = {}) {
  * @param headers
  */
 exports.json = function json(body = {}, code = 200, headers = {}) {
-  if(this.writableEnded) {
-    return
-  }
   if(typeof body !== 'object') {
     throw Error('The first argument must be of type object.')
   }
-
   this.print(JSON.stringify(body, null, 2), code, {
     ...headers,
     'Content-Type': 'application/json'

@@ -123,7 +123,7 @@ exports.parseQuery = function parseQuery(str) {
   for(let item of data) {
     var [key, value] = item.split('=')
 
-    if(!key | !value) {
+    if(!key || !value) {
       continue
     }
     
@@ -138,6 +138,8 @@ exports.parseQuery = function parseQuery(str) {
     }
     value = value === 'true' ? true : value
     value = value === 'false' ? false : value
+    value = value === 'null' ? null : value
+    value = value === 'undefined' ? undefined : value
 
 
     const arr = key.match(/(\w+)\[\]$/)

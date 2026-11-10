@@ -13,13 +13,15 @@ var source = null
 var destination = null
 
 const cwd = process.cwd()
+
+/**
+ * Input history
+ */
 const file = path.join(__dirname, '.history')
-
-
 if(fs.existsSync(file)) {
   history = fs.readFileSync(file, 'utf8')
     .split('\n')
-    .filter(line => line.trim() !== '')
+    .filter(line => line.trim())
 }
 
 

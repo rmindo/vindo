@@ -11,7 +11,7 @@ const fs = require('fs')
 const path = require('path')
 const React = require('react')
 const ReactDom = require('react-dom/server')
-const {isArr, isObj, isFunc, merge, reducer} = require('@vindo/react/util')
+const {isArr, isFunc, merge, reducer} = require('@vindo/react/util')
 
 /**
  * Shorthand
@@ -58,7 +58,7 @@ function decode(string) {
  * Resolve working directory
  */
 function resolve(...sub) {
-  return path.resolve(process.cwd(), ...sub)
+  return path.resolve(require.main.path, ...sub)
 }
 
 /**
@@ -149,11 +149,10 @@ function body(children, data) {
  */
 function getRoot(entrypoint, data) {
   var file = resolve('node_modules', entrypoint)
-
+  
   if(!fs.existsSync(file)) {
-    file = path.resolve(entrypoint)
+    file = resolve(entrypoint)
   }
-
   return require(file).default(data)
 }
 
@@ -212,8 +211,8 @@ function getBundle(req, vindo) {
    * Use main entry point if bundle not exists
    */
   if(bundles.main) {
-    bundles.main.entry = 'src/react'
-    bundles.main.pages = 'src/react/pages'
+    bundles.main.entry = 'react'
+    bundles.main.pages = 'react/pages'
     return bundles.main
   }
 }

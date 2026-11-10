@@ -52,6 +52,7 @@ function pagename(type, path) {
 
 /**
  * Arguments for generic request
+ * @param {array} args
  */
 function genericArgs([path, data]) {
   return {
@@ -91,6 +92,7 @@ export function request({data, path, type, ...args}) {
 
 /**
  * Form data
+ * @param {object} data 
  */
 function formData(data) {
   const form = new FormData()
@@ -109,6 +111,10 @@ function formData(data) {
 }
 
 
+/**
+ * Create parameters
+ * @param {object} args 
+ */
 function setQueries(args) {
   const data = args.data
 
@@ -134,7 +140,10 @@ function setQueries(args) {
 }
 
 
-
+/**
+ * Create body request
+ * @param {object} data 
+ */
 function setPayload(data) {
   if(data.data.file) {
     data.body = formData(data.data)

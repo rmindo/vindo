@@ -61,14 +61,13 @@ function env(conf) {
   if(envFile) {
     object.merge(process.env, envFile)
   }
-  delete conf.env.ENV_PATH
   
   /**
    * Add env vars to process env
    */
   for(var i in conf.env) {
-    if(typeof conf.env[i] == 'string') {
-      process.env[i] = conf.env[i]
+    if(object.is(conf.env[i])) {
+      delete conf.env[i]
     }
   }
   object.merge(conf.env, process.env)

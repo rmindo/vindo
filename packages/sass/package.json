@@ -1,6 +1,6 @@
 {
   "name": "@vindo/sass",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Compile and translates your .scss or .sass files into standard .css.",
   "main": "./index.js",
   "types": "./index.d.ts",

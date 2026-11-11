@@ -71,9 +71,14 @@ declare module '@vindo/core' {
    * Http Response
    */
   export interface HttpResponse extends Http.ServerResponse {
+    headers: {
+      [key: string]: string
+    }
+    reset(): void
     status(code: number): void
     cookie(data: object): void
-    headers(headers: object): void
+    create(headers: object): void
+    prepare(headers: object): void
     redirect(url: string, headers?: object): void
     json(body: object, code?: number, headers?: object): void
     html(body: string | null, code?: number, headers?: object): void

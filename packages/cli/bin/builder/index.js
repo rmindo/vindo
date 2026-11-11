@@ -205,6 +205,10 @@ async function startCompile(opt) {
 
 	const files = await file.readdir(input)
 	for(var item of files) {
+
+		if(!/.scss/g.test(item.name)) {
+			continue
+		}
 		
 		if(item.isFile()) {
 			const url = scss(item.name)

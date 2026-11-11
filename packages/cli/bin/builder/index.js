@@ -198,10 +198,6 @@ async function startCompile(opt) {
 		await file.makedir(output)
 	}
 
-	function scss(name) {
-		return resolve.root(opt.compileSass.input, name)
-	}
-
 
 	const files = await file.readdir(input)
 	for(var item of files) {
@@ -211,7 +207,7 @@ async function startCompile(opt) {
 		}
 		
 		if(item.isFile()) {
-			const url = scss(item.name)
+			const url = resolve.root(opt.compileSass.input, item.name)
 			
 			if(file.exists(url)) {
 				const css = sass.compile(url).css

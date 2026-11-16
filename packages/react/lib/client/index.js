@@ -102,9 +102,12 @@ export function render({head, body}, components) {
    * Make sure the entire page has finished loading, including all dependent resources (images, scripts, CSS files, etc.).
    */
   window.onload = function onload() {
-    context.add(
-      persistent(context).data()
-    )
+    /**
+     * Persistent data from history state and local storage
+     */
+    context.add(window.history.state)
+    context.add(persistent(context).data())
+    
     http.get({type: 'hydrate'}).then(data => content.render(data))
   }
 }
@@ -187,13 +190,6 @@ Link.back = function back(step = -1) {
 }
 
 /**
- * History state
- */
-Link.state = function state() {
-  return window.history.state
-}
-
-/**
  * Redirect to other page
  * @param {string} href
  */
@@ -215,6 +211,8 @@ Link.redirect = function redirect(href) {
  * @param {string} data
  */
 Link.navigate = function navigate(href, data = {}) {
+  context.add(data)
+
   update({
     type: 'route',
     path: new URL(href, window.location.origin)

@@ -30,7 +30,10 @@ function getType(type) {
  * @param {buffer} data 
  */
 function getJSON(data) {
-  return JSON.parse(data)
+  try {
+    return JSON.parse(data)
+  }
+  catch(e) {}
 }
 
 /**

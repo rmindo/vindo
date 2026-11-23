@@ -1,6 +1,6 @@
 {
   "name": "@vindo/body",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A body parsing middleware for @vindo/core that makes incoming request bodies easily accessible via req.body.",
   "main": "./index.js",
   "types": "./index.d.ts",

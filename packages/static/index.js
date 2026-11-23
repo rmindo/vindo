@@ -1,3 +1,11 @@
+/*
+ * @vindo/static
+ * Copyright(c) 2023 Ruel Mindo
+ * MIT Licensed
+ */
+
+'use strict'
+
 
 const fs = require('node:fs')
 const path = require('node:path')

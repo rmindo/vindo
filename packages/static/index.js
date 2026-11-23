@@ -1,50 +1,77 @@
-/*
- * @vindo/static
- * Copyright(c) 2023 Ruel Mindo
- * MIT Licensed
- */
 
-'use strict'
-
-
-const fs = require('fs')
-const join = require('path').join
+const fs = require('node:fs')
+const path = require('node:path')
 const mime = require('mime-types')
+const {pipeline} = require('node:stream')
 
 
+/**
+ * Get extension type
+ * @param {string} ext 
+ */
 exports.type = function type(ext) {
   return mime.lookup(ext)
 }
 
-exports.serve = function serve(path) {
+
+/**
+ * Serve static file
+ * @param {string} directory 
+ */
+exports.serve = function serve(directory) {
   var dir = process.cwd()
 
-  if(path) {
-    dir = join(dir, path)
+  if(directory) {
+    dir = path.resolve(dir, directory)
   }
-  
+
   return function(req, res, next) {
-    
+
     const mimeType = mime.lookup(req.extension)
     if(!mimeType) {
       return next()
     }
+
+    const file = path.resolve(dir, `.${path.sep}${req.route.pathname}`)
+    /**
+     * Prevent directory traversal
+     */
+    if(file !== dir && !file.startsWith(dir + path.sep)) {
+      return next()
+    }
+
     res.create({
       contentType: mimeType
     })
-    /**
-     * 
-     */
-    const file = join(dir, req.route.pathname)
-    if(!fs.existsSync(file)) {
-      return next()
-    }
-  
+
     const stream = fs.createReadStream(file)
-    stream.on('data', (chunk) => {
-      res.write(chunk)
+
+    /**
+     * Handle premature client disconnection
+     */
+    const onClose = () => {
+      if(!res.writableFinished) {
+        stream.destroy()
+      }
+    }
+
+
+    pipeline(stream, res, (e) => {
+      res.removeListener('close', onClose)
+
+      if(e) {
+        /**
+         * Response may already have started.
+         */
+        if(!res.headersSent && !res.destroyed) {
+          next(e)
+        }
+        else if(!res.destroyed) {
+          res.destroy(e)
+        }
+      }
     })
-    stream.on('error', () => next())
-    stream.on('close', () => res.end())
+
+    res.once('close', onClose)
   }
 }

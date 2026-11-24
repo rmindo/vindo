@@ -82,24 +82,6 @@ export function to16CharHash(str) {
 
 
 /**
- * Create function
- */
-export function toFunc(name, {code, args = [], refs}) {
-  var arr = ['return', 'function', name]
-
-  if(args) {
-    arr.push(
-      `(${args.length ? args.join(',') : ''})`
-    )
-  }
-  if(typeof code == 'string') {
-    arr.push(`{${code}}`)
-  }
-  return new Function(...Object.keys(refs), arr.join(' '))(...Object.values(refs))
-}
-
-
-/**
  * Reduce object to necessary props
  * @param {array|object} children 
  */
@@ -150,19 +132,6 @@ export function reducer(children) {
           p.children = reducer(v)
         }
       }
-      if(isFunc(v)) {
-        var f = v.toString()
-        var m = [
-          ...f.matchAll(/\((.*)\)(\s{|\s=>\s{|{)((.|\n)*)\}/g)
-        ][0]
-        p[i] = {
-          name: i,
-          mouseevent: true,
-          code: m[3].trim(),
-          args: m[1].split(',').filter(v => v),
-          refs: ['state','meta']
-        }
-      }
     }
 
     return {type, props: p}
@@ -173,7 +142,7 @@ export function reducer(children) {
 /**
  * Transform back to react object
  */
-export function transform(children, components, refs) {
+export function transform(children, components) {
   if(!children) {
     return
   }
@@ -208,21 +177,14 @@ export function transform(children, components, refs) {
           p.style = v
         }
         if(i == 'children') {
-          p.children = transform(v, components, refs)
-        }
-        if(v.mouseevent) {
-          p[i] = toFunc(v.name, {
-            refs,
-            args: v.args,
-            code: v.code,
-          })
+          p.children = transform(v, components)
         }
       }
 
       if(isArr(v)) {
         p.children = v.map((i, k) => {
           if(isObj(i)) {
-            const child = transform(i, components, refs)
+            const child = transform(i, components)
             if(child[0]) {
               return {...child[0], key: k}
             }

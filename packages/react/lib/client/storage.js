@@ -196,8 +196,9 @@ export function getStore(initialState, context) {
  * Get state
  * @param {object} initialState 
  * @param {object} context 
+ * @param {function} callback 
  */
-export function getState(initialState = {}, context) {
+export function getState(initialState = {}, context, callback) {
   const {current} = React.useRef({})
   const [state, setState] = React.useState(initialState)
 
@@ -257,6 +258,18 @@ export function getState(initialState = {}, context) {
       }
       if(isFunc(data)) {
         return http.post({}).then(data)
+      }
+    },
+    /**
+     * Send POST request to the server
+     */
+    update(data) {
+      if(isObj(data)) {
+        const args = {
+          type: 'update',
+          data: merge(state, data)
+        }
+        http.post(args).then(callback)
       }
     },
   },

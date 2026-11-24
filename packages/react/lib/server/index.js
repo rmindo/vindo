@@ -93,6 +93,10 @@ function html(obj) {
 function head(children, bundle) {
   const env = process.env
   
+  if(!isArr(children)) {
+    children = [children]
+  }
+  
   /**
    * Show script only on development
    */
@@ -284,27 +288,6 @@ function getState(request) {
     state.eventId = makeId(request.method, state.name)
   }
 
-  /**
-   * State initializer
-   */
-  state.initialize = function(initialState) {
-    if(state.type == 'route' || state.type == 'initial') {
-      merge(state.data, initialState)
-    }
-
-    return new Proxy(state, {
-      get(target, key) {
-        if(key in target) {
-          return target[key]
-        }
-        return target.data[key]
-      },
-      set() {
-        throw new TypeError(`Cannot assign to read only object.`)
-      }
-    })
-  }
-
   return state
 }
 
@@ -313,19 +296,22 @@ function getState(request) {
  * Middleware
  */
 exports.server = function server() {
-  var context = {}
+  const temp = new Map()
   
   return async function(request, response, next, {meta, vindo, events}) {
     const route = getRoute(request)
     const state = getState(request)
     const bundle = getBundle(request, vindo)
     
+    /**
+     * Exclude path with extensions
+     */
+    if(request.extension) {
+      return next()
+    }
 
     meta.create(route)
-    meta.create({
-      bundle: true,
-      state: state.initialize
-    })
+    meta.create({bundle: true})
 
     /**
      * Response for 'fetch' event from client
@@ -344,12 +330,7 @@ exports.server = function server() {
      * Send data to client
      */
     async function dispatch(type, data = null) {
-      /**
-       * Exclude path with extensions
-       */
-      if(request.extension) {
-        return next()
-      }
+      temp.clear()
 
       switch(type) {
         /**
@@ -367,22 +348,15 @@ exports.server = function server() {
         case 'route':
         case 'update':
         case 'hydrate':
-          context = {}
           if(data) {
             if(data.component) {
               data.component = reducer(data.component)[0]
             }
             return response.json(data)
           }
-        case 'initial':
-          if(data) {
-            if(meta.bundle) {
-              context[bundle.hash] = data
-            }
-            return getReactDOM(bundle, data)
-          }
+        default:
+          next({state: request.body})    
       }
-      next()
     }
 
 
@@ -393,11 +367,17 @@ exports.server = function server() {
       const data = {
         component,
         meta: meta.data,
-        state: state.data,
+      }
+
+      if(state.type == 'initial') {
+        if(meta.bundle) {
+          temp.set(bundle.hash, data)
+        }
+        return getReactDOM(bundle, data)
       }
       return dispatch(state.type, data)
     })
 
-    await dispatch(state.type, context[bundle.hash])
+    await dispatch(state.type, temp.get(bundle.hash))
   }
 }

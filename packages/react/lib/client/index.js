@@ -33,9 +33,9 @@ const isValid = React.isValidElement
  */
 function update({path, type = 'update', ...data}) {
   const args = {
+    data,
     type,
     path,
-    data: merge(context.state, data)
   }
   http.get(args).then((data) => content.render(data, type))
 }
@@ -55,7 +55,7 @@ export function useStore(initialState = {}) {
  * @param {object} initialState
  */
 export function useState(initialState = {}) {
-  return getState(initialState, context)
+  return getState(initialState, context, content.render)
 }
 
 /**
@@ -71,18 +71,11 @@ export function render({head, body}, components) {
    * Render content
    */
   content.render = function render(data) {
-    context.add({
-      state: data.state,
-    })
     /**
      * Transform back to react component object
      */
     if(data.component) {
-      const refs = {
-        meta: data.meta,
-        state: {...data.state, update}
-      }
-      data.component = transform(data.component, components, refs)[0]
+      data.component = transform(data.component, components)[0]
     }
     
     head.render(components.head(data.meta))

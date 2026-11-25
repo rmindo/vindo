@@ -11,7 +11,7 @@ const fs = require('fs')
 const path = require('path')
 const React = require('react')
 const ReactDom = require('react-dom/server')
-const {isArr, isFunc, merge, reducer} = require('@vindo/react/util')
+const {isArr, isFunc, isStr, merge, reducer} = require('@vindo/react/util')
 
 /**
  * Shorthand
@@ -21,15 +21,12 @@ const create = React.createElement
 
 
 /**
- * Create HTTP state event ID
+ * Create event ID
  * @param {string} prefix 
- * @param {string} name 
+ * @param {string} string 
  */
-function makeId(prefix, name) {
-  if(!name) {
-    name = 'root'
-  }
-  return encode(prefix.concat(name)).replace(/=/, '')
+function make(prefix, string) {
+  return encode(prefix.concat(string)).replace(/=/g, '')
 }
 
 /**
@@ -270,12 +267,12 @@ function getState(request) {
     type: 'initial',
   }
 
-  const token = request.get('x-state-request')
-  if(token) {
-    merge(state, decode(token))
+  const type = request.get('x-request-type')
+  if(type) {
+    state.type = type
   }
 
-  if(['fetch', 'update'].includes(state.type)) {
+  if(['fetch', 'update'].includes(type)) {
     switch(request.method) {
       case 'GET':
         merge(state.data, request.query)
@@ -284,7 +281,7 @@ function getState(request) {
         merge(state.data, request.body)
         break
     }
-    state.eventId = makeId(request.method, state.name)
+    state.eventId = make(request.method, request.pathname)
   }
 
   return state
@@ -295,7 +292,6 @@ function getState(request) {
  * Middleware
  */
 exports.server = function server() {
-
   return async function(request, response, next, {meta, vindo, events}) {
     /**
      * Exclude path with extensions
@@ -310,6 +306,19 @@ exports.server = function server() {
 
     meta.create(route)
     meta.create({bundle: true})
+
+
+    /**
+     * Create fetch event
+     */
+    function fetchEvent(method, args) {
+      if(isStr(args[0])) {
+        events.on(make(method, args[0]), args[1])
+      }
+      if(isFunc(args[0])) {
+        events.on(make(method, meta.path), args[0])
+      }
+    }
 
     /**
      * Send data to client
@@ -330,7 +339,12 @@ exports.server = function server() {
         case 'fetch':
           var data = await events.emit(state.eventId, state.data)
           if(!data) {
-            return
+            if(events.has(state.eventId)) {
+              data = {}
+            }
+            else {
+              throw new Error(`No response initiated for ${request.method} request of ${request.pathname}.`)
+            }
           }
           return response.json(data)
         /**
@@ -353,14 +367,14 @@ exports.server = function server() {
     /**
      * Response for 'fetch' event from client
      */
-    response.get = function get(cb) {
-      events.on(makeId('GET', meta.name), cb)
+    response.get = function get() {
+      fetchEvent('GET', arguments)
     }
     /**
      * Response for 'fetch' event from client
      */
-    response.post = function post(cb) {
-      events.on(makeId('POST', meta.name), cb)
+    response.post = function post() {
+      fetchEvent('POST', arguments)
     }
 
     /**

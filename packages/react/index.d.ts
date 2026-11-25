@@ -14,9 +14,10 @@ declare module '@vindo/react/client' {
     component: React.FC
   }
   type LinkPropsType = {
-    href: string
+    path: string
     text?: string
     data?: object
+    skip?: boolean
     disabled?: boolean
     className?: string
     children?: React.ReactNode
@@ -27,6 +28,8 @@ declare module '@vindo/react/client' {
     state: () => any
     reload: () => void
     redirect: (href: string) => void
+    push: (href: string, data?: object) => void
+    skip: (href: string, data?: object) => void
     navigate: (href: string, data?: object) => void
   }
 

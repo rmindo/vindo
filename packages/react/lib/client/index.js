@@ -12,7 +12,7 @@ import ReactDom from 'react-dom/client'
 
 import event from '@vindo/react/event'
 import http from '@vindo/react/request'
-import {merge, transform} from '@vindo/react/util'
+import {transform} from '@vindo/react/util'
 import {getStore, getState, persistent, createContext} from '@vindo/react/storage'
 
 
@@ -156,19 +156,24 @@ export function Content({children, ...props}) {
  * Link
  * @param {object} props
  */
-export function Link({href, data, text, disabled, children, ...props}) {
-  if(!href) {
-    throw new ReferenceError(`No href property found or no value provided on property href.`)
+export function Link({path, data, text, skip = false, disabled, children, ...props}) {
+  if(!path) {
+    throw new ReferenceError(`No path property found or no value provided on property path.`)
   }
 
   return create('a', {
     ...props,
-    href,
+    href: path,
     onClick(e) {
       e.preventDefault()
 
       if(!disabled) {
-        Link.navigate(href, data)
+        if(skip) {
+          Link.skip(path, data)
+        }
+        else {
+          Link.navigate(path, data)
+        }
       }
     }
   }, text ?? children)
@@ -191,6 +196,15 @@ Link.reload = function reload() {
 }
 
 /**
+ * Push data to history state
+ * @param {string} href
+ * @param {object} data
+ */
+Link.push = function push(href, data = {}) {
+  window.history.pushState(data, null, href)
+}
+
+/**
  * Redirect to other page
  * @param {string} href
  */
@@ -199,16 +213,46 @@ Link.redirect = function redirect(href) {
 }
 
 /**
+ * Skip to new location without reloading the backend
+ * @param {string} href 
+ * @param {string} data
+ */
+Link.skip = function skip(href, data = {}) {
+  Link.push(href, data)
+
+  const path = href.split(/\//)
+  const name = path.at(-1)
+
+  function toWords(str) {
+    return str
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
+
+  context.add(data)
+  context.add({
+    meta: {
+      name,
+      path: href,
+      base: path[1],
+      title: toWords(name)
+    }
+  })
+  content.render({meta: context.meta})
+}
+
+/**
  * Navigate without reloading the page
  * @param {string} href 
  * @param {string} data
  */
 Link.navigate = function navigate(href, data = {}) {
-  context.add(data)
-
+  Link.push(href, data)
+  
   update({
     type: 'route',
     path: new URL(href, window.location.origin)
   })
-  window.history.pushState(data, null, href)
+  context.add(data)
 }

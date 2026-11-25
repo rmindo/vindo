@@ -119,7 +119,7 @@ function head(children, bundle) {
 
 
 /**
- * Set meta data to first level children in the DOM
+ * Set meta data to the first level children of the body
  * @param {array} children 
  * @param {object} args
  */
@@ -152,6 +152,9 @@ function body(children, data) {
  * @param {object} data
  */
 function getRoot(entrypoint, data) {
+  /**
+   * Resolve if the endpoint is from a package
+   */
   var file = resolve('node_modules', entrypoint)
   
   if(!fs.existsSync(file)) {
@@ -162,7 +165,7 @@ function getRoot(entrypoint, data) {
 
 
 /**
- * Get current location
+ * Get only relevant info
  * @param {object} req
  */
 function getRoute(req) {
@@ -177,28 +180,6 @@ function getRoute(req) {
 
 
 /**
- * Set bundle on specific basename
- * @param {object} vindo  
- */
-function getBundles(vindo) {
-  var data = {}
-
-  for(var pkg in vindo.bundles) {
-    var entry = [pkg].concat('src', 'react')
-
-    var [hash, name] = decode(vindo.bundles[pkg])
-    data[name] = {
-      hash,
-      file: `/${name}-${hash}.js`,
-      entry,
-      pages: entry.concat('pages')
-    }
-  }
-  return data
-}
-
-
-/**
  * Use bundle on specific basename if has one
  */
 function getBundle(req, vindo) {
@@ -206,7 +187,21 @@ function getBundle(req, vindo) {
     throw new ReferenceError('No bundles found in vindo config.')
   }
 
-  const bundles = getBundles(vindo)
+  const bundles = {}
+  for(var pkg in vindo.bundles) {
+    const entry = [pkg].concat('src', 'react')
+
+    const [hash, name] = decode(vindo.bundles[pkg])
+    bundles[name] = {
+      hash,
+      entry,
+      file: `/${name}-${hash}.js`,
+      pages: entry.concat('pages')
+    }
+  }
+  /**
+   * Get specific bundle using base path
+   */
   const bundle = bundles[req.base]
   if(bundle) {
     return bundle
@@ -227,8 +222,12 @@ function getBundle(req, vindo) {
  * @param {object} data 
  */
 function getReactDOM(bundle, data) {
-  var app = getRoot(bundle.entry, data.meta)
+  if(!data) {
+    return
+  }
+  const app = getRoot(bundle.entry, data.meta)
   
+
   function children(child, key) {
     /**
      * Add script and bundle to the head component
@@ -296,13 +295,8 @@ function getState(request) {
  * Middleware
  */
 exports.server = function server() {
-  const temp = new Map()
-  
+
   return async function(request, response, next, {meta, vindo, events}) {
-    const route = getRoute(request)
-    const state = getState(request)
-    const bundle = getBundle(request, vindo)
-    
     /**
      * Exclude path with extensions
      */
@@ -310,29 +304,26 @@ exports.server = function server() {
       return next()
     }
 
+    const route = getRoute(request)
+    const state = getState(request)
+    const bundle = getBundle(request, vindo)
+
     meta.create(route)
     meta.create({bundle: true})
-
-    /**
-     * Response for 'fetch' event from client
-     */
-    response.get = function get(cb) {
-      events.on(makeId('GET', meta.name), cb)
-    }
-    /**
-     * Response for 'fetch' event from client
-     */
-    response.post = function post(cb) {
-      events.on(makeId('POST', meta.name), cb)
-    }
 
     /**
      * Send data to client
      */
     async function dispatch(type, data = null) {
-      temp.clear()
-
       switch(type) {
+        /**
+         * Initial render
+         */
+        case 'initial':
+          if(data) {
+            return getReactDOM(bundle, data)
+          }
+          break
         /**
          * HTTP request
          */
@@ -349,35 +340,36 @@ exports.server = function server() {
         case 'update':
         case 'hydrate':
           if(data) {
-            if(data.component) {
+            if(meta.bundle && data.component) {
               data.component = reducer(data.component)[0]
             }
             return response.json(data)
           }
-        default:
-          next({state: request.body})    
+          break
       }
+      next({state: state.data})
     }
 
+    /**
+     * Response for 'fetch' event from client
+     */
+    response.get = function get(cb) {
+      events.on(makeId('GET', meta.name), cb)
+    }
+    /**
+     * Response for 'fetch' event from client
+     */
+    response.post = function post(cb) {
+      events.on(makeId('POST', meta.name), cb)
+    }
 
     /**
      * Render on first request
      */
     events.on('__render', function(component) {
-      const data = {
-        component,
-        meta: meta.data,
-      }
-
-      if(state.type == 'initial') {
-        if(meta.bundle) {
-          temp.set(bundle.hash, data)
-        }
-        return getReactDOM(bundle, data)
-      }
-      return dispatch(state.type, data)
+      return dispatch(state.type, {component, meta: meta.data})
     })
 
-    await dispatch(state.type, temp.get(bundle.hash))
+    await dispatch(state.type)
   }
 }

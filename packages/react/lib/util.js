@@ -105,7 +105,7 @@ export function reducer(children) {
      */
     if(isFunc(type)) {
       if(/^default_1/.test(type.name)) {
-        throw new ReferenceError(`Component function requires a name. Currently have a default name of '${type.name}'.`)
+        throw new ReferenceError(`Each component function must be named exactly the same as its file.`)
       }
       type = [type.name]
     }

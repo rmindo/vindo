@@ -12,19 +12,73 @@ import ReactDom from 'react-dom/client'
 
 import event from '@vindo/react/event'
 import http from '@vindo/react/request'
-import {transform} from '@vindo/react/util'
+import {isFunc, transformHTML} from '@vindo/react/util'
 import {getStore, getState, persistent, createContext} from '@vindo/react/storage'
 
 
 
 const content = {}
 const context = createContext({event})
+const persist = persistent(context)
 
 /**
  * Shorthand
  */
 const create = React.createElement
-const isValid = React.isValidElement
+
+
+
+/**
+ * Convert back to space separated words
+ * @param {string} str 
+ * @returns 
+ */
+function strip(str) {
+  return str
+    .split('-')
+    .map(word => {
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    })
+    .join(' ')
+}
+
+
+/**
+ * Create a template to store the HTML string and return as node
+ * @param {} data
+ */
+function toNode(data) {
+  const temp = document.createElement('template')
+  if(data) {
+    temp.innerHTML = data
+  }
+  return temp.content.children
+}
+
+
+/**
+ * Get main content of the page
+ * @param {object} children 
+ */
+function getChildren(children) {
+  for(var child of children) {
+    if(child.tagName == 'MAIN') return child.children
+  }
+}
+
+
+/**
+ * Transform to nested component tree object
+ * @param {string} path 
+ * @param {object} children 
+ * @param {object} components
+ */
+function transform(path, children, components) {
+  return create(View, {
+    path,
+    component: transformHTML(children, components)
+  })
+}
 
 
 /**
@@ -58,15 +112,17 @@ export function useState(initialState = {}) {
   return getState(initialState, context, content.render)
 }
 
+
 /**
  * Render react dom to root
  * @param {object} document 
  * @param {object} components 
  */
 export function render({head, body}, components) {
-  var head = ReactDom.createRoot(head)
-  var body = ReactDom.createRoot(body)
+  var headRoot = ReactDom.createRoot(head)
+  var bodyRoot = ReactDom.createRoot(body)
     
+
   /**
    * Render content
    */
@@ -74,12 +130,15 @@ export function render({head, body}, components) {
     /**
      * Transform back to react component object
      */
-    if(data.component) {
-      data.component = transform(data.component, components)[0]
+    if(data.children) {
+      data.children = transform(data.meta.path, toNode(data.children), components)
     }
-    
-    head.render(components.head(data.meta))
-    body.render(components.body(data))
+    if(data.meta.hydrate) {
+      data.children = transform(data.meta.path, getChildren(body.children), components)
+    }
+
+    headRoot.render(components.head(data.meta))
+    bodyRoot.render(components.body(data))
   }
 
   /**
@@ -95,13 +154,14 @@ export function render({head, body}, components) {
    * Make sure the entire page has finished loading, including all dependent resources (images, scripts, CSS files, etc.).
    */
   window.onload = function onload() {
+    const data = document.getElementById('hydrate')
     /**
      * Persistent data from history state and local storage
      */
     context.add(window.history.state)
-    context.add(persistent(context).data())
-    
-    http.get({type: 'hydrate'}).then(data => content.render(data))
+    context.add(persist.data())
+
+    content.render(JSON.parse(data.textContent))
   }
 }
 
@@ -116,11 +176,7 @@ export function View() {}
  * Context provider
  * @param {object} props
  */
-export function Provider({meta, children, component}) {
-  context.add({
-    meta,
-    component
-  })
+export function Provider({children}) {
   return React.createElement(React.Fragment, {children})
 }
 
@@ -129,24 +185,20 @@ export function Provider({meta, children, component}) {
  * Find current route
  * @param {object} props
  */
-export function Content({children, ...props}) {
+export function Content({children, meta, ...props}) {
   /**
-   * From backend: View content from backend (src/http)
+   * Render content
    */
-  if(isValid(context.component)) {
-    return create('div', props, context.component)
-  }
-  
-  /**
-   * From frontend: View content (<View path="/page-name" ...>) from react directory (src/react)
-   */
-  return create('div', props, React.Children.map(children, ({props}) => {
+  return create('main', props, React.Children.map(children, ({props}) => {
     if(!props.path) {
       throw new ReferenceError(`Property 'path' is required for View component.`)
     }
-
-    if(props.path == context.meta.path) {
-      return create(props.component, context.data)
+    
+    if(props.path == meta.path) {
+      if(isFunc(props.component)) {
+        return create(props.component, context.data)
+      }
+      return props.component
     }
   }))
 }
@@ -223,20 +275,13 @@ Link.skip = function skip(href, data = {}) {
   const path = href.split(/\//)
   const name = path.at(-1)
 
-  function toWords(str) {
-    return str
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ')
-  }
-
   context.add(data)
   context.add({
     meta: {
       name,
       path: href,
       base: path[1],
-      title: toWords(name)
+      title: strip(name)
     }
   })
   content.render({meta: context.meta})

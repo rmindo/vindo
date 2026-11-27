@@ -7,7 +7,7 @@
 'use strict'
 
 
-import {isObj, isArr} from '@vindo/react/util'
+import {merge, isObj, isArr} from '@vindo/react/util'
 
 
 const requestTypes = [
@@ -15,7 +15,6 @@ const requestTypes = [
   'fetch',
   'route',
   'update',
-  'hydrate',
   'generic',
 ]
 
@@ -157,7 +156,7 @@ export function request({data, path, type, ...args}) {
     method: 'GET',
     ...args,
     credentials: 'include',
-    headers: {'X-Request-Type': type}
+    headers: merge({'X-Request-Type': type}, args.headers)
   }
 
   return fetch(path, option).then((res) => res.json())

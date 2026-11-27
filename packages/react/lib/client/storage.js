@@ -13,6 +13,16 @@ import {copy, isStr, isObj, isFunc, merge, toHash} from '@vindo/react/util'
 
 
 /**
+ * Reserved keys of state
+ */
+const STATE_RESERVED_KEYS = [
+  'set',
+  'get',
+  'data',
+  'update',
+]
+
+/**
  * List of state keys
  */
 export const listners = {}
@@ -203,11 +213,17 @@ export function getState(initialState = {}, context, callback) {
   const [state, setState] = React.useState(initialState)
 
   if(!isObj(initialState)) {
-    throw Error('Custom state hook only allow object as parameter.')
+    throw TypeError('State hook only allow object as parameter.')
   }
+
+  STATE_RESERVED_KEYS.forEach((key) => {
+    if(key in initialState) {
+      throw TypeError(`You can't override a reserved key '${key}'.`)
+    }
+  })
   
   merge(current, state)
-  
+
   return new Proxy({
     data: current,
     
@@ -265,11 +281,7 @@ export function getState(initialState = {}, context, callback) {
      */
     update(data) {
       if(isObj(data)) {
-        const args = {
-          type: 'update',
-          data: merge(state, data)
-        }
-        http.post(args).then(callback)
+        http.post({type: 'update', data: merge(state, data)}).then(callback)
       }
     },
   },

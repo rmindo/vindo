@@ -85,30 +85,43 @@ function html(obj) {
 /**
  * Add a bundle script to head
  * @param children
+ * @param data
  * @param bundle
  */
-function head(children, bundle) {
-  const env = process.env
-  
+function head(children, data, bundle) {
+  const meta = data.meta
+
   if(!isArr(children)) {
     children = [children]
   }
-  
+
   /**
    * Show script only on development
    */
-  if(env.NODE_ENV == 'development') {
+  if(process.env.NODE_ENV == 'development') {
     children = children.concat(
-      create('script', {key: 0, src: env.DEV_SERVER}
+      create('script', {key: 0, src: process.env.DEV_SERVER}
     ))
   }
 
-  /**
-   * Inject bundle script by default. It can be disabled using meta.bundle = false
-   */
-  if(bundle) {
-    return children.concat(
-      create('script', {key: 1, id: 'bundle', type: 'module', src: bundle})
+
+  if(meta.bundle) {
+    if(data.children) {
+      meta.hydrate = true
+    }
+    /**
+     * Inject bundle script by default. It can be disabled using meta.bundle = false
+     */
+    if(bundle.file) {
+      children = children.concat(
+        create('script', {key: 1, id: 'bundle', type: 'module', src: bundle.file})
+      )
+    }
+    /**
+     * Metadata
+     */
+    children = children.concat(
+      create('script', {key: 1, id: 'hydrate', type: 'application/json'}, JSON.stringify({meta}))
     )
   }
   return children
@@ -137,14 +150,25 @@ function body(children, data) {
       if(!isFunc(child.type)) {
         return child
       }
-      return clone(child, {key, ...data})
+      
+      if(child.type.name === 'Content') {
+        return clone(child, {key, meta: data.meta}, child.props.children.concat(
+          create(React.Fragment, {
+            key: null,
+            path: data.meta.path,
+            component: data.children
+          })
+        ))
+      }
+
+      return clone(child, {key, meta: data.meta})
     }
   })
 }
 
 
 /**
- * Require main component from react directory
+ * Get main component from react directory (src/react/index)
  * @param {string} entrypoint
  * @param {object} data
  */
@@ -157,22 +181,12 @@ function getRoot(entrypoint, data) {
   if(!fs.existsSync(file)) {
     file = resolve(entrypoint)
   }
-  return require(file).default(data)
-}
 
-
-/**
- * Get only relevant info
- * @param {object} req
- */
-function getRoute(req) {
-  return {
-    url: req.url,
-    base: req.base,
-    name: req.name,
-    query: req.query,
-    path: req.pathname
+  if(!fs.existsSync(file)) {
+    throw Error(`No entrypoint found at '${file}'`)
   }
+
+  return require(file).default(data)
 }
 
 
@@ -232,7 +246,7 @@ function getReactDOM(bundle, data) {
     if(child.type == 'head') {
       return clone(child, {
         key,
-        children: head(child.props.children, data.meta.bundle && bundle.file)
+        children: head(child.props.children, data, bundle)
       })
     }
     /**
@@ -281,7 +295,7 @@ function getState(request) {
         merge(state.data, request.body)
         break
     }
-    state.eventId = make(request.method, request.pathname)
+    state.eventId = make(request.method, request.pathname.slice(1))
   }
 
   return state
@@ -291,8 +305,12 @@ function getState(request) {
 /**
  * Middleware
  */
-exports.server = function server() {
+exports.server = function server(conf = {}) {
   return async function(request, response, next, {meta, vindo, events}) {
+    meta.create({
+      bundle: true,
+      path: request.pathname
+    })
     /**
      * Exclude path with extensions
      */
@@ -300,12 +318,8 @@ exports.server = function server() {
       return next()
     }
 
-    const route = getRoute(request)
     const state = getState(request)
     const bundle = getBundle(request, vindo)
-
-    meta.create(route)
-    meta.create({bundle: true})
 
 
     /**
@@ -315,8 +329,12 @@ exports.server = function server() {
       if(isStr(args[0])) {
         events.on(make(method, args[0]), args[1])
       }
+      
       if(isFunc(args[0])) {
-        events.on(make(method, meta.path), args[0])
+        const eventId = make(method, meta.path.slice(1))
+        if(!events.has(eventId)) {
+          events.on(eventId, args[0])
+        }
       }
     }
 
@@ -337,31 +355,26 @@ exports.server = function server() {
          * HTTP request
          */
         case 'fetch':
-          var data = await events.emit(state.eventId, state.data)
-          if(!data) {
-            if(events.has(state.eventId)) {
-              data = {}
-            }
-            else {
-              throw new Error(`No response initiated for ${request.method} request of ${request.pathname}.`)
-            }
+          if(!events.has(state.eventId)) {
+            throw new Error(`No ${request.method} response initiated for ${request.pathname}.`)
           }
+          var data = await events.emit(state.eventId, state.data)
+
           return response.json(data)
         /**
          * Update page
          */
         case 'route':
         case 'update':
-        case 'hydrate':
           if(data) {
-            if(meta.bundle && data.component) {
-              data.component = reducer(data.component)[0]
+            if(meta.bundle && data.children) {
+              data.children = ReactDom.renderToString(reducer(data.children))
             }
             return response.json(data)
           }
           break
       }
-      next({state: state.data})
+      next({state: state.data, wildcard: conf.wildcard})
     }
 
     /**
@@ -380,8 +393,8 @@ exports.server = function server() {
     /**
      * Render on first request
      */
-    events.on('__render', function(component) {
-      return dispatch(state.type, {component, meta: meta.data})
+    events.on('__render', function(children) {
+      return dispatch(state.type, {children, meta: meta.data})
     })
 
     await dispatch(state.type)

@@ -7,6 +7,7 @@
 'use strict'
 
 
+import React from 'react'
 import runtime from 'react/jsx-runtime'
 
 
@@ -93,107 +94,72 @@ export function reducer(children) {
     children = [children]
   }
 
-  return children.map(({type, props}) => {
-    var p = {}
-
-    if(!props) {
-      return
-    }
-
-    /**
-     * Component function
-     */
-    if(isFunc(type)) {
-      if(/^default_1/.test(type.name)) {
+  return children.map((child, key) => {
+    if(isFunc(child.type)) {
+      if(/^default_1/.test(child.type.name)) {
         throw new ReferenceError(`Each component function must be named exactly the same as its file.`)
       }
-      type = [type.name]
+      return React.createElement('div', {key, id: child.type.name})
     }
 
-    for(var i in props) {
-      var v = props[i]
-
-      if(isStr(v) || isNum(v)) {
-        p[i] = v
-      }
-      if(isArr(v)) {
-        p.children = v.map((v) => {
-          if(isObj(v)) {
-            return reducer(v)[0]
-          }
-          return v
-        })
-      }
-      if(isObj(v)) {
-        if(i == 'style') {
-          p.style = v
-        }
-        if(i == 'children') {
-          p.children = reducer(v)
-        }
-      }
+    if(child.props?.children) {
+      return React.cloneElement(child, {key, ...child.props}, reducer(child.props.children))
     }
-
-    return {type, props: p}
+    return child
   })
+}
+
+
+function toCamelCase(str) {
+  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())
 }
 
 
 /**
  * Transform back to react object
  */
-export function transform(children, components) {
-  if(!children) {
-    return
-  }
-  if(!isArr(children)) {
-    children = [children]
-  }
+export function transformHTML(children, components) {
+  
+  return Array.from(children, (child, key) => {
+    const length = child.children.length
 
-  return children.map(({type, props}, key) => {
-    var p = {}
 
-    if(!props) {
-      return
-    }
+    const attributes = Object.fromEntries(
+      Array.from(child.attributes, attr => {
+        return [attr.name, attr.value]
+      })
+    )
+    delete attributes.selected
 
-    if(isArr(type)) {
-      const key = type[0]
-      type = components[key]
-      if(!type) {
-        throw TypeError(`Cannot read property '${key}'.`)
-      }
-    }
 
-    for(var i in props) {
-      var v = props[i]
-
-      if(isStr(v) || isNum(v)) {
-        p[i] = v
-      }
-
-      if(isObj(v)) {
-        if(i == 'style') {
-          p.style = v
+    if(child.children) {
+      if(!['INPUT','OPTION','TEXTAREA'].includes(child.tagName)) {
+        if(length == 0) {
+          attributes.children = child.textContent
         }
-        if(i == 'children') {
-          p.children = transform(v, components)
+        else {
+          attributes.children = transformHTML(child.children, components)
         }
       }
-
-      if(isArr(v)) {
-        p.children = v.map((i, k) => {
-          if(isObj(i)) {
-            const child = transform(i, components)
-            if(child[0]) {
-              return {...child[0], key: k}
-            }
-          }
-          return i
-        })
-      }
+    }
+    
+    if(components[child.id]) {
+      return runtime.jsx(components[child.id], attributes, key)
     }
 
-    return runtime[Array.isArray(p.children) ? 'jsxs' : 'jsx'](type, p, key)
+
+    if(attributes.style) {
+      const style = attributes.style.split(';').map(item => {
+        const str = item.split(':')
+        
+        return [
+          toCamelCase(str[0].trim()),
+          str[1]?.trim()
+        ]
+      })
+      attributes.style = Object.fromEntries(style.filter(([_, value]) => value !== undefined))
+    }
+
+    return runtime[(length > 1) ? 'jsxs' : 'jsx'](child.localName, attributes, key)
   })
 }

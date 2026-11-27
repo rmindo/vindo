@@ -10,11 +10,8 @@ const data = {}
 /**
  * Template for components to be imported
  */
-{REACT_COMPONENTS}
 {IMPORTED_COMPONENTS}
-
-
-data.Link = client.Link
+{REACT_COMPONENTS}
 
 
 if(data.head || data.body) {

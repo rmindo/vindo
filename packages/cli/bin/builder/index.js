@@ -24,12 +24,13 @@ function getname(val) {
 
 /**
  * Get chunk
- * @param {string} dir 
+ * @param {string} opt 
  */
-async function getChunk(dir) {
-	var code = []
-	var files = await file.readdir(dir, {recursive: true})
+async function getChunk(opt) {
+	var entry = resolve.dirname(opt.entry)
+	var files = await file.readdir(entry, {recursive: true})
 	
+	var code = []
 	if(!files) {
 		return code
 	}
@@ -40,6 +41,11 @@ async function getChunk(dir) {
 		}
 
 		var name = getname(name)
+		var parent = getname(parentPath)
+		if(name == 'index' && parent == 'react' || parent == 'pages') {
+			continue
+		}
+
 		if(name) {
 			var _file = file.path.join(parentPath, name)
 
@@ -95,7 +101,7 @@ async function getComponents(opt) {
 		}
 	}
 
-	return data.concat(await getChunk(opt.components))
+	return data.concat(await getChunk(opt))
 }
 
 
@@ -168,7 +174,7 @@ async function startBundle(opt) {
 	})
 
 	if(file.exists(opt.chunk)) {
-		file.unlink(opt.chunk)
+		// file.unlink(opt.chunk)
 	}
 }
 

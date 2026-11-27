@@ -1,5 +1,5 @@
 declare module '@vindo/react' {
-  export function server(): Function;
+  export function server(config?:object): Function;
 }
 
 declare module '@vindo/react/store'
@@ -37,5 +37,4 @@ declare module '@vindo/react/client' {
   export function useStore(state?:DataType): any
   export function View(props:ViewType): JSX.Element
   export function Content(props:DataType): JSX.Element
-  export function Provider(props:DataType): JSX.Element
 }

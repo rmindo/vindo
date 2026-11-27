@@ -231,7 +231,7 @@ function getErrorHandler({path, root}, code) {
    */
   const paths = [
     root.concat(code),
-    root.concat('error')
+    root.concat('[error]')
   ]
   for(var path of paths) {
     if(exists(path)) return get(path)
@@ -517,9 +517,9 @@ async function isFuncName(route, args) {
 async function isFromDefault(route, args) {
   var methods = route.methods
   /**
-   * Prevent sending new headers, No function/default found, and already ended response
+   * No methods/default found, and already ended response, and allow wildcard routing
    */
-  if(!methods || !isFunc(methods.default) || isEnded(args[2]) || !isAbsolute(route.path) && !isPathEqual(route)) {
+  if(!methods || !isFunc(methods.default) || isEnded(args[2]) || !args[3].wildcard && !isAbsolute(route.path) && !isPathEqual(route)) {
     return false
   }
 
